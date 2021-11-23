@@ -12,6 +12,7 @@ from matplotlib.colors import BoundaryNorm
 from matplotlib.ticker import MaxNLocator
 from scripts.theodolite_utils import *
 from scripts.theodolite_values import *
+import matplotlib.patches as mpatches
 
 ###################################################################################################
 ###################################################################################################
@@ -112,7 +113,7 @@ def plot_subtrajectory_result(i, list_trajectories_split, trimble_1, trimble_2, 
 # Input:
 # - i: chosen number of the sub-trajectory in interpolated_trajectories
 # - interpolated_trajectories: list of the interpolated sub-trajectories
-def plot_interpolated_subtrajectory_result(i, interpolated_trajectories):
+def plot_interpolated_subtrajectory_result(k, interpolated_trajectories):
 	plt.figure()
 	plt.plot(interpolated_trajectories[k][0][0], interpolated_trajectories[k][0][1], 'r', marker=".")
 	plt.plot(interpolated_trajectories[k][1][0], interpolated_trajectories[k][1][1], 'g', marker=".")
@@ -1064,5 +1065,102 @@ def subplot_prism_error_and_gps(interpolated_trajectories, interpolated_time, ti
 	#fig.tight_layout()
 	plt.show()
 	if(save_fig):
+		fig.savefig(name_file, bbox_inches='tight')
+
+# Function to plot the inter-GPS error with the inter-prism error in 3 subplot, 1: both inter error over time in interval 1,
+# 2: both inter error over time in interval 2, 3: histogram of both inter error
+# Input:
+# - time: list of the interpolated trajectories
+# - error_distance: list of the time for each interpolated trajectories
+# - save_fig: param if we want to save the figure in pdf
+# - name_file: name of the file to save the figure
+# - interval: list of 3x1x2 array of the interval of time to sort the data, [0]: begin and [1] end
+def subplot_prisms_error(time, error_distance, save_fig, name_file):
+
+	origin_time = time[0]
+	total_samples = len(time)
+	time_value_arr = np.array(time)-origin_time
+	mean_prism12 = np.mean(np.array(error_distance).T[0])
+	std_prism12 = np.std(np.array(error_distance).T[0])
+	mean_prism13 = np.mean(np.array(error_distance).T[1])
+	std_prism13 = np.std(np.array(error_distance).T[1])
+	mean_prism23 = np.mean(np.array(error_distance).T[2])
+	std_prism23 = np.std(np.array(error_distance).T[2])
+	print(total_samples)
+	print(mean_prism12, mean_prism13, mean_prism23)
+	print(std_prism12, std_prism13, std_prism23)
+
+	number_bins = 20
+
+	gs1 = GridSpec(1, 1)
+	gs1.update(left=0.12, right=0.35, wspace=0.05, bottom=0.24)
+
+	fig = plt.figure(figsize=(8, 2))
+	# fig, axs = plt.subplots(1, 3, figsize=(6, 2), gridspec_kw={'width_ratios': [1, 1, 1]}, constrained_layout = True)
+	# fig, axs = plt.subplots(1, 3, figsize=(6, 2))
+
+	axs0 = plt.subplot(gs1[:, -1])
+	axs0.plot(time_value_arr, np.array(error_distance).T[0], 'sienna', label="E12", alpha=0.7)
+	axs0.plot(time_value_arr, np.array(error_distance).T[1], 'darkblue', label="E13", alpha=0.7)
+	axs0.plot(time_value_arr, np.array(error_distance).T[2], 'goldenrod', label="E23", alpha=0.7)
+	#axs0.set_ylim([0, 600])
+	axs0.set_xlabel('Time [s]')
+	axs0.set_ylabel('Error [mm]')
+	axs0.set_yscale('symlog')
+
+	gs2 = GridSpec(1, 3)
+	gs2.update(left=0.43, right=0.9, wspace=0.47, bottom=0.24)
+
+	axs1 = plt.subplot(gs2[:, 0])
+	logbins = np.geomspace(np.min(np.array(error_distance).T[0]), np.max(np.array(error_distance).T[0]), number_bins)
+	sns.distplot(np.array(error_distance).T[0], kde=False, color='sienna', bins=logbins, hist_kws={'edgecolor': 'None', 'alpha': 0.7},
+				 ax=axs1)
+	axs1.set_ylabel("Counts")
+
+	axs2 = plt.subplot(gs2[:, 1])
+	logbins = np.geomspace(np.min(np.array(error_distance).T[1]), np.max(np.array(error_distance).T[1]), number_bins)
+	sns.distplot(np.array(error_distance).T[1], kde=False, color='darkblue', bins=logbins,
+				 hist_kws={'edgecolor': 'None', 'alpha': 0.7}, ax=axs2)
+	axs2.set_xlabel("Error [mm]")
+
+	axs3 = plt.subplot(gs2[:, -1])
+	logbins = np.geomspace(np.min(np.array(error_distance).T[2]), np.max(np.array(error_distance).T[2]), number_bins)
+	sns.distplot(np.array(error_distance).T[2], kde=False, color='goldenrod', bins=logbins, hist_kws={'edgecolor': 'None', 'alpha': 0.7},
+				 ax=axs3)
+	# axs[2].set_xlim([0, 25])
+	# ax2.set_xlim([begin_time, end_time])
+	# axs[2].set_ylim([0, 200000])
+	# ax2.set_ylim([0, 200000])
+	#align_yaxis(axs2, 0, ax22, 0)
+	axs1.set_xscale('symlog')
+	axs1.set_yscale('symlog')
+	axs2.set_xscale('symlog')
+	axs2.set_yscale('symlog')
+	axs3.set_xscale('symlog')
+	axs3.set_yscale('symlog')
+	# axs[1].legend()
+	# ax2.legend()
+	# plt.rc('font', size=12)
+
+	fig.subplots_adjust(wspace=0.3, bottom = 0.26, top = 0.82)
+	#lines = []
+	#labels = []
+	#axLine, axLabel = axs0.get_legend_handles_labels()
+	#lines.extend(axLine)
+	#labels.extend(axLabel)
+	# fig.legend(lines, labels, bbox_to_anchor=(0, 1, 1, 0), loc='upper center', ncol=2)
+	# fig.legend(handles=[h0, h1, h2], labels=[l0, l1, l2], bbox_to_anchor=(0, 1, 1, 0), loc='upper center')
+	#handles, labels = ax.get_legend_handles_labels()
+
+	brown_patch = mpatches.Patch(color='sienna', label='E12')
+	blue_patch = mpatches.Patch(color='darkblue', label='E13')
+	yellow_patch = mpatches.Patch(color='goldenrod', label='E23')
+	handles = [brown_patch, blue_patch, yellow_patch]
+	labels = ['Inter-prism 12', 'Inter-prism 13', 'Inter-prism 23']
+	fig.legend(handles, labels, bbox_to_anchor=(0, 1, 1, 0), loc='upper center', ncol=3)
+	#fig.subplots_adjust(wspace=0.1, hspace=0)
+	#fig.tight_layout()
+	plt.show()
+	if (save_fig):
 		fig.savefig(name_file, bbox_inches='tight')
 
