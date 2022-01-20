@@ -180,6 +180,59 @@ def read_rosbag_icp(filename):
 
 	return pose, time_icp
 
+# Function which read a csv file of points data with their timestamps
+# Input:
+# - file: name of the csv file to open
+# Output:
+# - Time: list of timestamp
+# - data: list of array of axis value for points
+def read_point_data_csv_file(file_name):
+	Px = []
+	Py = []
+	Pz = []
+	P1 = []
+	Time = []
+	data = []
+	# Read text file
+	file = open(file_name, "r")
+	line = file.readline()
+	while line:
+		item = line.split(" ")
+		Time.append(float(item[0]))
+		Px.append(float(item[1]))
+		Py.append(float(item[2]))
+		Pz.append(float(item[3]))
+		P1.append(1)
+		array_point = np.array([float(item[1]), float(item[2]), float(item[3]), P1])
+		data.append(array_point)
+		line = file.readline()
+	file.close()
+	data_arr = np.array(data).T
+	#data.append(Py)
+	#data.append(Pz)
+	#data.append(P1)
+	return Time, data_arr
+
+def read_prediction_data_csv_file(file_name):
+	data = []
+	# Read text file
+	file = open(file_name, "r")
+	line = file.readline()
+	while line:
+		item = line.split(" ")
+		Time = float(item[0])
+		Px = float(item[1])
+		Py = float(item[2])
+		Pz = float(item[3])
+		C1 = float(item[4])
+		C2 = float(item[5])
+		C3 = float(item[6])
+		array_point = np.array([Time, Px, Py, Pz, C1, C2, C3])
+		data.append(array_point)
+		line = file.readline()
+	file.close()
+	return data
+
 # Function which convert interpolated data pose into a specific format to use evo library
 # Input:
 # - interpolated_time: list of timestamp of the pose
@@ -466,6 +519,26 @@ def Convert_data_to_csv(time_data, point_data, file_name):
 		csv_file.write(str(j[1]))
 		csv_file.write(" ")
 		csv_file.write(str(j[2]))
+		csv_file.write("\n")
+	csv_file.close()
+	print("Conversion done !")
+
+def Convert_data_prediction_to_csv(time_data, prediction, file_name):
+	csv_file = open(file_name, "w+")
+	for i,j in zip(time_data, prediction):
+		csv_file.write(str(i))
+		csv_file.write(" ")
+		csv_file.write(str(j[1]))
+		csv_file.write(" ")
+		csv_file.write(str(j[2]))
+		csv_file.write(" ")
+		csv_file.write(str(j[3]))
+		csv_file.write(" ")
+		csv_file.write(str(j[4]))
+		csv_file.write(" ")
+		csv_file.write(str(j[5]))
+		csv_file.write(" ")
+		csv_file.write(str(j[6]))
 		csv_file.write("\n")
 	csv_file.close()
 	print("Conversion done !")

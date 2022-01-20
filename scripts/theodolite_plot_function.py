@@ -24,6 +24,54 @@ import matplotlib.patches as mpatches
 # - trimble_1: list of points obtain by the theodolite 1
 # - trimble_2: list of points obtain by the theodolite 2
 # - trimble_3: list of points obtain by the theodolite 3
+# - plot_3d: param to set a 3D plot of the trajectories
+# - save_pdf: param if we want to save the figure in pdf
+# - file_pdf: name of the file to save the figure
+# - plot_equal: param to set the axis equal in 2D plot
+def plot_trajectories_prism_alone(number_data, trimble_1, trimble_2, trimble_3, plot_3d, save_pdf, file_pdf, plot_equal):
+	fig = plt.figure(figsize=(10,7))
+	if(plot_3d == 1):
+		ax = fig.add_subplot(111, projection='3d')
+		# Prisms trajectories in theodolite 1 frame
+		ax.scatter(trimble_1[0], trimble_1[1], trimble_1[2], c='r', marker='.', label="Prism with rasp 1")
+		if(number_data>1):
+			ax.scatter(trimble_2[0], trimble_2[1], trimble_2[2], c='b', marker='.', label="Prism with rasp 2")
+		if(number_data>2):
+			ax.scatter(trimble_3[0], trimble_3[1], trimble_3[2], c='g', marker='.', label="Prism with rasp 3")
+		ax.set_xlabel('X Label')
+		ax.set_ylabel('Y Label')
+		ax.set_zlabel('Z Label')
+		ax.legend(loc='best')
+		if(plot_equal==1):
+			ax.set_aspect('equal')
+	if(plot_3d == 0):
+		ax = fig.add_subplot(111)
+		# Prisms trajectories in theodolite 1 frame
+		ax.scatter(trimble_1[0], trimble_1[1], c='r', marker='.', label="Prism with rasp 1")
+		if(number_data>1):
+			ax.scatter(trimble_2[0], trimble_2[1], c='b', marker='.', label="Prism with rasp 2")
+		if(number_data>2):
+			ax.scatter(trimble_3[0], trimble_3[1], c='g', marker='.', label="Prism with rasp 3")
+		ax.set_xlabel('X Label')
+		ax.set_ylabel('Y Label')
+		ax.legend(loc='best')
+		if(plot_equal==1):
+			ax.set_aspect('equal')
+	plt.show()
+	#plt.gca().set_aspect('equal', adjustable='box')
+	fig.tight_layout()
+	if save_pdf == 1:
+		if plot_3d == 1:
+			fig.savefig(file_pdf, bbox_inches='tight')
+		else:
+			fig.savefig(file_pdf, bbox_inches='tight')
+
+# Function to plot the different trajectories found by each theodolite, and the theodolite position
+# Input:
+# - number_data: number of trajectories to plot
+# - trimble_1: list of points obtain by the theodolite 1
+# - trimble_2: list of points obtain by the theodolite 2
+# - trimble_3: list of points obtain by the theodolite 3
 # - T_1_rasp: Frame of the theodolite 1, according to the chosen frame
 # - T_12_rasp: Frame of the theodolite 2, according to the chosen frame
 # - T_13_rasp: Frame of the theodolite 3, according to the chosen frame
