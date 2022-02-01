@@ -129,7 +129,8 @@ def check_if_in_interval(list_trajectories_split, size_interval, time_trimble_1,
     traj_2 = []
     traj_3 = []
     for j in list_trajectories_split:
-        if (j[:, 0][1] - j[:, 0][0] > size_interval and j[:, 1][1] - j[:, 1][0] > size_interval and j[:, 2][1] - j[:, 2][0] > size_interval):
+        if (j[:, 0][1] - j[:, 0][0] > size_interval and j[:, 1][1] - j[:, 1][0] > size_interval
+                and j[:, 2][1] - j[:, 2][0] > size_interval):
             interval_1 = j[:, 0]
             interval_2 = j[:, 1]
             interval_3 = j[:, 2]
@@ -140,7 +141,7 @@ def check_if_in_interval(list_trajectories_split, size_interval, time_trimble_1,
             traj_2 = trimble_2[0:3, interval_2[0]:interval_2[1]]
             traj_3 = trimble_3[0:3, interval_3[0]:interval_3[1]]
             min_interval = min(time_1[0], time_2[0], time_3[0])
-            max_interval = max(time_1[-1], time_2[-1], time_3[-1])
+            max_interval = max(time_1[-1], time_2[-1], time_3[-1])+1
             if (target_time <= max_interval and target_time >= min_interval):
                 isInInterval = True
                 break
@@ -217,60 +218,79 @@ def data_training_GP(time_1, time_2, time_3, traj_1, traj_2, traj_3, index_1, in
     return T_1_train_GP, X_1_train_GP, Y_1_train_GP, Z_1_train_GP, T_2_train_GP, X_2_train_GP, Y_2_train_GP, Z_2_train_GP, T_3_train_GP, X_3_train_GP, Y_3_train_GP, Z_3_train_GP
 
 def training_MGPO(num_restarts, verbose, T_MGPO, S_MGPO):
-    K = GPy.kern.Matern52(1)
+    input_dim = 1
+    #variance = 0.002
+    variance_constraint = 1
+    #lengthscale = 1.
+    #K = GPy.kern.Matern52(input_dim=input_dim, variance=variance, lengthscale=lengthscale)
+    K = GPy.kern.Matern52(input_dim=input_dim)
     icm = GPy.util.multioutput.ICM(input_dim=1, num_outputs=9, kernel=K)
     m = GPy.models.GPCoregionalizedRegression(T_MGPO, S_MGPO, kernel=icm)
-    m['.*Mat52.var'].constrain_fixed(1.)
+    #m['.*Mat52.var'].constrain_fixed(variance_constraint)
+    m.optimize(messages=verbose)
     m.optimize_restarts(num_restarts=num_restarts, verbose=verbose)
     return m
 
 def training_GP(num_restarts, verbose, T_1_train_GP, X_1_train_GP, Y_1_train_GP, Z_1_train_GP, T_2_train_GP, X_2_train_GP, Y_2_train_GP, Z_2_train_GP, T_3_train_GP, X_3_train_GP, Y_3_train_GP, Z_3_train_GP):
     input_dim = 1
     variance = 0.002
+    variance_constraint = 1000
     lengthscale = 1.
+
     kx1 = GPy.kern.Matern52(input_dim=input_dim, variance=variance, lengthscale=lengthscale)
     m_x1 = GPy.models.GPRegression(T_1_train_GP, X_1_train_GP, kx1)
-    m_x1['.*Mat52.var'].constrain_fixed(1.)
+    m_x1['.*Mat52.var'].constrain_fixed(variance_constraint)
+    m_x1.optimize(messages=verbose)
     m_x1.optimize_restarts(num_restarts=num_restarts, verbose=verbose)
-
-    ky1 = GPy.kern.Matern52(input_dim=input_dim, variance=variance, lengthscale=lengthscale)
+    #m_x1.optimize(messages=verbose)
+    ky1 = GPy.kern.Matern52(input_dim=input_dim)
     m_y1 = GPy.models.GPRegression(T_1_train_GP, Y_1_train_GP, ky1)
-    m_y1['.*Mat52.var'].constrain_fixed(1.)
+    m_y1['.*Mat52.var'].constrain_fixed(variance_constraint)
+    m_y1.optimize(messages=verbose)
     m_y1.optimize_restarts(num_restarts=num_restarts, verbose=verbose)
+    #m_y1.optimize(messages=verbose)
 
-    kz1 = GPy.kern.Matern52(input_dim=input_dim, variance=variance, lengthscale=lengthscale)
+    kz1 = GPy.kern.Matern52(input_dim=input_dim)
     m_z1 = GPy.models.GPRegression(T_1_train_GP, Z_1_train_GP, kz1)
-    m_z1['.*Mat52.var'].constrain_fixed(1.)
+    m_y1.optimize(messages=verbose)
+    m_z1['.*Mat52.var'].constrain_fixed(variance_constraint)
     m_z1.optimize_restarts(num_restarts=num_restarts, verbose=verbose)
+    #m_z1.optimize(messages=verbose)
 
-    kx2 = GPy.kern.Matern52(input_dim=input_dim, variance=variance, lengthscale=lengthscale)
+    kx2 = GPy.kern.Matern52(input_dim=input_dim)
     m_x2 = GPy.models.GPRegression(T_2_train_GP, X_2_train_GP, kx2)
-    m_x2['.*Mat52.var'].constrain_fixed(1.)
+    m_x2['.*Mat52.var'].constrain_fixed(variance_constraint)
+    m_x2.optimize(messages=verbose)
     m_x2.optimize_restarts(num_restarts=num_restarts, verbose=verbose)
 
-    ky2 = GPy.kern.Matern52(input_dim=input_dim, variance=variance, lengthscale=lengthscale)
+    ky2 = GPy.kern.Matern52(input_dim=input_dim)
     m_y2 = GPy.models.GPRegression(T_2_train_GP, Y_2_train_GP, ky2)
-    m_y2['.*Mat52.var'].constrain_fixed(1.)
+    m_y2['.*Mat52.var'].constrain_fixed(variance_constraint)
+    m_y2.optimize(messages=verbose)
     m_y2.optimize_restarts(num_restarts=num_restarts, verbose=verbose)
 
-    kz2 = GPy.kern.Matern52(input_dim=input_dim, variance=variance, lengthscale=lengthscale)
+    kz2 = GPy.kern.Matern52(input_dim=input_dim)
     m_z2 = GPy.models.GPRegression(T_2_train_GP, Z_2_train_GP, kz2)
-    m_z2['.*Mat52.var'].constrain_fixed(1.)
+    m_z2['.*Mat52.var'].constrain_fixed(variance_constraint)
+    m_z2.optimize(messages=verbose)
     m_z2.optimize_restarts(num_restarts=num_restarts, verbose=verbose)
 
-    kx3 = GPy.kern.Matern52(input_dim=input_dim, variance=variance, lengthscale=lengthscale)
+    kx3 = GPy.kern.Matern52(input_dim=input_dim)
     m_x3 = GPy.models.GPRegression(T_3_train_GP, X_3_train_GP, kx3)
-    m_x3['.*Mat52.var'].constrain_fixed(1.)
+    m_x3['.*Mat52.var'].constrain_fixed(variance_constraint)
+    m_x3.optimize(messages=verbose)
     m_x3.optimize_restarts(num_restarts=num_restarts, verbose=verbose)
 
-    ky3 = GPy.kern.Matern52(input_dim=input_dim, variance=variance, lengthscale=lengthscale)
+    ky3 = GPy.kern.Matern52(input_dim=input_dim)
     m_y3 = GPy.models.GPRegression(T_3_train_GP, Y_3_train_GP, ky3)
-    m_y3['.*Mat52.var'].constrain_fixed(1.)
+    m_y3['.*Mat52.var'].constrain_fixed(variance_constraint)
+    m_y3.optimize(messages=verbose)
     m_y3.optimize_restarts(num_restarts=num_restarts, verbose=verbose)
 
-    kz3 = GPy.kern.Matern52(input_dim=input_dim, variance=variance, lengthscale=lengthscale)
+    kz3 = GPy.kern.Matern52(input_dim=input_dim)
     m_z3 = GPy.models.GPRegression(T_3_train_GP, Z_3_train_GP, kz3)
-    m_z3['.*Mat52.var'].constrain_fixed(1.)
+    m_z3['.*Mat52.var'].constrain_fixed(variance_constraint)
+    m_z3.optimize(messages=verbose)
     m_z3.optimize_restarts(num_restarts=num_restarts, verbose=verbose)
 
     return m_x1, m_y1, m_z1, m_x2, m_y2, m_z2, m_x3, m_y3, m_z3
