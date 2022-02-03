@@ -637,7 +637,7 @@ def Convert_inter_distance_to_csv(time_data, distance, file_name):
 def read_calibration_gps_prism(file_name, file_name_output):
 	file = open(file_name, "r")
 	line = file.readline()
-	points_prism = []
+	points = []
 	while line:
 		item = line.split(" ")
 		ha = float(item[0])+float(item[1])*1/60+float(item[2])*1/3600
@@ -646,19 +646,19 @@ def read_calibration_gps_prism(file_name, file_name_output):
 		va_sigma = float(item[9])+float(item[10])*1/60+float(item[11])*1/3600
 		d = float(item[12])
 		d_sigma = float(item[13])
-		points_prism.append(give_points_without_correction(d, ha, va, 1))
+		points.append(give_points_without_correction(d, ha, va, 1))
 		line = file.readline()
 	file.close()
 
-	dp12 = np.linalg.norm(points_prism[0]-points_prism[1], axis=0)
-	dp13 = np.linalg.norm(points_prism[0] - points_prism[2], axis=0)
-	dp23 = np.linalg.norm(points_prism[1] - points_prism[2], axis=0)
-	dg12 = np.linalg.norm(points_prism[3] - points_prism[4], axis=0)
-	dg13 = np.linalg.norm(points_prism[3] - points_prism[5], axis=0)
-	dg23 = np.linalg.norm(points_prism[4] - points_prism[5], axis=0)
+	dp12 = np.linalg.norm(points[0]-points[1], axis=0)
+	dp13 = np.linalg.norm(points[0] - points[2], axis=0)
+	dp23 = np.linalg.norm(points[1] - points[2], axis=0)
+	dg12 = np.linalg.norm(points[3] - points[4], axis=0)
+	dg13 = np.linalg.norm(points[3] - points[5], axis=0)
+	dg23 = np.linalg.norm(points[4] - points[5], axis=0)
 
-	print(dp12, dp13, dp23)
-	print(dg12, dg13, dg23)
+	print("Distance inter-prism: ", dp12, dp13, dp23)
+	print("Distance inter-GPS: ", dg12, dg13, dg23)
 
 	csv_file = open(file_name_output, "w+")
 	csv_file.write(str(dp12))
@@ -676,6 +676,61 @@ def read_calibration_gps_prism(file_name, file_name_output):
 	csv_file.close()
 
 	print("Conversion done !")
+
+	return points[0], points[1], points[2], points[3], points[4], points[5]
+
+
+def read_calibration_gps_prism_lidar(file_name, file_name_output):
+	file = open(file_name, "r")
+	line = file.readline()
+	points = []
+	distance_lidar_top_to_lidar_origin = 0.063  # In meter, for RS32 on warthog
+	while line:
+		item = line.split(" ")
+		ha = float(item[0]) + float(item[1]) * 1 / 60 + float(item[2]) * 1 / 3600
+		ha_sigma = float(item[3]) + float(item[4]) * 1 / 60 + float(item[5]) * 1 / 3600
+		va = float(item[6]) + float(item[7]) * 1 / 60 + float(item[8]) * 1 / 3600
+		va_sigma = float(item[9]) + float(item[10]) * 1 / 60 + float(item[11]) * 1 / 3600
+		d = float(item[12])
+		d_sigma = float(item[13])
+		points.append(give_points_without_correction(d, ha, va, 1))
+		line = file.readline()
+	file.close()
+
+	dp12 = np.linalg.norm(points[0] - points[1], axis=0)
+	dp13 = np.linalg.norm(points[0] - points[2], axis=0)
+	dp23 = np.linalg.norm(points[1] - points[2], axis=0)
+	dg12 = np.linalg.norm(points[3] - points[4], axis=0)
+	dg13 = np.linalg.norm(points[3] - points[5], axis=0)
+	dg23 = np.linalg.norm(points[4] - points[5], axis=0)
+
+	l1 = points[6]
+	l23 = points[7] - points[8]
+	l4 = l1 - l23  # Vecteur directionnel lidar altitude
+	l4n = 1 / np.linalg.norm(l4, axis=0)
+	l = l1 - distance_lidar_top_to_lidar_origin * l4n
+
+	print("Distance inter-prism: ", dp12, dp13, dp23)
+	print("Distance inter-GPS: ", dg12, dg13, dg23)
+
+	csv_file = open(file_name_output, "w+")
+	csv_file.write(str(dp12))
+	csv_file.write(" ")
+	csv_file.write(str(dp13))
+	csv_file.write(" ")
+	csv_file.write(str(dp23))
+	csv_file.write(" ")
+	csv_file.write(str(dg12))
+	csv_file.write(" ")
+	csv_file.write(str(dg13))
+	csv_file.write(" ")
+	csv_file.write(str(dg23))
+	csv_file.write("\n")
+	csv_file.close()
+
+	print("Conversion done !")
+
+	return points[0], points[1], points[2], points[3], points[4], points[5], l
 ###################################################################################################
 ###################################################################################################
 # Process raw data from files

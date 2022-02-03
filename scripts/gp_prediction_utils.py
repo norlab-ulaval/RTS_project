@@ -134,14 +134,14 @@ def check_if_in_interval(list_trajectories_split, size_interval, time_trimble_1,
             interval_1 = j[:, 0]
             interval_2 = j[:, 1]
             interval_3 = j[:, 2]
-            time_1 = time_trimble_1[interval_1[0]:interval_1[1]]
-            time_2 = time_trimble_2[interval_2[0]:interval_2[1]]
-            time_3 = time_trimble_3[interval_3[0]:interval_3[1]]
-            traj_1 = trimble_1[0:3, interval_1[0]:interval_1[1]]
-            traj_2 = trimble_2[0:3, interval_2[0]:interval_2[1]]
-            traj_3 = trimble_3[0:3, interval_3[0]:interval_3[1]]
-            min_interval = min(time_1[0], time_2[0], time_3[0])
-            max_interval = max(time_1[-1], time_2[-1], time_3[-1])+1
+            time_1 = time_trimble_1[interval_1[0]:interval_1[1]+1]
+            time_2 = time_trimble_2[interval_2[0]:interval_2[1]+1]
+            time_3 = time_trimble_3[interval_3[0]:interval_3[1]+1]
+            traj_1 = trimble_1[0:3, interval_1[0]:interval_1[1]+1]
+            traj_2 = trimble_2[0:3, interval_2[0]:interval_2[1]+1]
+            traj_3 = trimble_3[0:3, interval_3[0]:interval_3[1]+1]
+            min_interval = max([time_1[0], time_2[0], time_3[0]], key=lambda x: float(x))
+            max_interval = min([time_1[-1], time_2[-1], time_3[-1]], key=lambda x: float(x))
             if (target_time <= max_interval and target_time >= min_interval):
                 isInInterval = True
                 break
@@ -151,6 +151,7 @@ def define_window_training(time_1, time_2, time_3, window, target_time):
     close_1 = find_nearest(time_1, target_time)
     close_2 = find_nearest(time_2, target_time)
     close_3 = find_nearest(time_3, target_time)
+
     if close_1 - math.floor(window / 2) >= 0:
         if len(time_1) - close_1 - 1 - math.floor(window / 2) > 0:
             index_1 = np.array([close_1 - math.floor(window / 2), close_1 + math.floor(window / 2) - 1])
@@ -178,20 +179,20 @@ def define_window_training(time_1, time_2, time_3, window, target_time):
     return index_1, index_2, index_3
 
 def data_training_MGPO(time_1, time_2, time_3, traj_1, traj_2, traj_3, index_1, index_2, index_3):
-    T_1_train_MGPO = np.atleast_2d(time_1[index_1[0]:index_1[1]]).T
-    X_1_train_MGPO = np.atleast_2d(traj_1[0, index_1[0]:index_1[1]]).T
-    Y_1_train_MGPO = np.atleast_2d(traj_1[1, index_1[0]:index_1[1]]).T
-    Z_1_train_MGPO = np.atleast_2d(traj_1[2, index_1[0]:index_1[1]]).T
+    T_1_train_MGPO = np.atleast_2d(time_1[index_1[0]:index_1[1]+1]).T
+    X_1_train_MGPO = np.atleast_2d(traj_1[0, index_1[0]:index_1[1]+1]).T
+    Y_1_train_MGPO = np.atleast_2d(traj_1[1, index_1[0]:index_1[1]+1]).T
+    Z_1_train_MGPO = np.atleast_2d(traj_1[2, index_1[0]:index_1[1]+1]).T
 
-    T_2_train_MGPO = np.atleast_2d(time_2[index_2[0]:index_2[1]]).T
-    X_2_train_MGPO = np.atleast_2d(traj_2[0, index_2[0]:index_2[1]]).T
-    Y_2_train_MGPO = np.atleast_2d(traj_2[1, index_2[0]:index_2[1]]).T
-    Z_2_train_MGPO = np.atleast_2d(traj_2[2, index_2[0]:index_2[1]]).T
+    T_2_train_MGPO = np.atleast_2d(time_2[index_2[0]:index_2[1]+1]).T
+    X_2_train_MGPO = np.atleast_2d(traj_2[0, index_2[0]:index_2[1]+1]).T
+    Y_2_train_MGPO = np.atleast_2d(traj_2[1, index_2[0]:index_2[1]+1]).T
+    Z_2_train_MGPO = np.atleast_2d(traj_2[2, index_2[0]:index_2[1]+1]).T
 
-    T_3_train_MGPO = np.atleast_2d(time_3[index_3[0]:index_3[1]]).T
-    X_3_train_MGPO = np.atleast_2d(traj_3[0, index_3[0]:index_3[1]]).T
-    Y_3_train_MGPO = np.atleast_2d(traj_3[1, index_3[0]:index_3[1]]).T
-    Z_3_train_MGPO = np.atleast_2d(traj_3[2, index_3[0]:index_3[1]]).T
+    T_3_train_MGPO = np.atleast_2d(time_3[index_3[0]:index_3[1]+1]).T
+    X_3_train_MGPO = np.atleast_2d(traj_3[0, index_3[0]:index_3[1]+1]).T
+    Y_3_train_MGPO = np.atleast_2d(traj_3[1, index_3[0]:index_3[1]+1]).T
+    Z_3_train_MGPO = np.atleast_2d(traj_3[2, index_3[0]:index_3[1]+1]).T
 
     T_MGPO = [T_1_train_MGPO, T_1_train_MGPO, T_1_train_MGPO, T_2_train_MGPO, T_2_train_MGPO, T_2_train_MGPO,
               T_3_train_MGPO, T_3_train_MGPO,
@@ -202,18 +203,18 @@ def data_training_MGPO(time_1, time_2, time_3, traj_1, traj_2, traj_3, index_1, 
     return T_MGPO, S_MGPO
 
 def data_training_GP(time_1, time_2, time_3, traj_1, traj_2, traj_3, index_1, index_2, index_3):
-    T_1_train_GP = np.atleast_2d(time_1[index_1[0]:index_1[1]]).T
-    X_1_train_GP = np.atleast_2d(traj_1[0, index_1[0]:index_1[1]]).T
-    Y_1_train_GP = np.atleast_2d(traj_1[1, index_1[0]:index_1[1]]).T
-    Z_1_train_GP = np.atleast_2d(traj_1[2, index_1[0]:index_1[1]]).T
-    T_2_train_GP = np.atleast_2d(time_2[index_2[0]:index_2[1]]).T
-    X_2_train_GP = np.atleast_2d(traj_2[0, index_2[0]:index_2[1]]).T
-    Y_2_train_GP = np.atleast_2d(traj_2[1, index_2[0]:index_2[1]]).T
-    Z_2_train_GP = np.atleast_2d(traj_2[2, index_2[0]:index_2[1]]).T
-    T_3_train_GP = np.atleast_2d(time_3[index_3[0]:index_3[1]]).T
-    X_3_train_GP = np.atleast_2d(traj_3[0, index_3[0]:index_3[1]]).T
-    Y_3_train_GP = np.atleast_2d(traj_3[1, index_3[0]:index_3[1]]).T
-    Z_3_train_GP = np.atleast_2d(traj_3[2, index_3[0]:index_3[1]]).T
+    T_1_train_GP = np.atleast_2d(time_1[index_1[0]:index_1[1]+1]).T
+    X_1_train_GP = np.atleast_2d(traj_1[0, index_1[0]:index_1[1]+1]).T
+    Y_1_train_GP = np.atleast_2d(traj_1[1, index_1[0]:index_1[1]+1]).T
+    Z_1_train_GP = np.atleast_2d(traj_1[2, index_1[0]:index_1[1]+1]).T
+    T_2_train_GP = np.atleast_2d(time_2[index_2[0]:index_2[1]+1]).T
+    X_2_train_GP = np.atleast_2d(traj_2[0, index_2[0]:index_2[1]+1]).T
+    Y_2_train_GP = np.atleast_2d(traj_2[1, index_2[0]:index_2[1]+1]).T
+    Z_2_train_GP = np.atleast_2d(traj_2[2, index_2[0]:index_2[1]+1]).T
+    T_3_train_GP = np.atleast_2d(time_3[index_3[0]:index_3[1]+1]).T
+    X_3_train_GP = np.atleast_2d(traj_3[0, index_3[0]:index_3[1]+1]).T
+    Y_3_train_GP = np.atleast_2d(traj_3[1, index_3[0]:index_3[1]+1]).T
+    Z_3_train_GP = np.atleast_2d(traj_3[2, index_3[0]:index_3[1]+1]).T
 
     return T_1_train_GP, X_1_train_GP, Y_1_train_GP, Z_1_train_GP, T_2_train_GP, X_2_train_GP, Y_2_train_GP, Z_2_train_GP, T_3_train_GP, X_3_train_GP, Y_3_train_GP, Z_3_train_GP
 
