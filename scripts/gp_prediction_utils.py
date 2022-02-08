@@ -178,6 +178,42 @@ def define_window_training(time_1, time_2, time_3, window, target_time):
 
     return index_1, index_2, index_3
 
+def define_time_window_training(time_1, time_2, time_3, window, target_time, limit_p, mode):
+    min_1 = 0
+    min_2 = 0
+    min_3 = 0
+    max_1 = 0
+    max_2 = 0
+    max_3 = 0
+    if(mode == "ground-truth"):
+        min_1 = find_nearest(time_1, target_time - window / 2)
+        min_2 = find_nearest(time_2, target_time - window / 2)
+        min_3 = find_nearest(time_3, target_time - window / 2)
+        max_1 = find_nearest(time_1, target_time + window / 2)
+        max_2 = find_nearest(time_2, target_time + window / 2)
+        max_3 = find_nearest(time_3, target_time + window / 2)
+    if(mode == "prediction"):
+        min_1 = find_nearest(time_1, target_time - window )
+        min_2 = find_nearest(time_2, target_time - window )
+        min_3 = find_nearest(time_3, target_time - window )
+        max_1 = find_nearest(time_1, target_time)
+        max_2 = find_nearest(time_2, target_time)
+        max_3 = find_nearest(time_3, target_time)
+    size_1 = len(time_1[min_1:max_1])
+    size_2 = len(time_2[min_2:max_2])
+    size_3 = len(time_3[min_3:max_3])
+    if((size_1>limit_p[0] and size_2>limit_p[0] and size_3>limit_p[1]) or
+            (size_1>limit_p[0] and size_3>limit_p[0] and size_2>limit_p[1]) or
+            (size_3>limit_p[0] and size_2>limit_p[0] and size_1>limit_p[1])):
+        index_1 = np.array([min_1, max_1])
+        index_2 = np.array([min_2, max_2])
+        index_3 = np.array([min_3, max_3])
+    else:
+        index_1 = np.array([-1, -1])
+        index_2 = np.array([-1, -1])
+        index_3 = np.array([-1, -1])
+    return index_1, index_2, index_3
+
 def data_training_MGPO(time_1, time_2, time_3, traj_1, traj_2, traj_3, index_1, index_2, index_3):
     T_1_train_MGPO = np.atleast_2d(time_1[index_1[0]:index_1[1]+1]).T
     X_1_train_MGPO = np.atleast_2d(traj_1[0, index_1[0]:index_1[1]+1]).T
@@ -221,7 +257,7 @@ def data_training_GP(time_1, time_2, time_3, traj_1, traj_2, traj_3, index_1, in
 def training_MGPO(num_restarts, verbose, T_MGPO, S_MGPO):
     input_dim = 1
     #variance = 0.002
-    variance_constraint = 1
+    #variance_constraint = 1
     #lengthscale = 1.
     #K = GPy.kern.Matern52(input_dim=input_dim, variance=variance, lengthscale=lengthscale)
     K = GPy.kern.Matern52(input_dim=input_dim)
@@ -234,63 +270,71 @@ def training_MGPO(num_restarts, verbose, T_MGPO, S_MGPO):
 
 def training_GP(num_restarts, verbose, T_1_train_GP, X_1_train_GP, Y_1_train_GP, Z_1_train_GP, T_2_train_GP, X_2_train_GP, Y_2_train_GP, Z_2_train_GP, T_3_train_GP, X_3_train_GP, Y_3_train_GP, Z_3_train_GP):
     input_dim = 1
-    variance = 0.002
-    variance_constraint = 1000
+    #variance = 0
+    #variance_constraint = 1000
     lengthscale = 1.
 
-    kx1 = GPy.kern.Matern52(input_dim=input_dim, variance=variance, lengthscale=lengthscale)
+    #kx1 = GPy.kern.Matern52(input_dim=input_dim, ARD=True) + GPy.kern.Bias(input_dim)
+    kx1 = GPy.kern.Matern52(input_dim=input_dim)
     m_x1 = GPy.models.GPRegression(T_1_train_GP, X_1_train_GP, kx1)
-    m_x1['.*Mat52.var'].constrain_fixed(variance_constraint)
+    #m_x1['.*Mat52.var'].constrain_fixed(variance_constraint)
+    #m_x1.unconstrain()
     m_x1.optimize(messages=verbose)
     m_x1.optimize_restarts(num_restarts=num_restarts, verbose=verbose)
-    #m_x1.optimize(messages=verbose)
+
     ky1 = GPy.kern.Matern52(input_dim=input_dim)
     m_y1 = GPy.models.GPRegression(T_1_train_GP, Y_1_train_GP, ky1)
-    m_y1['.*Mat52.var'].constrain_fixed(variance_constraint)
+    #m_y1.unconstrain()
+    #m_y1['.*Mat52.var'].constrain_fixed(variance_constraint)
     m_y1.optimize(messages=verbose)
     m_y1.optimize_restarts(num_restarts=num_restarts, verbose=verbose)
-    #m_y1.optimize(messages=verbose)
 
     kz1 = GPy.kern.Matern52(input_dim=input_dim)
     m_z1 = GPy.models.GPRegression(T_1_train_GP, Z_1_train_GP, kz1)
-    m_y1.optimize(messages=verbose)
-    m_z1['.*Mat52.var'].constrain_fixed(variance_constraint)
+    #m_z1.unconstrain()
+    m_z1.optimize(messages=verbose)
+    #m_z1['.*Mat52.var'].constrain_fixed(variance_constraint)
     m_z1.optimize_restarts(num_restarts=num_restarts, verbose=verbose)
-    #m_z1.optimize(messages=verbose)
 
     kx2 = GPy.kern.Matern52(input_dim=input_dim)
     m_x2 = GPy.models.GPRegression(T_2_train_GP, X_2_train_GP, kx2)
-    m_x2['.*Mat52.var'].constrain_fixed(variance_constraint)
+    #m_x2.unconstrain()
+    #m_x2['.*Mat52.var'].constrain_fixed(variance_constraint)
     m_x2.optimize(messages=verbose)
     m_x2.optimize_restarts(num_restarts=num_restarts, verbose=verbose)
 
     ky2 = GPy.kern.Matern52(input_dim=input_dim)
     m_y2 = GPy.models.GPRegression(T_2_train_GP, Y_2_train_GP, ky2)
-    m_y2['.*Mat52.var'].constrain_fixed(variance_constraint)
+    #m_y2.unconstrain()
+    #m_y2['.*Mat52.var'].constrain_fixed(variance_constraint)
     m_y2.optimize(messages=verbose)
     m_y2.optimize_restarts(num_restarts=num_restarts, verbose=verbose)
 
     kz2 = GPy.kern.Matern52(input_dim=input_dim)
     m_z2 = GPy.models.GPRegression(T_2_train_GP, Z_2_train_GP, kz2)
-    m_z2['.*Mat52.var'].constrain_fixed(variance_constraint)
+    #m_z2.unconstrain()
+    #m_z2['.*Mat52.var'].constrain_fixed(variance_constraint)
     m_z2.optimize(messages=verbose)
     m_z2.optimize_restarts(num_restarts=num_restarts, verbose=verbose)
 
     kx3 = GPy.kern.Matern52(input_dim=input_dim)
     m_x3 = GPy.models.GPRegression(T_3_train_GP, X_3_train_GP, kx3)
-    m_x3['.*Mat52.var'].constrain_fixed(variance_constraint)
+    #m_x3.unconstrain()
+    #m_x3['.*Mat52.var'].constrain_fixed(variance_constraint)
     m_x3.optimize(messages=verbose)
     m_x3.optimize_restarts(num_restarts=num_restarts, verbose=verbose)
 
     ky3 = GPy.kern.Matern52(input_dim=input_dim)
     m_y3 = GPy.models.GPRegression(T_3_train_GP, Y_3_train_GP, ky3)
-    m_y3['.*Mat52.var'].constrain_fixed(variance_constraint)
+    #m_y3.unconstrain()
+    #m_y3['.*Mat52.var'].constrain_fixed(variance_constraint)
     m_y3.optimize(messages=verbose)
     m_y3.optimize_restarts(num_restarts=num_restarts, verbose=verbose)
 
     kz3 = GPy.kern.Matern52(input_dim=input_dim)
     m_z3 = GPy.models.GPRegression(T_3_train_GP, Z_3_train_GP, kz3)
-    m_z3['.*Mat52.var'].constrain_fixed(variance_constraint)
+    #m_z3.unconstrain()
+    #m_z3['.*Mat52.var'].constrain_fixed(variance_constraint)
     m_z3.optimize(messages=verbose)
     m_z3.optimize_restarts(num_restarts=num_restarts, verbose=verbose)
 
@@ -426,9 +470,80 @@ def error_calculation(Prediction_1, Prediction_2, Prediction_3, Dist_prism_12, D
         diff_23w = abs(d23_w - D23_wref) * 1000
         distance_wasserstein_GP.append(np.array([d12_w, d13_w, d23_w]))
         error_wasserstein_diff_GP.append(np.array([diff_12w, diff_13w, diff_23w]))
-
     return error_euclidian_GP, distance_wasserstein_GP, error_wasserstein_diff_GP, T_prediction
 
 
+import lab as B
+import matplotlib.pyplot as plt
+import torch
+from wbml.plot import tweak
+from stheno.torch import EQ, GP, Matern52
 
+class Model_stheno(torch.nn.Module):
+    """A GP model with learnable parameters."""
+    def __init__(self, init_var=1, init_scale=1, init_noise=0):
+        super().__init__()
+        # Ensure that the parameters are positive and make them learnable.
+        self.log_var = torch.nn.Parameter(torch.log(torch.tensor(init_var)))
+        self.log_scale = torch.nn.Parameter(torch.log(torch.tensor(init_scale)))
+        self.log_noise = torch.nn.Parameter(torch.log(torch.tensor(init_noise)))
 
+    def construct(self):
+        self.var = torch.exp(self.log_var)
+        self.scale = torch.exp(self.log_scale)
+        self.noise = torch.exp(self.log_noise)
+        # kernel = self.var * EQ().stretch(self.scale)
+        kernel = self.var * Matern52().stretch(self.scale)
+        return GP(0, kernel), self.noise
+
+def GP_function_stheno(x, x_obs, y_obs, variance, lengthscale, noise_init, optimization_nb):
+    model = Model_stheno(init_var=variance, init_scale=lengthscale, init_noise=noise_init)
+    f, noise = model.construct()
+    # Condition on observations and make predictions before optimisation.
+    f_post = f | (f(x_obs, noise), y_obs)
+    prior_before = f, noise
+    pred_before = f_post(x, noise).marginal_credible_bounds()
+    # Perform optimisation.
+    opt = torch.optim.Adam(model.parameters(), lr=1e-3)
+    for _ in range(optimization_nb):
+        opt.zero_grad()
+        f, noise = model.construct()
+        loss = -f(x_obs, noise).logpdf(y_obs)
+        loss.backward()
+        opt.step()
+    f, noise = model.construct()
+    # Condition on observations and make predictions after optimisation.
+    f_post = f | (f(x_obs, noise), y_obs)
+    prior_after = f, noise
+    #mean, lower, upper = f_post(x, noise).marginal_credible_bounds()
+    mean, variance = f_post(x, noise).marginals()
+    return mean.detach().numpy().flatten(), variance.detach().numpy().flatten()
+
+def data_training_GP_stheno(time_1, time_2, time_3, traj_1, traj_2, traj_3, index_1, index_2, index_3):
+    T_1_train_GP = np.atleast_2d(time_1[index_1[0]:index_1[1]+1]).T
+    X_1_train_GP = np.atleast_2d(traj_1[0, index_1[0]:index_1[1]+1]).T
+    Y_1_train_GP = np.atleast_2d(traj_1[1, index_1[0]:index_1[1]+1]).T
+    Z_1_train_GP = np.atleast_2d(traj_1[2, index_1[0]:index_1[1]+1]).T
+    T_2_train_GP = np.atleast_2d(time_2[index_2[0]:index_2[1]+1]).T
+    X_2_train_GP = np.atleast_2d(traj_2[0, index_2[0]:index_2[1]+1]).T
+    Y_2_train_GP = np.atleast_2d(traj_2[1, index_2[0]:index_2[1]+1]).T
+    Z_2_train_GP = np.atleast_2d(traj_2[2, index_2[0]:index_2[1]+1]).T
+    T_3_train_GP = np.atleast_2d(time_3[index_3[0]:index_3[1]+1]).T
+    X_3_train_GP = np.atleast_2d(traj_3[0, index_3[0]:index_3[1]+1]).T
+    Y_3_train_GP = np.atleast_2d(traj_3[1, index_3[0]:index_3[1]+1]).T
+    Z_3_train_GP = np.atleast_2d(traj_3[2, index_3[0]:index_3[1]+1]).T
+
+    X_1_train_GP = torch.from_numpy(np.vstack(X_1_train_GP).astype(np.float).flatten())
+    Y_1_train_GP = torch.from_numpy(np.vstack(Y_1_train_GP).astype(np.float).flatten())
+    Z_1_train_GP = torch.from_numpy(np.vstack(Z_1_train_GP).astype(np.float).flatten())
+    X_2_train_GP = torch.from_numpy(np.vstack(X_2_train_GP).astype(np.float).flatten())
+    Y_2_train_GP = torch.from_numpy(np.vstack(Y_2_train_GP).astype(np.float).flatten())
+    Z_2_train_GP = torch.from_numpy(np.vstack(Z_2_train_GP).astype(np.float).flatten())
+    X_3_train_GP = torch.from_numpy(np.vstack(X_3_train_GP).astype(np.float).flatten())
+    Y_3_train_GP = torch.from_numpy(np.vstack(Y_3_train_GP).astype(np.float).flatten())
+    Z_3_train_GP = torch.from_numpy(np.vstack(Z_3_train_GP).astype(np.float).flatten())
+    T_1_train_GP = torch.from_numpy(T_1_train_GP.flatten())
+    T_2_train_GP = torch.from_numpy(T_2_train_GP.flatten())
+    T_3_train_GP = torch.from_numpy(T_3_train_GP.flatten())
+
+    return T_1_train_GP, X_1_train_GP, Y_1_train_GP, Z_1_train_GP, T_2_train_GP, X_2_train_GP, Y_2_train_GP, Z_2_train_GP, T_3_train_GP, X_3_train_GP, Y_3_train_GP, Z_3_train_GP

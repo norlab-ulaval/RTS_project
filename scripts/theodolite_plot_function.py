@@ -1249,7 +1249,7 @@ def subplot_prisms_error_gt(time1, time2, time3, error_distance1, error_distance
 	axs0.plot(time_value_arr1, np.array(error_distance1), 'sienna', label="E1", alpha=0.7)
 	axs0.plot(time_value_arr2, np.array(error_distance2), 'darkblue', label="E2", alpha=0.7)
 	axs0.plot(time_value_arr3, np.array(error_distance3), 'goldenrod', label="E3", alpha=0.7)
-	axs0.set_ylim([0, 10])
+	axs0.set_ylim([0, 100])
 	axs0.set_xlabel('Time [s]')
 	axs0.set_ylabel('Error [mm]')
 	axs0.set_yscale('symlog')

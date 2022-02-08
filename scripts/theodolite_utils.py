@@ -219,7 +219,8 @@ def read_prediction_data_csv_file(file_name):
 	file = open(file_name, "r")
 	line = file.readline()
 	while line:
-		item = line.split(" ")
+		#line = line.replace("]","")
+		item = line.replace("]","").replace("[","").split(" ")
 		Time = float(item[0])
 		Px = float(item[1])
 		Py = float(item[2])
@@ -1301,14 +1302,22 @@ def noise_apply(mode, mean_e, std_e, mean_g, std_g, mean_noise_t, std_noise_t, r
 	t_noise_2 = []
 	t_noise_3 = []
 
+	d1 = []
+	d2 = []
+	d3 = []
+
 	global_noise = np.random.normal(mean_g, std_g, size=3)
 
 	# Noise measurements
 	for i in range(0, len(T_arr)):
 		# Reference
-		p1_ref = (T_arr[i] @ P1)[0:3, 3].T
-		p2_ref = (T_arr[i] @ P2)[0:3, 3].T
-		p3_ref = (T_arr[i] @ P3)[0:3, 3].T
+		p1_ref = (T_arr[i] @ P1[0:4, 3]).T
+		p2_ref = (T_arr[i] @ P2[0:4, 3]).T
+		p3_ref = (T_arr[i] @ P3[0:4, 3]).T
+		d1.append(abs(np.linalg.norm(p1_ref - p2_ref))*1000)
+		d2.append(abs(np.linalg.norm(p1_ref - p3_ref)) * 1000)
+		d3.append(abs(np.linalg.norm(p2_ref - p3_ref)) * 1000)
+
 		P1_ref.append(p1_ref)
 		P2_ref.append(p2_ref)
 		P3_ref.append(p3_ref)
@@ -1388,4 +1397,4 @@ def noise_apply(mode, mean_e, std_e, mean_g, std_g, mean_noise_t, std_noise_t, r
 				p3_ref = (T_arr[i] @ P3)[0:3, 3].T
 				P3_wnoise_sub.append(p3_ref)
 
-	return P1_ref, P2_ref ,P3_ref, P1_noise, P2_noise, P3_noise, P1_noise_sub, P2_noise_sub , P3_noise_sub, t_sub_1, t_sub_2, t_sub_3, e_noise, t_noise_1, t_noise_2, t_noise_3, t_ref_1, t_ref_2, t_ref_3, P1_wnoise_sub, P2_wnoise_sub, P3_wnoise_sub
+	return P1_ref, P2_ref ,P3_ref, P1_noise, P2_noise, P3_noise, P1_noise_sub, P2_noise_sub , P3_noise_sub, t_sub_1, t_sub_2, t_sub_3, e_noise, t_noise_1, t_noise_2, t_noise_3, t_ref_1, t_ref_2, t_ref_3, P1_wnoise_sub, P2_wnoise_sub, P3_wnoise_sub, d1, d2, d3
