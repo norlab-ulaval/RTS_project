@@ -1306,7 +1306,9 @@ def noise_apply(mode, mean_e, std_e, mean_g, std_g, mean_noise_t, std_noise_t, r
 	d2 = []
 	d3 = []
 
-	global_noise = np.random.normal(mean_g, std_g, size=3)
+	global_noise_1 = np.random.normal(mean_g, std_g, size=3)
+	global_noise_2 = np.random.normal(mean_g, std_g, size=3)
+	global_noise_3 = np.random.normal(mean_g, std_g, size=3)
 
 	# Noise measurements
 	for i in range(0, len(T_arr)):
@@ -1326,12 +1328,12 @@ def noise_apply(mode, mean_e, std_e, mean_g, std_g, mean_noise_t, std_noise_t, r
 		e_p1 = np.random.normal(mean_e, std_e, size=3)
 		e_p2 = np.random.normal(mean_e, std_e, size=3)
 		e_p3 = np.random.normal(mean_e, std_e, size=3)
-		e_noise.append(np.array([e_p1, e_p2, e_p3, global_noise]))
+		e_noise.append(np.array([e_p1, e_p2, e_p3, global_noise_1, global_noise_2, global_noise_3]))
 
 		# Point with noise
-		p1_noise = (T_arr[i] @ P1)[0:3, 3].T + e_p1 + global_noise
-		p2_noise = (T_arr[i] @ P2)[0:3, 3].T + e_p2 + global_noise
-		p3_noise = (T_arr[i] @ P3)[0:3, 3].T + e_p3 + global_noise
+		p1_noise = (T_arr[i] @ P1)[0:3, 3].T + e_p1 + global_noise_1
+		p2_noise = (T_arr[i] @ P2)[0:3, 3].T + e_p2 + global_noise_2
+		p3_noise = (T_arr[i] @ P3)[0:3, 3].T + e_p3 + global_noise_3
 		P1_noise.append(p1_noise)
 		P2_noise.append(p2_noise)
 		P3_noise.append(p3_noise)
