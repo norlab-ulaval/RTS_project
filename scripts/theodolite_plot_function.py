@@ -823,29 +823,31 @@ def plot_gps_distance(time_gps, distance_gps, dist_theoric, bin_number, save_fig
 	scale_x_min = min(distance_gps)-10
 	scale_x_max = max(distance_gps)+10
 	x = np.linspace(scale_x_min,scale_x_max,200) #for plot distribution
-	mean = np.mean(distance_gps)*1000
-	std = np.std(distance_gps)*1000
+	mean = np.mean(np.array(distance_gps) - np.ones_like(distance_gps)*dist_theoric)*1000
+	std = np.std(np.array(distance_gps)  - np.ones_like(distance_gps)*dist_theoric)*1000
 
 	#spec = gridspec.GridSpec(ncols=2, nrows=1, width_ratios=[2, 1])
 	fig, axs = plt.subplots(1, 2, figsize=(6, 2), gridspec_kw={'width_ratios': [2, 1]})
 	#plt.plot(np.array(time_gps), abs(np.array(distance_gps)*1000-809.95), 'r')
 	#axs[0] = fig.add_subplot(spec[0])
-	axs[0].plot(np.array(time_gps), abs(np.array(distance_gps)*1000-dist_theoric), 'goldenrod')
+	axs[0].plot(np.array(time_gps)-np.ones_like(time_gps)*time_gps[0], abs(np.array(distance_gps)- np.ones_like(distance_gps)*dist_theoric)*1000, 'goldenrod')
 
 	axs[0].set_xlabel('Time [s]')
 	axs[0].set_ylabel('Error [mm]')
-	print(mean, std)
 
 	#axs[1] = fig.add_subplot(spec[1])
-	logbins = np.geomspace(np.min(abs(np.array(distance_gps) * 1000 - dist_theoric)),
-						   np.max(abs(np.array(distance_gps) * 1000 - dist_theoric)), bin_number)
-	axs[1] = sns.distplot(abs(np.array(distance_gps)*1000-dist_theoric), color='goldenrod', bins=logbins, kde=False, hist_kws={'edgecolor': 'None', 'alpha': 0.7})
+	logbins = np.geomspace(np.min(abs(np.array(distance_gps)- np.ones_like(distance_gps)*dist_theoric)*1000),
+						   np.max(abs(np.array(distance_gps)- np.ones_like(distance_gps)*dist_theoric)*1000), bin_number)
+	axs[1] = sns.distplot(abs(np.array(distance_gps)- np.ones_like(distance_gps)*dist_theoric)*1000, color='goldenrod', bins=logbins, kde=False, hist_kws={'edgecolor': 'None', 'alpha': 0.7})
 	#axs[1] = sns.distplot(abs(np.array(distance_gps)*1000-dist_theoric), kde=False, color='goldenrod', bins=20, hist_kws={'edgecolor':'None', 'alpha':0.7})
 	axis_label = 'Error [mm]'
 	axs[1].set_xlabel(axis_label)
 	axs[1].set_ylabel('Counts')
-
+	textmean = "Mean: " + str(round(mean, 5)) + "mm   " + "Std: " + str(round(std, 5)) + "mm   "
+	fig.subplots_adjust(bottom=0.26, top=0.6)
+	fig.text(0.35, 0.91, textmean, fontsize=10, transform=plt.gcf().transFigure)
 	fig.tight_layout()
+	#plt.title(textmean)
 	plt.show()
 	if(save_fig):
 		fig.savefig(name_file, bbox_inches='tight')
@@ -1213,9 +1215,9 @@ def subplot_prisms_error(time, error_distance, save_fig, name_file):
 	labels = ['Inter-prism 12', 'Inter-prism 13', 'Inter-prism 23']
 	fig.legend(handles, labels, bbox_to_anchor=(0, 1, 1, 0), loc='upper center', ncol=3)
 
-	textmean = "Mean: " + str(round(mean_prism12,3)) + "mm   " + str(round(mean_prism13,3)) + "mm   " + str(round(mean_prism23,3)) + "mm   "
+	textmean = "Mean: " + str(round(mean_prism12,6)) + "mm   " + str(round(mean_prism13,6)) + "mm   " + str(round(mean_prism23,6)) + "mm   "
 	plt.text(0.15, 0.75, textmean, fontsize=10, transform=plt.gcf().transFigure)
-	textstd = "Std: " + str(round(std_prism12, 3)) + "mm   " + str(round(std_prism13, 3)) + "mm   " + str(round(std_prism23, 3)) + "mm   "
+	textstd = "Std: " + str(round(std_prism12, 6)) + "mm   " + str(round(std_prism13, 6)) + "mm   " + str(round(std_prism23, 6)) + "mm   "
 	plt.text(0.55, 0.75, textstd, fontsize=10, transform=plt.gcf().transFigure)
 
 	#fig.subplots_adjust(wspace=0.1, hspace=0)
@@ -1229,6 +1231,7 @@ def subplot_prisms_error_gt(time1, time2, time3, error_distance1, error_distance
 	time_value_arr1 = np.array(time1)
 	time_value_arr2 = np.array(time2)
 	time_value_arr3 = np.array(time3)
+	origin = min(time_value_arr1[0],time_value_arr2[0],time_value_arr3[0])
 	mean_prism1 = np.mean(np.array(error_distance1))
 	std_prism1 = np.std(np.array(error_distance1))
 	mean_prism2 = np.mean(np.array(error_distance2))
@@ -1246,14 +1249,14 @@ def subplot_prisms_error_gt(time1, time2, time3, error_distance1, error_distance
 	fig = plt.figure(figsize=(8, 2))
 
 	axs0 = plt.subplot(gs1[:, -1])
-	axs0.plot(time_value_arr1, np.array(error_distance1), 'sienna', label="E1", alpha=0.7)
-	axs0.plot(time_value_arr2, np.array(error_distance2), 'darkblue', label="E2", alpha=0.7)
-	axs0.plot(time_value_arr3, np.array(error_distance3), 'goldenrod', label="E3", alpha=0.7)
-	axs0.set_ylim([0, 100])
+	axs0.plot(time_value_arr1-np.ones_like(time_value_arr1)*origin, np.array(error_distance1), 'sienna', label="E1", alpha=0.7)
+	axs0.plot(time_value_arr2-np.ones_like(time_value_arr2)*origin, np.array(error_distance2), 'darkblue', label="E2", alpha=0.7)
+	axs0.plot(time_value_arr3-np.ones_like(time_value_arr3)*origin, np.array(error_distance3), 'goldenrod', label="E3", alpha=0.7)
+	#axs0.set_ylim([0, 100])
 	axs0.set_xlabel('Time [s]')
 	axs0.set_ylabel('Error [mm]')
 	axs0.set_yscale('symlog')
-	#axs0.yaxis.set_major_formatter(FormatStrFormatter('% 1.2f'))
+	axs0.yaxis.set_major_formatter(FormatStrFormatter('% 1.2f'))
 
 	gs2 = GridSpec(1, 3)
 	gs2.update(left=0.43, right=0.9, wspace=0.47, bottom=0.24)
@@ -1283,13 +1286,13 @@ def subplot_prisms_error_gt(time1, time2, time3, error_distance1, error_distance
 	axs2.set_yscale('symlog')
 	axs3.set_xscale('symlog')
 	axs3.set_yscale('symlog')
-	axs1.set_xlim([-0.1, 10])
-	axs2.set_xlim([-0.1, 10])
-	axs3.set_xlim([-0.1, 10])
+	#axs1.set_xlim([-0.1, 10])
+	#axs2.set_xlim([-0.1, 10])
+	#axs3.set_xlim([-0.1, 10])
 
-	#axs1.xaxis.set_major_formatter(FormatStrFormatter('% 1.2f'))
-	#axs2.xaxis.set_major_formatter(FormatStrFormatter('% 1.2f'))
-	#axs3.xaxis.set_major_formatter(FormatStrFormatter('% 1.2f'))
+	axs1.xaxis.set_major_formatter(FormatStrFormatter('% 1.0f'))
+	axs2.xaxis.set_major_formatter(FormatStrFormatter('% 1.0f'))
+	axs3.xaxis.set_major_formatter(FormatStrFormatter('% 1.0f'))
 
 	fig.subplots_adjust(wspace=0.3, bottom=0.26, top=0.7)
 
@@ -1297,14 +1300,104 @@ def subplot_prisms_error_gt(time1, time2, time3, error_distance1, error_distance
 	blue_patch = mpatches.Patch(color='darkblue', label='E13')
 	yellow_patch = mpatches.Patch(color='goldenrod', label='E23')
 	handles = [brown_patch, blue_patch, yellow_patch]
-	labels = ['Prism 1', 'Prism 2', 'Prism 3']
+	labels = ['Inter-Prism 1-2', 'Inter-Prism 1-3', 'Inter-Prism 2-3']
 	fig.legend(handles, labels, bbox_to_anchor=(0, 1, 1, 0), loc='upper center', ncol=3)
 
-	textmean = "Mean: " + str(round(mean_prism1, 3)) + "mm   " + str(round(mean_prism2, 3)) + "mm   " + str(
-		round(mean_prism3, 3)) + "mm   "
+	textmean = "Mean: " + str(round(mean_prism1, 2)) + "mm   " + str(round(mean_prism2, 2)) + "mm   " + str(
+		round(mean_prism3, 2)) + "mm   "
 	plt.text(0.15, 0.75, textmean, fontsize=10, transform=plt.gcf().transFigure)
-	textstd = "Std: " + str(round(std_prism1, 3)) + "mm   " + str(round(std_prism2, 3)) + "mm   " + str(
-		round(std_prism3, 3)) + "mm   "
+	textstd = "Std: " + str(round(std_prism1, 2)) + "mm   " + str(round(std_prism2, 2)) + "mm   " + str(
+		round(std_prism3, 2)) + "mm   "
+	plt.text(0.55, 0.75, textstd, fontsize=10, transform=plt.gcf().transFigure)
+
+	# fig.subplots_adjust(wspace=0.1, hspace=0)
+	# fig.tight_layout()
+	plt.show()
+	if (save_fig):
+		fig.savefig(name_file, bbox_inches='tight')
+
+def subplot_gps_error_gt(time1, time2, time3, error_distance1, error_distance2, error_distance3, save_fig, name_file):
+
+	time_value_arr1 = np.array(time1)
+	time_value_arr2 = np.array(time2)
+	time_value_arr3 = np.array(time3)
+	origin = min(time_value_arr1[0],time_value_arr2[0],time_value_arr3[0])
+	mean_prism1 = np.mean(np.array(error_distance1))
+	std_prism1 = np.std(np.array(error_distance1))
+	mean_prism2 = np.mean(np.array(error_distance2))
+	std_prism2 = np.std(np.array(error_distance2))
+	mean_prism3 = np.mean(np.array(error_distance3))
+	std_prism3 = np.std(np.array(error_distance3))
+	print(mean_prism1, mean_prism2, mean_prism3)
+	print(std_prism1, std_prism2, std_prism3)
+
+	number_bins = 20
+
+	gs1 = GridSpec(1, 1)
+	gs1.update(left=0.12, right=0.35, wspace=0.05, bottom=0.24)
+
+	fig = plt.figure(figsize=(8, 2))
+
+	axs0 = plt.subplot(gs1[:, -1])
+	axs0.plot(time_value_arr1-np.ones_like(time_value_arr1)*origin, np.array(error_distance1), 'sienna', label="E1", alpha=0.7)
+	axs0.plot(time_value_arr2-np.ones_like(time_value_arr2)*origin, np.array(error_distance2), 'darkblue', label="E2", alpha=0.7)
+	axs0.plot(time_value_arr3-np.ones_like(time_value_arr3)*origin, np.array(error_distance3), 'goldenrod', label="E3", alpha=0.7)
+	#axs0.set_ylim([0, 100])
+	axs0.set_xlabel('Time [s]')
+	axs0.set_ylabel('Error [mm]')
+	axs0.set_yscale('symlog')
+	axs0.yaxis.set_major_formatter(FormatStrFormatter('% 1.2f'))
+
+	gs2 = GridSpec(1, 3)
+	gs2.update(left=0.43, right=0.9, wspace=0.47, bottom=0.24)
+
+	axs1 = plt.subplot(gs2[:, 0])
+	logbins = np.geomspace(np.min(np.array(error_distance1)), np.max(np.array(error_distance1)), number_bins)
+	sns.distplot(np.array(error_distance1), kde=False, color='sienna', bins=logbins,
+				 hist_kws={'edgecolor': 'None', 'alpha': 0.7},
+				 ax=axs1)
+	axs1.set_ylabel("Counts")
+
+	axs2 = plt.subplot(gs2[:, 1])
+	logbins = np.geomspace(np.min(np.array(error_distance2)), np.max(np.array(error_distance2)), number_bins)
+	sns.distplot(np.array(error_distance2), kde=False, color='darkblue', bins=logbins,
+				 hist_kws={'edgecolor': 'None', 'alpha': 0.7}, ax=axs2)
+	axs2.set_xlabel("Error [mm]")
+
+	axs3 = plt.subplot(gs2[:, -1])
+	logbins = np.geomspace(np.min(np.array(error_distance3)), np.max(np.array(error_distance3)), number_bins)
+	sns.distplot(np.array(error_distance3), kde=False, color='goldenrod', bins=logbins,
+				 hist_kws={'edgecolor': 'None', 'alpha': 0.7},
+				 ax=axs3)
+
+	axs1.set_xscale('symlog')
+	axs1.set_yscale('symlog')
+	axs2.set_xscale('symlog')
+	axs2.set_yscale('symlog')
+	axs3.set_xscale('symlog')
+	axs3.set_yscale('symlog')
+	#axs1.set_xlim([-0.1, 10])
+	#axs2.set_xlim([-0.1, 10])
+	#axs3.set_xlim([-0.1, 10])
+
+	axs1.xaxis.set_major_formatter(FormatStrFormatter('% 1.0f'))
+	axs2.xaxis.set_major_formatter(FormatStrFormatter('% 1.0f'))
+	axs3.xaxis.set_major_formatter(FormatStrFormatter('% 1.0f'))
+
+	fig.subplots_adjust(wspace=0.3, bottom=0.26, top=0.7)
+
+	brown_patch = mpatches.Patch(color='sienna', label='E12')
+	blue_patch = mpatches.Patch(color='darkblue', label='E13')
+	yellow_patch = mpatches.Patch(color='goldenrod', label='E23')
+	handles = [brown_patch, blue_patch, yellow_patch]
+	labels = ['Inter-GPS 1-2', 'Inter-GPS 1-3', 'Inter-GPS 2-3']
+	fig.legend(handles, labels, bbox_to_anchor=(0, 1, 1, 0), loc='upper center', ncol=3)
+
+	textmean = "Mean: " + str(round(mean_prism1, 2)) + "mm   " + str(round(mean_prism2, 2)) + "mm   " + str(
+		round(mean_prism3, 2)) + "mm   "
+	plt.text(0.15, 0.75, textmean, fontsize=10, transform=plt.gcf().transFigure)
+	textstd = "Std: " + str(round(std_prism1, 2)) + "mm   " + str(round(std_prism2, 2)) + "mm   " + str(
+		round(std_prism3, 2)) + "mm   "
 	plt.text(0.55, 0.75, textstd, fontsize=10, transform=plt.gcf().transFigure)
 
 	# fig.subplots_adjust(wspace=0.1, hspace=0)

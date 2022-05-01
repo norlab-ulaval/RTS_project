@@ -194,7 +194,7 @@ def merge_interval(list_interval, list_time, time_trimble_1, time_trimble_2, tim
 				if(index_end_1-index_ini_1>2 and index_end_2-index_ini_2>2 and index_end_3-index_ini_3>2):
 					array_index = np.array([[index_ini_1,index_ini_2,index_ini_3],[index_end_1,index_end_2,index_end_3]])
 					list_trajectories_split.append(array_index)
-					ite_int[min_trimble]=ite_int[min_trimble]+1
+			ite_int[min_trimble]=ite_int[min_trimble]+1
 	return list_trajectories_split
 
 # Function to interpolate linearly all of these sub-trajectories for 3 prisms according to time
@@ -697,6 +697,11 @@ def analyze_std_ptp(P, noise_min, noise_max, noise_step, number):
 ###################################################################################################
 ###################################################################################################
 
+def find_nearest(array, value):
+    array = np.asarray(array)
+    idx = (np.abs(array - value)).argmin()
+    return idx
+
 # Function to compute the inter-gps distance
 # Input:
 # - gps_front: list of 1x4 array data from GPS front, [0]: timestamp (s), [1-2-3]: X, Y and Z (m)
@@ -722,6 +727,24 @@ def distance_between_gps(gps_front, gps_back):
 			if(origin_time == 0):
 				origin_time = gps_front[i][0]
 			time_gps.append(gps_front[i][0]-origin_time)
+			distance_gps.append(distance)
+	return time_gps, distance_gps
+
+def distance_between_gps_new(gps_1, gps_2):
+	time_gps = []
+	distance_gps = []
+	gps_1_arr = np.array(gps_1)
+	gps_2_arr = np.array(gps_2)
+	for i in gps_1_arr:
+		index = find_nearest(gps_2_arr[:,0], i[0])
+		dist_time = abs(gps_2_arr[index,0]-i[0])
+		if dist_time > 0.05:
+			index = -1
+		if index!=-1:
+			gps_1_position = np.array([i[1],i[2],i[3]])
+			gps_2_position = np.array([gps_2_arr[index,1],gps_2_arr[index,2],gps_2_arr[index,3]])
+			distance = np.linalg.norm(gps_1_position-gps_2_position)
+			time_gps.append(i[0])
 			distance_gps.append(distance)
 	return time_gps, distance_gps
 

@@ -472,6 +472,18 @@ def error_calculation(Prediction_1, Prediction_2, Prediction_3, Dist_prism_12, D
         error_wasserstein_diff_GP.append(np.array([diff_12w, diff_13w, diff_23w]))
     return error_euclidian_GP, distance_wasserstein_GP, error_wasserstein_diff_GP, T_prediction
 
+def error_calculation_eucli(Prediction_1, Prediction_2, Prediction_3, Dist_prism_12, Dist_prism_13, Dist_prism_23):
+    error_euclidian_GP = []
+    T_prediction = []
+    for i, j, k in zip(Prediction_1, Prediction_2, Prediction_3):
+        T_prediction.append(i[0])
+        d12 = abs(np.linalg.norm(i[1:4] - j[1:4]) - Dist_prism_12)*1000
+        d13 = abs(np.linalg.norm(i[1:4] - k[1:4]) - Dist_prism_13)*1000
+        d23 = abs(np.linalg.norm(j[1:4] - k[1:4]) - Dist_prism_23)*1000
+        md = np.mean([d12, d13, d23])
+        error_euclidian_GP.append(np.array([d12, d13, d23, md]))
+    return error_euclidian_GP, T_prediction
+
 
 import lab as B
 import matplotlib.pyplot as plt

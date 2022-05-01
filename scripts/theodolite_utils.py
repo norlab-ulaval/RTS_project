@@ -37,13 +37,13 @@ class TheodoliteCoordsStamped:
 # Input:
 # - file_name: name of the file to read (the file should have the same structure than the usual one use by the raspi)
 # - theodolite_reference_frame: number which indicates the frame where the markers positions will be
-# Output: 
+# Output:
 # - trimble_1: list of array markers points coordinates of the theodolite 1, in the frame chosen
 # - trimble_2: list of array markers points coordinates of the theodolite 2, in the frame chosen
 # - trimble_3: list of array markers points coordinates of the theodolite 3, in the frame chosen
 # - T_.1: 4x4 rigid transform obtain according to the point-to-point minimization between the chosen frame and the theodolite 1 frame (Identity matrix if frame 1 chosen)
 # - T_.2: 4x4 rigid transform obtain according to the point-to-point minimization between the chosen frame and the theodolite 2 frame (Identity matrix if frame 2 chosen)
-# - T_.3: 4x4 rigid transform obtain according to the point-to-point minimization between the chosen frame and the theodolite 3 frame (Identity matrix if frame 3 chosen) 
+# - T_.3: 4x4 rigid transform obtain according to the point-to-point minimization between the chosen frame and the theodolite 3 frame (Identity matrix if frame 3 chosen)
 def read_marker_file(file_name, theodolite_reference_frame):
 	Points_t1_rasp = []
 	Points_t2_rasp = []
@@ -101,8 +101,8 @@ def read_marker_file(file_name, theodolite_reference_frame):
 # Function which read a rosbag of theodolite data and return the trajectories found by each theodolite, and the timestamp of each point as a list
 # Input:
 # - file: name of the rosbag to open
-# - Tf: list of rigid transform between each frame according to the chosen one, was found according to the markers positions. 
-# Output: 
+# - Tf: list of rigid transform between each frame according to the chosen one, was found according to the markers positions.
+# Output:
 # - trajectory_trimble_1: list of 4x1 3D homogeneous coordinates for the theodolite 1
 # - trajectory_trimble_2: list of 4x1 3D homogeneous coordinates for the theodolite 2
 # - trajectory_trimble_3: list of 4x1 3D homogeneous coordinates for the theodolite 2
@@ -147,10 +147,55 @@ def read_rosbag_theodolite_with_tf(file, Tf):
 
 	return trajectory_trimble_1, trajectory_trimble_2, trajectory_trimble_3, time_trimble_1, time_trimble_2, time_trimble_3
 
+
+def read_rosbag_theodolite_with_tf_more(file, Tf):
+	bag = rosbag.Bag(file)
+	trajectory_trimble_1=[]
+	trajectory_trimble_2=[]
+	trajectory_trimble_3=[]
+	time_trimble_1 = []
+	time_trimble_2 = []
+	time_trimble_3 = []
+	distance_1 = []
+	distance_2 = []
+	distance_3 = []
+	# Variable for counting number of data and number of mistakes
+	it = np.array([0,0,0])
+	bad_measures = 0
+	#Read topic of trimble
+	for _, msg, t in bag.read_messages(topics=['/theodolite_master/theodolite_data']):
+		marker = TheodoliteCoordsStamped(msg.header, msg.theodolite_time, msg.theodolite_id, msg.status, msg.azimuth, msg.elevation, msg.distance)
+		timestamp = second_nsecond(marker.header.stamp.secs, marker.header.stamp.nsecs)
+		if(marker.status == 0): # If theodolite can see the prism, or no mistake in the measurement
+			# Find number of theodolite
+			if(marker.theodolite_id==1):
+				add_point_in_frame(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_1, Tf[0], 2)
+				time_trimble_1.append(timestamp)
+				distance_1.append(marker.distance)
+				it[0]+=1
+			if(marker.theodolite_id==2):
+				add_point_in_frame(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_2, Tf[1], 2)
+				time_trimble_2.append(timestamp)
+				distance_2.append(marker.distance)
+				it[1]+=1
+			if(marker.theodolite_id==3):
+				add_point_in_frame(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_3, Tf[2], 2)
+				time_trimble_3.append(timestamp)
+				distance_3.append(marker.distance)
+				it[2]+=1
+		# Count mistakes
+		if(marker.status != 0):
+			bad_measures+=1
+	# Print number of data for each theodolite and the total number of mistakes
+	print("Number of data for theodolites:", it)
+	print("Bad measures:", bad_measures)
+
+	return trajectory_trimble_1, trajectory_trimble_2, trajectory_trimble_3, time_trimble_1, time_trimble_2, time_trimble_3, distance_1, distance_2, distance_3
+
 # Function which read a rosbag of icp data and return the a list of the pose
 # Input:
 # - file: name of the rosbag to open
-# Output: 
+# Output:
 # - pose: list of 4x4 pose matrix
 # - time_icp: list of timestamp for each pose
 def read_rosbag_icp(filename):
@@ -305,7 +350,7 @@ def icp_convert_for_eval(time_icp, Pose_lidar, output):
 # Input:
 # - filename: name of the rosbag to open
 # - wheel: option to select the topic to read (True:/warthog_velocity_controller/odom, False:/imu_and_wheel_odom)
-# Output: 
+# Output:
 # - speed: list of 1x2 matrix which contain the timestamp [0] and the speed [1] for each data
 # - accel: list of 1x2 matrix which contain the timestamp [0] and the accel [1] for each data
 def read_rosbag_imu_node(filename, wheel):
@@ -337,7 +382,7 @@ def read_rosbag_imu_node(filename, wheel):
 # Input:
 # - filename: name of the rosbag to open
 # - wheel: option to select the topic to read (True:/imu_data, False:/MTI_imu/data)
-# Output: 
+# Output:
 # - speed: list of 1x2 matrix which contain the timestamp [0] and the angular velocity around Z axis [1] for each data
 def read_rosbag_imu_data(filename, wheel):
 	bag = rosbag.Bag(filename)
@@ -357,7 +402,7 @@ def read_rosbag_imu_data(filename, wheel):
 # Input:
 # - filename: name of the rosbag to open
 # - number_gps: number of GPS to read (1 or less: front only, 2 or more: front and back)
-# Output: 
+# Output:
 # - gps_front: list of 1x4 array, [0]: timestamp, [1]: x position, [2]: y position, [3]: z position
 # - gps_back: list of 1x4 array, [0]: timestamp, [1]: x position, [2]: y position, [3]: z position
 def read_rosbag_gps_odom(filename, number_gps):
@@ -389,7 +434,7 @@ def read_rosbag_gps_odom(filename, number_gps):
 # Input:
 # - name_file: name of the rosbag to open
 # - limit_compteur: number of line to skip to read at the begining of the file
-# Output: 
+# Output:
 # - GPS_front_raw_data: list of 1x4 array, [0]: timestamp, [1]: latitude (deg), [2]: longitude(deg), [3]: height (m)
 def read_gps_file(name_file, limit_compteur):
 	fichier = open(name_file, "r")
@@ -398,15 +443,14 @@ def read_gps_file(name_file, limit_compteur):
 	satellite = []
 	for line in fichier:
 		if(compteur>limit_compteur):
-			#print(line.split(" "))
-			time = line.split(" ")[1]
-			lat = line.split(" ")[4]
-			long_i = line.split(" ")[6]
-			height = line.split(" ")[10]
+			array_split = line.split(" ")
+			while("" in array_split):
+				array_split.remove("")
+			time = array_split[1]
+			lat = array_split[2]
+			long_i = array_split[3]
+			height = array_split[4]
 			time_split = time.split(":")
-			#print(time_split)
-			#print(lat, long_i, height)
-			#print(height)
 			time_sec = float(time_split[0].strip())*3600 + float(time_split[1].strip())*60 + float(time_split[2].strip())
 			GPS_front_raw_data.append(np.array([time_sec, float(lat.strip()), float(long_i.strip()), float(height.strip())]))
 			temporary_list=[]
@@ -414,26 +458,56 @@ def read_gps_file(name_file, limit_compteur):
 				if(i!=''):
 					temporary_list.append(i)
 			#print(temporary_list)
-			if(float(temporary_list[6])==2):
-				print(compteur)
+			#if(float(temporary_list[6])==2):
+				#print(compteur)
 			satellite.append(float(temporary_list[6].strip()))
 		compteur = compteur + 1
 	fichier.close()
 	print("Average satellite number:", round(np.mean(satellite),1), ", Std: ", round(np.std(satellite),1), ", Min :",  np.min(satellite),", Max :", np.max(satellite))
 	return GPS_front_raw_data
 
+
+def read_gps_point_processed(name_file):
+	fichier = open(name_file, "r")
+	GPS_data = []
+	for line in fichier:
+		array_split = line.split(" ")
+		while("" in array_split):
+			array_split.remove("")
+		time = array_split[0]
+		lat = array_split[1]
+		long_i = array_split[2]
+		height = array_split[3]
+		GPS_data.append(np.array([float(time.strip()), float(lat.strip()), float(long_i.strip()), float(height.strip())]))
+	fichier.close()
+	return GPS_data
+
+def read_gps_distance_processed(name_file):
+	fichier = open(name_file, "r")
+	GPS_data = []
+	for line in fichier:
+		array_split = line.split(" ")
+		while("" in array_split):
+			array_split.remove("")
+		time = array_split[0]
+		dist = array_split[1]
+		GPS_data.append(np.array([float(time.strip()), float(dist.strip())]))
+	fichier.close()
+	return GPS_data
+
+
 # Function which convert the raw GPS data latitude and longitude to x,y in UTM frame
 # Input:
 # - Lat: latitude in deg
 # - Long: longitude in deg
-# Output: 
+# Output:
 # - UTMEasting: corrected y position in UTM frame (m)
 # - UTMNorthing: corrected x position in UTM frame (m)
 def LLtoUTM(Lat, Long):
 	RADIANS_PER_DEGREE = math.pi/180.0
 	DEGREES_PER_RADIAN = 180.0/math.pi
 	# WGS84 Parameters
-	WGS84_A = 6378137.0;  
+	WGS84_A = 6378137.0;
 	WGS84_B = 6356752.31424518
 	WGS84_F = 0.0033528107
 	WGS84_E = 0.0818191908
@@ -482,7 +556,7 @@ def LLtoUTM(Lat, Long):
 	UTMNorthing = (k0*(M+N*math.tan(LatRad)*(A*A/2+(5-T+9*C+4*C*C)*A*A*A*A/24+ (61-58*T+T*T+600*C-330*eccPrimeSquared)*A*A*A*A*A*A/720)))
 	if(Lat < 0):
 		#10000000 meter offset for southern hemisphere
-		UTMNorthing = UTMNorthing + 10000000.0 
+		UTMNorthing = UTMNorthing + 10000000.0
 	return UTMEasting, UTMNorthing
 
 # Function which convert the raw GPS data to UTM frame for each data read
@@ -490,7 +564,7 @@ def LLtoUTM(Lat, Long):
 # - GPS_front_raw_data: list of 1x4 array raw data of the GPS, [0]: timestamp, [1]: latitude (deg), [2]: longitude(deg), [3]: height (m)
 # - limit_data: array of 1x2 to specifiy which data to read and convert ([0]: index of begining [1]: index of end)
 # - time_origin: boolean to set the time origin to zero (True) or to let it compute with the hour, minute and second ot the day (False)
-# Output: 
+# Output:
 # - GPS_front_utm_data: list of 1x4 GPS data in UTM frame, [0]: timestamp, [1]: x(m), [2]: y(m), [3]: z(m)
 def utm_gps_data(GPS_front_raw_data, limit_data, time_origin):
 	GPS_front_utm_data = []
@@ -500,7 +574,7 @@ def utm_gps_data(GPS_front_raw_data, limit_data, time_origin):
 		if(compteur == 0 and time_origin == True):
 			origin_time = i[0]
 		if(compteur >=limit_data[0] and compteur <= limit_data[1]):
-			UTMEasting, UTMNorthing = LLtoUTM(i[1], i[2])	
+			UTMEasting, UTMNorthing = LLtoUTM(i[1], i[2])
 			GPS_front_utm_data.append(np.array([i[0] - origin_time + limit_data[2], UTMNorthing, UTMEasting, i[3]]))
 		compteur = compteur + 1
 	return GPS_front_utm_data
@@ -639,15 +713,17 @@ def read_calibration_gps_prism(file_name, file_name_output):
 	file = open(file_name, "r")
 	line = file.readline()
 	points = []
+	number = 0
 	while line:
 		item = line.split(" ")
 		ha = float(item[0])+float(item[1])*1/60+float(item[2])*1/3600
-		ha_sigma = float(item[3])+float(item[4])*1/60+float(item[5])*1/3600
 		va = float(item[6]) + float(item[7]) * 1 / 60 + float(item[8]) * 1 / 3600
-		va_sigma = float(item[9])+float(item[10])*1/60+float(item[11])*1/3600
-		d = float(item[12])
-		d_sigma = float(item[13])
-		points.append(give_points_without_correction(d, ha, va, 1))
+		if number>=3 :
+			d = float(item[12])
+		else:
+			d = float(item[12]) + 0.01    # Add 10mm because prisms
+		number = number + 1
+		points.append(give_points_calibration(d, ha, va, 1))
 		line = file.readline()
 	file.close()
 
@@ -686,15 +762,17 @@ def read_calibration_gps_prism_lidar(file_name, file_name_output):
 	line = file.readline()
 	points = []
 	distance_lidar_top_to_lidar_origin = 0.063  # In meter, for RS32 on warthog
+	number = 0
 	while line:
 		item = line.split(" ")
-		ha = float(item[0]) + float(item[1]) * 1 / 60 + float(item[2]) * 1 / 3600
-		ha_sigma = float(item[3]) + float(item[4]) * 1 / 60 + float(item[5]) * 1 / 3600
-		va = float(item[6]) + float(item[7]) * 1 / 60 + float(item[8]) * 1 / 3600
-		va_sigma = float(item[9]) + float(item[10]) * 1 / 60 + float(item[11]) * 1 / 3600
-		d = float(item[12])
-		d_sigma = float(item[13])
-		points.append(give_points_without_correction(d, ha, va, 1))
+		ha = float(item[0]) + float(item[1])*1/60 + float(item[2])*1/3600
+		va = float(item[6]) + float(item[7])*1/60 + float(item[8])*1/3600
+		if number >= 3:
+			d = float(item[12])
+		else:
+			d = float(item[12]) + 0.01  # Add 10mm because prisms
+		number = number + 1
+		points.append(give_points_calibration(d, ha, va, 1))
 		line = file.readline()
 	file.close()
 
@@ -776,6 +854,17 @@ def give_points_without_correction(d, ha, va, param):
 		z=d*math.sin(np.pi/2-va)
 	return np.array([x, y, z, 1],dtype=np.float64)
 
+def give_points_calibration(d, ha, va, param):
+	if(param ==1):
+		x=d*math.cos((-ha)*np.pi/180)*math.cos((90-va)*np.pi/180)
+		y=d*math.sin((-ha)*np.pi/180)*math.cos((90-va)*np.pi/180)
+		z=d*math.sin((90-va)*np.pi/180)
+	if(param ==2):
+		x=d*math.cos(-ha)*math.cos(np.pi/2-va)
+		y=d*math.sin(-ha)*math.cos(np.pi/2-va)
+		z=d*math.sin(np.pi/2-va)
+	return np.array([x, y, z, 1],dtype=np.float64)
+
 # Function to convert a point according to the data of the theodolite into a frame according to a pose T,
 # and put this point into a list of array
 # Input:
@@ -790,7 +879,7 @@ def add_point_in_frame(d, ha, va, points, T, param):
 	vec_result = T@vec
 	points.append(np.array([vec_result[0],vec_result[1],vec_result[2], 1],dtype=np.float64))
 
-# Function to add a point in a list of array according to the data of the theodolite 
+# Function to add a point in a list of array according to the data of the theodolite
 # Input:
 # - d: distance in meter
 # - ha: horizontale angle
@@ -804,12 +893,12 @@ def add_point(d, ha, va, points, param):
 ###################################################################################################
 # Theodolite function for processing
 
-# Function which found the tf transform between two point clouds using point-to-point minimization, 
+# Function which found the tf transform between two point clouds using point-to-point minimization,
 # where the matching was already done (mean each index of the point cloud for the reading and reference array match)
 # Input:
 # - P: the reading point cloud, can be 4xn or 3xn where n is the number of points
 # - Q: the reference point cloud, can be 4xn or 3xn where n is the number of points
-# Output: T a 4x4 pose matrix corresponding to the rigid transformation 
+# Output: T a 4x4 pose matrix corresponding to the rigid transformation
 def point_to_point_minimization(P, Q):
 	# Errors at the beginning
 	errors_before = Q - P
@@ -817,8 +906,8 @@ def point_to_point_minimization(P, Q):
 	mu_p = np.mean(P[0:3,:],axis=1)
 	mu_q = np.mean(Q[0:3,:], axis=1)
 	# Center each pointcloud
-	P_mu = np.ones((3, P.shape[1]))    
-	Q_mu = np.ones((3, Q.shape[1])) 
+	P_mu = np.ones((3, P.shape[1]))
+	Q_mu = np.ones((3, Q.shape[1]))
 	for i in range(0,P_mu.shape[1]):
 		P_mu[0:3,i] = P[0:3,i] - mu_p
 	for i in range(0,Q_mu.shape[1]):
@@ -843,11 +932,11 @@ def point_to_point_minimization(P, Q):
 	T[0:3,3] = t
 	return T
 
-# Function to find prism not moving points according to the point just before in the array of the trajectories. 
+# Function to find prism not moving points according to the point just before in the array of the trajectories.
 # The not moving point are selected because of their position proximity
 # Input:
 # - trimble: list of trajectory points
-# - limit_m: proximity limit in meters to find not moving points. If the distance between two near indexed points is less than the limit, 
+# - limit_m: proximity limit in meters to find not moving points. If the distance between two near indexed points is less than the limit,
 # the point at the index i is selected
 # Output: list of index of the not moving points
 def find_not_moving_points(trimble, limit_m):
@@ -856,7 +945,7 @@ def find_not_moving_points(trimble, limit_m):
 	for i in range(1,len(trimble.T)):
 		if(np.linalg.norm(trimble[0:3,i]-start_point)<limit_m):
 			ind_not_moving.append(i)
-		start_point = trimble[0:3,i] 
+		start_point = trimble[0:3,i]
 	return ind_not_moving
 
 # Function to find lidar interpolated not moving points
@@ -864,7 +953,7 @@ def find_not_moving_points(trimble, limit_m):
 # - pose_lidar: list of lidar pose 4x4 matrix
 # - limit_speed: threshold of the speed to consider a position as static (m/s)
 # - time_inter: time between each interpolated points (s)
-# Output: 
+# Output:
 # - ind_not_moving: list of index of the not moving points
 def find_not_moving_points_lidar(pose_lidar, limit_speed, time_inter):
 	ind_not_moving = []
@@ -878,7 +967,7 @@ def find_not_moving_points_lidar(pose_lidar, limit_speed, time_inter):
 # - pose_lidar: list of lidar pose 4x4 matrix
 # - limit_speed: threshold of the speed to consider a position as dynamic (m/s)
 # - time_inter: time between each interpolated points (s)
-# Output: 
+# Output:
 # - ind_not_moving: list of index of the moving points
 def find_moving_points_lidar(pose_lidar, limit_speed, time_inter):
 	ind_not_moving = []
@@ -892,7 +981,7 @@ def find_moving_points_lidar(pose_lidar, limit_speed, time_inter):
 # Input:
 # - trimble_time: list of time trajectory points
 # - indice_trimble_list: list of index of not moving points in a trajectory
-# - limit_time: proximity limit in second to find not moving points. If the time between two near indexed points is less than the limit, 
+# - limit_time: proximity limit in second to find not moving points. If the time between two near indexed points is less than the limit,
 # these points are selected
 # Output:
 # - tuple_not_moving: list of array, each of this array contain the index of each cluster of not moving points in a trajectory
@@ -914,7 +1003,7 @@ def find_cluster_not_moving_points(trimble_time, indice_trimble_list, limit_time
 # Input:
 # - lidar_time: list of time trajectory points
 # - indice_lidar_list: list of index of lidar not moving points in a trajectory
-# - limit_time: proximity limit in second to find not moving points. If the time between two near indexed points is less than the limit, 
+# - limit_time: proximity limit in second to find not moving points. If the time between two near indexed points is less than the limit,
 # these points are selected
 # Output:
 # - tuple_not_moving: list of array, each of this array contain the index of each cluster of not moving points in a trajectory
@@ -939,7 +1028,7 @@ def find_cluster_not_moving_points_lidar(lidar_time, indice_lidar_list, limit_ti
 def split_time_interval(time_trimble, limit_time_interval):
 	list_time_interval = []
 	begin = 0
-	min_number_points = 2
+	min_number_points = 6
 	for i in range(1,len(time_trimble)):
 		if(abs(time_trimble[i]-time_trimble[i-1])>limit_time_interval):
 			if(i-begin>min_number_points):
@@ -963,14 +1052,12 @@ def split_time_interval(time_trimble, limit_time_interval):
 # Output:
 # - index: return the closest index found in the list, or -1 if there is not close index
 def research_index_for_time(time_trimble, time_interval, limit_search):
-	result = 0
 	diff = limit_search
 	index = 0
 	found_one = 0
 	for i in range(0,len(time_trimble)):
 		if(abs(time_interval-time_trimble[i])< limit_search and diff > abs(time_interval-time_trimble[i])):
-			diff = abs(time_interval-time_trimble[i])
-			result = time_trimble[i]
+			diff = abs(time_interval - time_trimble[i])
 			index = i
 			found_one = 1
 	if(found_one == 0):
