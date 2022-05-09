@@ -14,7 +14,7 @@ from scripts.theodolite_plot_function import *
 # Input:
 # - number_markers: number of markers used for the calibration
 # - trimble_1, trimble_2, trimble_3: list of theodolite data
-# - save_fig: param if we want to save the figure 
+# - save_fig: param if we want to save the figure
 # - name_file: name of the file to save the figure
 # - scale_x_min, scale_x_max: value min and max for the histogram scale x axis
 def markers_histogram(number_markers,trimble_1,trimble_2,trimble_3, save_fig, name_file, scale_x_min, scale_x_max):
@@ -176,7 +176,7 @@ def merge_interval(list_interval, list_time, time_trimble_1, time_trimble_2, tim
 		max_trimble = np.where(np.array([list_time[0][Begin[0]],list_time[1][Begin[1]],list_time[2][Begin[2]]])==np.amax(np.array([list_time[0][Begin[0]],list_time[1][Begin[1]],list_time[2][Begin[2]]])))[0][0]
 		min_End = min(list_time[0][End[0]],list_time[1][End[1]],list_time[2][End[2]])
 		min_trimble = np.where(np.array([list_time[0][End[0]],list_time[1][End[1]],list_time[2][End[2]]]) == np.amin(np.array([list_time[0][End[0]],list_time[1][End[1]],list_time[2][End[2]]])))[0][0]
-	    
+
 		if(min_End-max_Init<=0):
 			ite_int[min_trimble]=ite_int[min_trimble]+1
 		else:
@@ -268,7 +268,7 @@ def time_interpolation_subtrajectories(time_step, list_trajectories_split, trimb
 # - Prism_corrected: list of corrected prism positions
 # - list_lidar_time: list of lidar timestamp
 def ptp_minimization_with_interpolated_trajectories(interpolated_trajectories, interpolated_time):
-	# Prism positions measured by one theodolite	
+	# Prism positions measured by one theodolite
 	P = np.array([[-0.12413052, -1.05061716, -0.30736107],[-0.32998385, -0.00439399,  0.32429536],
               [ 0.34745009,  0.2448696,  0.30031949],[ 1.,          1.,          1.        ]])
 	# Doing a minimization between these not moving points, and the 3D prism coordinates
@@ -551,13 +551,13 @@ def process_data_theodolite(file_marker, file_rosbag_theodolite, file_rosbag_imu
 	trimble_1 = np.array(trajectory_trimble_1).T
 	trimble_2 = np.array(trajectory_trimble_2).T
 	trimble_3 = np.array(trajectory_trimble_3).T
-	
+
 	print("Process theodolite trajectories")
 	# Slipt the data into different interval according to the timestamps of the measurments
-	limit_time_interval = 4
+	limit_time_interval = 3
 	list_interval, list_time = split_time_interval_all_data(time_trimble_1, time_trimble_2, time_trimble_3, limit_time_interval)
 	# Keep only the intervals where the three theodlites have done some measurements at the same time
-	limit_search = 4
+	limit_search = 2
 	list_trajectories_split = merge_interval(list_interval, list_time, time_trimble_1, time_trimble_2, time_trimble_3, limit_search)
 	# Interpolate linearly all of these sub-trajectories
 	time_step = 0.05
@@ -578,6 +578,63 @@ def process_data_theodolite(file_marker, file_rosbag_theodolite, file_rosbag_imu
 	print("Finish !")
 
 	return interpolated_trajectories, interpolated_time, speed, angular_speed, accel
+
+def process_data_TS(path, inter_error, file_rosbag_imu):
+
+	prefix = "GP-10-20"
+	P1 = np.array(read_prediction_data_csv_file(path + prefix + "_1.csv"))
+	P2 = np.array(read_prediction_data_csv_file(path + prefix + "_2.csv"))
+	P3 = np.array(read_prediction_data_csv_file(path + prefix + "_3.csv"))
+
+	dist_prism = []
+	origin = 0
+	for i in range(0, len(P1[:, 0])):
+		dp1 = abs(np.linalg.norm(P1[i, 1:4] - P2[i, 1:4]) - inter_error[0])*1000
+		dp2 = abs(np.linalg.norm(P1[i, 1:4] - P3[i, 1:4]) - inter_error[1])*1000
+		dp3 = abs(np.linalg.norm(P3[i, 1:4] - P2[i, 1:4]) - inter_error[2])*1000
+		dist_prism.append(np.array([P1[i, 0] - origin, dp1, dp2, dp3]))
+	dist_prism = np.array(dist_prism)
+
+	print("Linear velocity reading")
+
+	# Read rosbag for linear velocity
+	speed, accel = read_rosbag_imu_node(file_rosbag_imu, True)
+	print("Angular velocity reading")
+	# Read rosbag for angular velocity around Z
+	angular_speed = read_rosbag_imu_data(file_rosbag_imu, True)
+
+	linear_speed_list = []
+	angular_speed_list = []
+	accel_list = []
+	mean_error_prisms_list = []
+	for i in dist_prism:
+		index = research_index_for_time_speed(speed, i[0], 0.4)
+		if (index != -1):
+			speed_value = speed[index][1]
+			index = research_index_for_time_speed(angular_speed, i[0], 0.4)
+			if (index != -1):
+				angular_value = angular_speed[index][1]
+				index = research_index_for_time_speed(accel, i[0], 0.4)
+				if (index != -1):
+					accel_value = accel[index][1]
+					dist_12 = i[1]
+					dist_13 = i[2]
+					dist_23 = i[3]
+					linear_speed_list.append(speed_value)
+					angular_speed_list.append(angular_value)
+					accel_list.append(accel_value)
+					mean_error_prisms_list.append(dist_12)
+					linear_speed_list.append(speed_value)
+					angular_speed_list.append(angular_value)
+					accel_list.append(accel_value)
+					mean_error_prisms_list.append(dist_13)
+					linear_speed_list.append(speed_value)
+					angular_speed_list.append(angular_value)
+					accel_list.append(accel_value)
+					mean_error_prisms_list.append(dist_23)
+					#mean_error_prisms_list.append(np.mean(np.array([dist_12, dist_13, dist_23])))
+	print("Finish !")
+	return linear_speed_list, angular_speed_list, accel_list, mean_error_prisms_list
 
 # Function to process theodolite data in once
 # Input:
@@ -673,7 +730,7 @@ def analyze_std_ptp(P, noise_min, noise_max, noise_step, number):
 			list_x.append(T[0,3])
 			list_y.append(T[1,3])
 			list_z.append(T[2,3])
-				
+
 		mean_x = np.mean(list_x)
 		mean_y = np.mean(list_y)
 		mean_z = np.mean(list_z)
@@ -688,7 +745,7 @@ def analyze_std_ptp(P, noise_min, noise_max, noise_step, number):
 		std_yaw = np.std(list_yaw)
 		statistic_x.append(np.array([mean_x,std_x]))
 		statistic_y.append(np.array([mean_y,std_y]))
-		statistic_z.append(np.array([mean_z,std_z]))    
+		statistic_z.append(np.array([mean_z,std_z]))
 		statistic_roll.append(np.array([mean_roll,std_roll]))
 		statistic_pitch.append(np.array([mean_pitch,std_pitch]))
 		statistic_yaw.append(np.array([mean_yaw,std_yaw]))
@@ -809,14 +866,3 @@ def distance_between_not_moving_gps(not_moving_gps_front, not_moving_gps_back, g
 				distance = np.linalg.norm(gps_front_position-gps_back_position)*1000
 				distance_gps.append(distance)
 	return distance_gps
-
-
-
-
-		
-
-
-
-
-
-
