@@ -192,6 +192,59 @@ def read_rosbag_theodolite_with_tf_more(file, Tf):
 
 	return trajectory_trimble_1, trajectory_trimble_2, trajectory_trimble_3, time_trimble_1, time_trimble_2, time_trimble_3, distance_1, distance_2, distance_3
 
+def read_rosbag_theodolite_with_tf_raw_data(file):
+	bag = rosbag.Bag(file)
+	time_trimble_1 = []
+	time_trimble_2 = []
+	time_trimble_3 = []
+	distance_1 = []
+	distance_2 = []
+	distance_3 = []
+	azimuth_1 = []
+	azimuth_2 = []
+	azimuth_3 = []
+	elevation_1 = []
+	elevation_2 = []
+	elevation_3 = []
+	# Variable for counting number of data and number of mistakes
+	it = np.array([0,0,0])
+	bad_measures = 0
+	#Read topic of trimble
+	for _, msg, t in bag.read_messages(topics=['/theodolite_master/theodolite_data']):
+		marker = TheodoliteCoordsStamped(msg.header, msg.theodolite_time, msg.theodolite_id, msg.status, msg.azimuth, msg.elevation, msg.distance)
+		timestamp = second_nsecond(marker.header.stamp.secs, marker.header.stamp.nsecs)
+		if(marker.status == 0): # If theodolite can see the prism, or no mistake in the measurement
+			# Find number of theodolite
+			if(marker.theodolite_id==1):
+				#add_point_in_frame(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_1, Tf[0], 2)
+				time_trimble_1.append(timestamp)
+				distance_1.append(marker.distance)
+				azimuth_1.append(marker.azimuth)
+				elevation_1.append(marker.elevation)
+				it[0]+=1
+			if(marker.theodolite_id==2):
+				#add_point_in_frame(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_2, Tf[1], 2)
+				time_trimble_2.append(timestamp)
+				distance_2.append(marker.distance)
+				azimuth_2.append(marker.azimuth)
+				elevation_2.append(marker.elevation)
+				it[1]+=1
+			if(marker.theodolite_id==3):
+				#add_point_in_frame(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_3, Tf[2], 2)
+				time_trimble_3.append(timestamp)
+				distance_3.append(marker.distance)
+				azimuth_3.append(marker.azimuth)
+				elevation_3.append(marker.elevation)
+				it[2]+=1
+		# Count mistakes
+		if(marker.status != 0):
+			bad_measures+=1
+	# Print number of data for each theodolite and the total number of mistakes
+	print("Number of data for theodolites:", it)
+	print("Bad measures:", bad_measures)
+
+	return time_trimble_1, time_trimble_2, time_trimble_3, distance_1, distance_2, distance_3, azimuth_1, azimuth_2, azimuth_3, elevation_1, elevation_2, elevation_3
+
 # Function which read a rosbag of icp data and return the a list of the pose
 # Input:
 # - file: name of the rosbag to open
@@ -388,7 +441,7 @@ def read_rosbag_imu_data(filename, wheel):
 	bag = rosbag.Bag(filename)
 	speed = []
 	if(wheel==True):
-		topic_name = '/imu_data'
+		topic_name = '/imu/data' #topic_name = '/imu_data'
 	else:
 		topic_name = '/MTI_imu/data'
 	for _, msg, t in bag.read_messages(topics=[topic_name]):
@@ -810,6 +863,90 @@ def read_calibration_gps_prism_lidar(file_name, file_name_output):
 	print("Conversion done !")
 
 	return points[0], points[1], points[2], points[3], points[4], points[5], l
+
+def read_calibration_gps_prism_lidar_marmotte(file_name, file_name_output):
+	file = open(file_name, "r")
+	line = file.readline()
+	points = []
+	distance_lidar_top_to_lidar_origin = 0.0714  # In meter, for Velodyne on Marmotte
+	distance_lidar_origin_to_lidar_middle = 0.0378  # In meter, for Velodyne on Marmotte
+	number = 0
+	while line:
+		item = line.split(" ")
+		ha = float(item[0]) + float(item[1])*1/60 + float(item[2])*1/3600
+		va = float(item[6]) + float(item[7])*1/60 + float(item[8])*1/3600
+		if number >= 3:
+			d = float(item[12])
+		else:
+			d = float(item[12]) + 0.01  # Add 10mm because prisms
+		number = number + 1
+		points.append(give_points_calibration(d, ha, va, 1))
+		line = file.readline()
+	file.close()
+
+	dp12 = np.linalg.norm(points[0] - points[1], axis=0)
+	dp13 = np.linalg.norm(points[0] - points[2], axis=0)
+	dp23 = np.linalg.norm(points[1] - points[2], axis=0)
+
+	v1 = points[3][0:3]
+	v2 = points[4][0:3]
+	v3 = points[5][0:3]
+	v4 = points[6][0:3]
+	diff_23 = v2-v3
+	diff_34 = v4-v3
+	ns = np.cross(diff_23, diff_34)
+	middle_plate = 0.5*(v2-v4)+v4
+
+	origin_lidar = distance_lidar_origin_to_lidar_middle*1/(np.linalg.norm(v1-middle_plate))*(v1-middle_plate)+middle_plate
+	#lidar_x = 1/np.linalg.norm(1/np.linalg.norm(-diff_23)*(-diff_23)+origin_lidar)*(1/np.linalg.norm(-diff_23)*(-diff_23)+origin_lidar)
+	#lidar_z = 1/np.linalg.norm(1/np.linalg.norm(ns)*(ns)+origin_lidar)*(1/np.linalg.norm(ns)*(ns)+origin_lidar)
+	#lidar_y = 1/np.linalg.norm(1/np.linalg.norm(np.cross(-diff_23, ns))*np.cross(-diff_23, ns)+origin_lidar)*(1/np.linalg.norm(np.cross(-diff_23, ns))*np.cross(-diff_23, ns)+origin_lidar)
+	lidar_x = 1/np.linalg.norm(-diff_23)*(-diff_23)
+	lidar_z = 1/np.linalg.norm(ns)*(ns)
+	lidar_y = 1/np.linalg.norm(np.cross(-diff_23, ns))*np.cross(-diff_23, ns)
+
+	R = np.array([[lidar_x[0],lidar_y[0],lidar_z[0],origin_lidar[0]],
+				  [lidar_x[1],lidar_y[1],lidar_z[1],origin_lidar[1]],
+				  [lidar_x[2],lidar_y[2],lidar_z[2],origin_lidar[2]],
+				  [0,0,0,1]])
+	Rt = np.linalg.inv(R)
+
+	p1 = Rt@points[0]
+	p2 = Rt@points[1]
+	p3 = Rt@points[2]
+
+	print("Distance inter-prism: ", dp12, dp13, dp23)
+
+	csv_file = open(file_name_output, "w+")
+	csv_file.write(str(dp12))
+	csv_file.write(" ")
+	csv_file.write(str(dp13))
+	csv_file.write(" ")
+	csv_file.write(str(dp23))
+	csv_file.write("\n")
+	csv_file.write(str(p1[0]))
+	csv_file.write(" ")
+	csv_file.write(str(p1[1]))
+	csv_file.write(" ")
+	csv_file.write(str(p1[2]))
+	csv_file.write("\n")
+	csv_file.write(str(p2[0]))
+	csv_file.write(" ")
+	csv_file.write(str(p2[1]))
+	csv_file.write(" ")
+	csv_file.write(str(p2[2]))
+	csv_file.write("\n")
+	csv_file.write(str(p3[0]))
+	csv_file.write(" ")
+	csv_file.write(str(p3[1]))
+	csv_file.write(" ")
+	csv_file.write(str(p3[2]))
+	csv_file.write("\n")
+	csv_file.close()
+
+	print("Conversion done !")
+
+	return v1, v2, v3, v4, middle_plate, origin_lidar, lidar_x, lidar_y, lidar_z, p1, p2, p3
 ###################################################################################################
 ###################################################################################################
 # Process raw data from files
