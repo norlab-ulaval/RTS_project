@@ -607,6 +607,7 @@ def process_data_TS(path, inter_error, file_rosbag_imu):
 	angular_speed_list = []
 	accel_list = []
 	mean_error_prisms_list = []
+	timestamp = []
 	for i in dist_prism:
 		index = research_index_for_time_speed(speed, i[0], 0.4)
 		if (index != -1):
@@ -620,21 +621,24 @@ def process_data_TS(path, inter_error, file_rosbag_imu):
 					dist_12 = i[1]
 					dist_13 = i[2]
 					dist_23 = i[3]
+					timestamp.append(i[0])
 					linear_speed_list.append(speed_value)
 					angular_speed_list.append(angular_value)
 					accel_list.append(accel_value)
 					mean_error_prisms_list.append(dist_12)
+					timestamp.append(i[0])
 					linear_speed_list.append(speed_value)
 					angular_speed_list.append(angular_value)
 					accel_list.append(accel_value)
 					mean_error_prisms_list.append(dist_13)
+					timestamp.append(i[0])
 					linear_speed_list.append(speed_value)
 					angular_speed_list.append(angular_value)
 					accel_list.append(accel_value)
 					mean_error_prisms_list.append(dist_23)
 					#mean_error_prisms_list.append(np.mean(np.array([dist_12, dist_13, dist_23])))
 	print("Finish !")
-	return linear_speed_list, angular_speed_list, accel_list, mean_error_prisms_list
+	return timestamp, linear_speed_list, angular_speed_list, accel_list, mean_error_prisms_list
 
 # Function to process theodolite data in once
 # Input:
