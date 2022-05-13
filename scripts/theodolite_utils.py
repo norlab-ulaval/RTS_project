@@ -192,7 +192,7 @@ def read_rosbag_theodolite_with_tf_more(file, Tf):
 
 	return trajectory_trimble_1, trajectory_trimble_2, trajectory_trimble_3, time_trimble_1, time_trimble_2, time_trimble_3, distance_1, distance_2, distance_3
 
-def read_rosbag_theodolite_with_tf_raw_data(file):
+def read_rosbag_theodolite_without_tf_raw_data(file):
 	bag = rosbag.Bag(file)
 	time_trimble_1 = []
 	time_trimble_2 = []
@@ -363,6 +363,34 @@ def grountruth_convert_for_eval(interpolated_time, Pose_lidar, output):
 			groundtruth_file.write(str(result[7]))
 			groundtruth_file.write("\n")
 			iterator_lidar = iterator_lidar+1
+	groundtruth_file.close()
+	print("Conversion done !")
+
+def grountruth_GP_convert_for_eval(interpolated_time, Pose_lidar, output):
+	groundtruth_file = open(output,"w+")
+	iterator_lidar = 0
+	for j in interpolated_time:
+		T = Pose_lidar[iterator_lidar]
+		Rot = R_scipy.from_matrix(T[0:3,0:3])
+		quat = Rot.as_quat()
+		result = np.array([j, T[0,3], T[1,3], T[2,3], quat[0], quat[1], quat[2], quat[3]])
+		groundtruth_file.write(str(result[0]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(result[1]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(result[2]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(result[3]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(result[4]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(result[5]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(result[6]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(result[7]))
+		groundtruth_file.write("\n")
+		iterator_lidar = iterator_lidar+1
 	groundtruth_file.close()
 	print("Conversion done !")
 
@@ -864,7 +892,7 @@ def read_calibration_gps_prism_lidar(file_name, file_name_output):
 
 	return points[0], points[1], points[2], points[3], points[4], points[5], l
 
-def read_calibration_gps_prism_lidar_marmotte(file_name, file_name_output):
+def read_calibration_prism_lidar_marmotte(file_name, file_name_output):
 	file = open(file_name, "r")
 	line = file.readline()
 	points = []
@@ -898,12 +926,9 @@ def read_calibration_gps_prism_lidar_marmotte(file_name, file_name_output):
 	middle_plate = 0.5*(v2-v4)+v4
 
 	origin_lidar = distance_lidar_origin_to_lidar_middle*1/(np.linalg.norm(v1-middle_plate))*(v1-middle_plate)+middle_plate
-	#lidar_x = 1/np.linalg.norm(1/np.linalg.norm(-diff_23)*(-diff_23)+origin_lidar)*(1/np.linalg.norm(-diff_23)*(-diff_23)+origin_lidar)
-	#lidar_z = 1/np.linalg.norm(1/np.linalg.norm(ns)*(ns)+origin_lidar)*(1/np.linalg.norm(ns)*(ns)+origin_lidar)
-	#lidar_y = 1/np.linalg.norm(1/np.linalg.norm(np.cross(-diff_23, ns))*np.cross(-diff_23, ns)+origin_lidar)*(1/np.linalg.norm(np.cross(-diff_23, ns))*np.cross(-diff_23, ns)+origin_lidar)
 	lidar_x = 1/np.linalg.norm(-diff_23)*(-diff_23)
 	lidar_z = 1/np.linalg.norm(ns)*(ns)
-	lidar_y = 1/np.linalg.norm(np.cross(-diff_23, ns))*np.cross(-diff_23, ns)
+	lidar_y = np.cross(lidar_z,lidar_x)
 
 	R = np.array([[lidar_x[0],lidar_y[0],lidar_z[0],origin_lidar[0]],
 				  [lidar_x[1],lidar_y[1],lidar_z[1],origin_lidar[1]],
@@ -914,6 +939,11 @@ def read_calibration_gps_prism_lidar_marmotte(file_name, file_name_output):
 	p1 = Rt@points[0]
 	p2 = Rt@points[1]
 	p3 = Rt@points[2]
+	print(Rt)
+
+	print(p1)
+	print(p2)
+	print(p3)
 
 	print("Distance inter-prism: ", dp12, dp13, dp23)
 
