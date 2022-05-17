@@ -245,6 +245,51 @@ def read_rosbag_theodolite_without_tf_raw_data(file):
 
 	return time_trimble_1, time_trimble_2, time_trimble_3, distance_1, distance_2, distance_3, azimuth_1, azimuth_2, azimuth_3, elevation_1, elevation_2, elevation_3
 
+def read_rosbag_theodolite_without_tf(file):
+	bag = rosbag.Bag(file)
+	time_trimble_1 = []
+	time_trimble_2 = []
+	time_trimble_3 = []
+	trimble_1 = []
+	trimble_2 = []
+	trimble_3 = []
+	# Variable for counting number of data and number of mistakes
+	it = np.array([0, 0, 0])
+	bad_measures = 0
+	# Read topic of trimble
+	for _, msg, t in bag.read_messages(topics=['/theodolite_master/theodolite_data']):
+		marker = TheodoliteCoordsStamped(msg.header,
+										 msg.theodolite_time,
+										 msg.theodolite_id,
+										 msg.status,
+										 msg.azimuth,
+										 msg.elevation,
+										 msg.distance)
+		timestamp = second_nsecond(marker.header.stamp.secs, marker.header.stamp.nsecs)
+		if (marker.status == 0):  # If theodolite can see the prism, or no mistake in the measurement
+			# Find number of theodolite
+			if (marker.theodolite_id == 1):
+				add_point(marker.distance, marker.azimuth, marker.elevation, trimble_1, 2)
+				time_trimble_1.append(timestamp)
+				it[0] += 1
+			if (marker.theodolite_id == 2):
+				add_point(marker.distance, marker.azimuth, marker.elevation, trimble_2, 2)
+				time_trimble_2.append(timestamp)
+				it[1] += 1
+			if (marker.theodolite_id == 3):
+				add_point(marker.distance, marker.azimuth, marker.elevation, trimble_3, 2)
+				time_trimble_3.append(timestamp)
+				it[2] += 1
+		# Count mistakes
+		if (marker.status != 0):
+			bad_measures += 1
+	# Print number of data for each theodolite and the total number of mistakes
+	print("Number of data for theodolites:", it)
+	print("Bad measures:", bad_measures)
+
+	return time_trimble_1, time_trimble_2, time_trimble_3, trimble_1, trimble_2, trimble_3
+
+
 # Function which read a rosbag of icp data and return the a list of the pose
 # Input:
 # - file: name of the rosbag to open
@@ -311,6 +356,33 @@ def read_point_data_csv_file(file_name):
 	#data.append(P1)
 	return Time, data_arr
 
+def read_point_data_csv_file_2(file_name):
+	Px = []
+	Py = []
+	Pz = []
+	P1 = []
+	Time = []
+	data = []
+	# Read text file
+	file = open(file_name, "r")
+	line = file.readline()
+	while line:
+		item = line.split(" ")
+		Time.append(float(item[0]))
+		Px.append(float(item[1]))
+		Py.append(float(item[2]))
+		Pz.append(float(item[3]))
+		P1.append(1)
+		array_point = [float(item[1]), float(item[2]), float(item[3]), 1]
+		data.append(array_point)
+		line = file.readline()
+	file.close()
+	data_arr = np.array(data).T
+	#data.append(Py)
+	#data.append(Pz)
+	#data.append(P1)
+	return Time, data_arr
+
 def read_prediction_data_csv_file(file_name):
 	data = []
 	# Read text file
@@ -327,6 +399,27 @@ def read_prediction_data_csv_file(file_name):
 		C2 = float(item[5])
 		C3 = float(item[6])
 		array_point = np.array([Time, Px, Py, Pz, C1, C2, C3])
+		data.append(array_point)
+		line = file.readline()
+	file.close()
+	return data
+
+def read_prediction_data_resection_csv_file(file_name):
+	data = []
+	# Read text file
+	file = open(file_name, "r")
+	line = file.readline()
+	while line:
+		#line = line.replace("]","")
+		item = line.replace("]","").replace("[","").split(" ")
+		Time = float(item[0])
+		Px = float(item[1])
+		Py = float(item[2])
+		Pz = float(item[3])
+		C1 = float(item[4])
+		C2 = float(item[5])
+		C3 = float(item[6])
+		array_point = np.array([Time, Px, Py, Pz, 1])
 		data.append(array_point)
 		line = file.readline()
 	file.close()
