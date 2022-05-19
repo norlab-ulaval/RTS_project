@@ -520,6 +520,40 @@ def icp_convert_for_eval(time_icp, Pose_lidar, output):
 	icp_file.close()
 	print("Conversion done !")
 
+def save_tf(tf1, tf2, tf3, output):
+	file = open(output,"w+")
+	tf = []
+	tf.append(tf1)
+	tf.append(tf2)
+	tf.append(tf3)
+	for i in tf:
+		file.write(str(i[0, 0]))
+		file.write(" ")
+		file.write(str(i[0, 1]))
+		file.write(" ")
+		file.write(str(i[0, 2]))
+		file.write(" ")
+		file.write(str(i[0, 3]))
+		file.write(" ")
+		file.write(str(i[1, 0]))
+		file.write(" ")
+		file.write(str(i[1, 1]))
+		file.write(" ")
+		file.write(str(i[1, 2]))
+		file.write(" ")
+		file.write(str(i[1, 3]))
+		file.write(" ")
+		file.write(str(i[2, 0]))
+		file.write(" ")
+		file.write(str(i[2, 1]))
+		file.write(" ")
+		file.write(str(i[2, 2]))
+		file.write(" ")
+		file.write(str(i[2, 3]))
+		file.write("\n")
+	file.close()
+	print("Conversion done !")
+
 # Function which read a rosbag of odometry data and return the lists of the speed and acceleration data
 # Input:
 # - filename: name of the rosbag to open
@@ -1219,6 +1253,13 @@ def find_not_moving_points_lidar(pose_lidar, limit_speed, time_inter):
 	ind_not_moving = []
 	for i in range(1,len(pose_lidar)):
 		if(np.linalg.norm(pose_lidar[i,0:3,3]-pose_lidar[i-1,0:3,3])/time_inter<limit_speed):
+			ind_not_moving.append(i)
+	return ind_not_moving
+
+def find_not_moving_points_GP(pose, limit_speed, time_inter):
+	ind_not_moving = []
+	for i in range(1,len(pose)):
+		if(np.linalg.norm(pose[i,1:4]-pose[i-1,1:4])/time_inter<limit_speed):
 			ind_not_moving.append(i)
 	return ind_not_moving
 
