@@ -416,9 +416,6 @@ def read_prediction_data_resection_csv_file(file_name):
 		Px = float(item[1])
 		Py = float(item[2])
 		Pz = float(item[3])
-		C1 = float(item[4])
-		C2 = float(item[5])
-		C3 = float(item[6])
 		array_point = np.array([Time, Px, Py, Pz, 1])
 		data.append(array_point)
 		line = file.readline()
@@ -484,6 +481,54 @@ def grountruth_GP_convert_for_eval(interpolated_time, Pose_lidar, output):
 		groundtruth_file.write(str(result[7]))
 		groundtruth_file.write("\n")
 		iterator_lidar = iterator_lidar+1
+	groundtruth_file.close()
+	print("Conversion done !")
+
+def grountruth_GP_gps_convert_for_eval(interpolated_time, Pose_gps, output):
+	groundtruth_file = open(output,"w+")
+	iterator_lidar = 0
+	for j in interpolated_time:
+		T = Pose_gps[iterator_lidar]
+		result = np.array([j, T[0], T[1], T[2]])
+		groundtruth_file.write(str(result[0]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(result[1]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(result[2]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(result[3]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(0))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(0))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(0))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(1))
+		groundtruth_file.write("\n")
+		iterator_lidar = iterator_lidar+1
+	groundtruth_file.close()
+	print("Conversion done !")
+
+def grountruth_GP_gps_convert_for_eval2(Pose_gps, output):
+	groundtruth_file = open(output,"w+")
+	for j in Pose_gps:
+		groundtruth_file.write(str(j[0]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(j[1]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(j[2]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(j[3]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(0))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(0))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(0))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(1))
+		groundtruth_file.write("\n")
 	groundtruth_file.close()
 	print("Conversion done !")
 
@@ -910,6 +955,23 @@ def Convert_inter_distance_to_csv(time_data, distance, file_name):
 		csv_file.write(str(i))
 		csv_file.write(" ")
 		csv_file.write(str(j))
+		csv_file.write("\n")
+	csv_file.close()
+	print("Conversion done !")
+
+
+def Convert_gps_ape_error(gps_data, gps_ape, file_name):
+	csv_file = open(file_name, "w+")
+	for i,j,k in zip(gps_data.positions_xyz,gps_data.timestamps, gps_ape):
+		csv_file.write(str(j))
+		csv_file.write(" ")
+		csv_file.write(str(i[0]))
+		csv_file.write(" ")
+		csv_file.write(str(i[1]))
+		csv_file.write(" ")
+		csv_file.write(str(i[2]))
+		csv_file.write(" ")
+		csv_file.write(str(k))
 		csv_file.write("\n")
 	csv_file.close()
 	print("Conversion done !")
