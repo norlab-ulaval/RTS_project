@@ -416,9 +416,6 @@ def read_prediction_data_resection_csv_file(file_name):
 		Px = float(item[1])
 		Py = float(item[2])
 		Pz = float(item[3])
-		C1 = float(item[4])
-		C2 = float(item[5])
-		C3 = float(item[6])
 		array_point = np.array([Time, Px, Py, Pz, 1])
 		data.append(array_point)
 		line = file.readline()
@@ -487,6 +484,54 @@ def grountruth_GP_convert_for_eval(interpolated_time, Pose_lidar, output):
 	groundtruth_file.close()
 	print("Conversion done !")
 
+def grountruth_GP_gps_convert_for_eval(interpolated_time, Pose_gps, output):
+	groundtruth_file = open(output,"w+")
+	iterator_lidar = 0
+	for j in interpolated_time:
+		T = Pose_gps[iterator_lidar]
+		result = np.array([j, T[0], T[1], T[2]])
+		groundtruth_file.write(str(result[0]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(result[1]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(result[2]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(result[3]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(0))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(0))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(0))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(1))
+		groundtruth_file.write("\n")
+		iterator_lidar = iterator_lidar+1
+	groundtruth_file.close()
+	print("Conversion done !")
+
+def grountruth_GP_gps_convert_for_eval2(Pose_gps, output):
+	groundtruth_file = open(output,"w+")
+	for j in Pose_gps:
+		groundtruth_file.write(str(j[0]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(j[1]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(j[2]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(j[3]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(0))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(0))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(0))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(1))
+		groundtruth_file.write("\n")
+	groundtruth_file.close()
+	print("Conversion done !")
+
 # Function which convert icp data pose into a specific format to use evo library
 # Input:
 # - time_icp: list of timestamp of the pose
@@ -518,6 +563,40 @@ def icp_convert_for_eval(time_icp, Pose_lidar, output):
 		icp_file.write("\n")
 		iterator_lidar = iterator_lidar+1
 	icp_file.close()
+	print("Conversion done !")
+
+def save_tf(tf1, tf2, tf3, output):
+	file = open(output,"w+")
+	tf = []
+	tf.append(tf1)
+	tf.append(tf2)
+	tf.append(tf3)
+	for i in tf:
+		file.write(str(i[0, 0]))
+		file.write(" ")
+		file.write(str(i[0, 1]))
+		file.write(" ")
+		file.write(str(i[0, 2]))
+		file.write(" ")
+		file.write(str(i[0, 3]))
+		file.write(" ")
+		file.write(str(i[1, 0]))
+		file.write(" ")
+		file.write(str(i[1, 1]))
+		file.write(" ")
+		file.write(str(i[1, 2]))
+		file.write(" ")
+		file.write(str(i[1, 3]))
+		file.write(" ")
+		file.write(str(i[2, 0]))
+		file.write(" ")
+		file.write(str(i[2, 1]))
+		file.write(" ")
+		file.write(str(i[2, 2]))
+		file.write(" ")
+		file.write(str(i[2, 3]))
+		file.write("\n")
+	file.close()
 	print("Conversion done !")
 
 # Function which read a rosbag of odometry data and return the lists of the speed and acceleration data
@@ -880,6 +959,23 @@ def Convert_inter_distance_to_csv(time_data, distance, file_name):
 	csv_file.close()
 	print("Conversion done !")
 
+
+def Convert_gps_ape_error(gps_data, gps_ape, file_name):
+	csv_file = open(file_name, "w+")
+	for i,j,k in zip(gps_data.positions_xyz,gps_data.timestamps, gps_ape):
+		csv_file.write(str(j))
+		csv_file.write(" ")
+		csv_file.write(str(i[0]))
+		csv_file.write(" ")
+		csv_file.write(str(i[1]))
+		csv_file.write(" ")
+		csv_file.write(str(i[2]))
+		csv_file.write(" ")
+		csv_file.write(str(k))
+		csv_file.write("\n")
+	csv_file.close()
+	print("Conversion done !")
+
 # Function which reads data coming from a calibration file and put them in another file
 # Input:
 # - file_name: string for the path and file name of the csv file
@@ -1219,6 +1315,13 @@ def find_not_moving_points_lidar(pose_lidar, limit_speed, time_inter):
 	ind_not_moving = []
 	for i in range(1,len(pose_lidar)):
 		if(np.linalg.norm(pose_lidar[i,0:3,3]-pose_lidar[i-1,0:3,3])/time_inter<limit_speed):
+			ind_not_moving.append(i)
+	return ind_not_moving
+
+def find_not_moving_points_GP(pose, limit_speed, time_inter):
+	ind_not_moving = []
+	for i in range(1,len(pose)):
+		if(np.linalg.norm(pose[i,1:4]-pose[i-1,1:4])/time_inter<limit_speed):
 			ind_not_moving.append(i)
 	return ind_not_moving
 
