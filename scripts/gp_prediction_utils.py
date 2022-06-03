@@ -88,7 +88,7 @@ def ICP_registration_Gaussian(icp, P, Q, W, N):
 def init_GP(kernel, alpha_noise, restarts_optimizer):
 	# Instantiate a Gaussian Process model
 	kernel_model = [ConstantKernel(1.0, (1e-3, 1e3)) * RBF(length_scale=19, length_scale_bounds=(1e-2, 1e2)),   #1.0,1e-3,1e3,10,1e-2,1e2
-									1.0 * RBF(length_scale=5, length_scale_bounds=(1e-1, 100.0)),  
+									1.0 * RBF(length_scale=5, length_scale_bounds=(1e-1, 100.0)),
 									1.0 * RationalQuadratic(length_scale=1.0, alpha=0.1),
 									1.0 * ExpSineSquared(length_scale=1.0, periodicity=3.0,length_scale_bounds=(0.1, 10.0), periodicity_bounds=(1.0, 10.0)),
 									ConstantKernel(0.1, (0.01, 10.0))*(DotProduct(sigma_0=1.0, sigma_0_bounds=(0.1, 10.0)) ** 2),
@@ -238,6 +238,30 @@ def data_training_MGPO(time_1, time_2, time_3, traj_1, traj_2, traj_3, index_1, 
 
     return T_MGPO, S_MGPO
 
+def data_training_MGPO_raw(time_1, time_2, time_3, d_1, a_1, e_1, d_2, a_2, e_2, d_3, a_3, e_3, index_1, index_2, index_3):
+    T_1_train_MGPO = np.atleast_2d(time_1[index_1[0]:index_1[1]+1]).T
+    X_1_train_MGPO = np.atleast_2d(d_1[index_1[0]:index_1[1]+1]).T
+    Y_1_train_MGPO = np.atleast_2d(a_1[index_1[0]:index_1[1]+1]).T
+    Z_1_train_MGPO = np.atleast_2d(e_1[index_1[0]:index_1[1]+1]).T
+
+    T_2_train_MGPO = np.atleast_2d(time_2[index_2[0]:index_2[1]+1]).T
+    X_2_train_MGPO = np.atleast_2d(d_2[index_2[0]:index_2[1]+1]).T
+    Y_2_train_MGPO = np.atleast_2d(a_2[index_2[0]:index_2[1]+1]).T
+    Z_2_train_MGPO = np.atleast_2d(e_2[index_2[0]:index_2[1]+1]).T
+
+    T_3_train_MGPO = np.atleast_2d(time_3[index_3[0]:index_3[1]+1]).T
+    X_3_train_MGPO = np.atleast_2d(d_3[index_3[0]:index_3[1]+1]).T
+    Y_3_train_MGPO = np.atleast_2d(a_3[index_3[0]:index_3[1]+1]).T
+    Z_3_train_MGPO = np.atleast_2d(e_3[index_3[0]:index_3[1]+1]).T
+
+    T_MGPO = [T_1_train_MGPO, T_1_train_MGPO, T_1_train_MGPO, T_2_train_MGPO, T_2_train_MGPO, T_2_train_MGPO,
+              T_3_train_MGPO, T_3_train_MGPO,
+              T_3_train_MGPO]
+    S_MGPO = [X_1_train_MGPO, Y_1_train_MGPO, Z_1_train_MGPO, X_2_train_MGPO, Y_2_train_MGPO, Z_2_train_MGPO,
+              X_3_train_MGPO, Y_3_train_MGPO, Z_3_train_MGPO]
+
+    return T_MGPO, S_MGPO
+
 def data_training_GP(time_1, time_2, time_3, traj_1, traj_2, traj_3, index_1, index_2, index_3):
     T_1_train_GP = np.atleast_2d(time_1[index_1[0]:index_1[1]+1]).T
     X_1_train_GP = np.atleast_2d(traj_1[0, index_1[0]:index_1[1]+1]).T
@@ -251,6 +275,22 @@ def data_training_GP(time_1, time_2, time_3, traj_1, traj_2, traj_3, index_1, in
     X_3_train_GP = np.atleast_2d(traj_3[0, index_3[0]:index_3[1]+1]).T
     Y_3_train_GP = np.atleast_2d(traj_3[1, index_3[0]:index_3[1]+1]).T
     Z_3_train_GP = np.atleast_2d(traj_3[2, index_3[0]:index_3[1]+1]).T
+
+    return T_1_train_GP, X_1_train_GP, Y_1_train_GP, Z_1_train_GP, T_2_train_GP, X_2_train_GP, Y_2_train_GP, Z_2_train_GP, T_3_train_GP, X_3_train_GP, Y_3_train_GP, Z_3_train_GP
+
+def data_training_GP_raw(time_1, time_2, time_3, d_1, a_1, e_1, d_2, a_2, e_2, d_3, a_3, e_3, index_1, index_2, index_3):
+    T_1_train_GP = np.atleast_2d(time_1[index_1[0]:index_1[1]+1]).T
+    X_1_train_GP = np.atleast_2d(d_1[0, index_1[0]:index_1[1]+1]).T
+    Y_1_train_GP = np.atleast_2d(a_1[1, index_1[0]:index_1[1]+1]).T
+    Z_1_train_GP = np.atleast_2d(e_1[2, index_1[0]:index_1[1]+1]).T
+    T_2_train_GP = np.atleast_2d(time_2[index_2[0]:index_2[1]+1]).T
+    X_2_train_GP = np.atleast_2d(d_2[0, index_2[0]:index_2[1]+1]).T
+    Y_2_train_GP = np.atleast_2d(a_2[1, index_2[0]:index_2[1]+1]).T
+    Z_2_train_GP = np.atleast_2d(e_2[2, index_2[0]:index_2[1]+1]).T
+    T_3_train_GP = np.atleast_2d(time_3[index_3[0]:index_3[1]+1]).T
+    X_3_train_GP = np.atleast_2d(d_3[0, index_3[0]:index_3[1]+1]).T
+    Y_3_train_GP = np.atleast_2d(a_3[1, index_3[0]:index_3[1]+1]).T
+    Z_3_train_GP = np.atleast_2d(e_3[2, index_3[0]:index_3[1]+1]).T
 
     return T_1_train_GP, X_1_train_GP, Y_1_train_GP, Z_1_train_GP, T_2_train_GP, X_2_train_GP, Y_2_train_GP, Z_2_train_GP, T_3_train_GP, X_3_train_GP, Y_3_train_GP, Z_3_train_GP
 

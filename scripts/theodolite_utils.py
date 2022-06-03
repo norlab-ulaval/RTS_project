@@ -117,7 +117,9 @@ def read_rosbag_theodolite_with_tf(file, Tf):
 	time_trimble_1 = []
 	time_trimble_2 = []
 	time_trimble_3 = []
-
+	check_double_1 = 0
+	check_double_2 = 0
+	check_double_3 = 0
 	# Variable for counting number of data and number of mistakes
 	it = np.array([0,0,0])
 	bad_measures = 0
@@ -127,17 +129,23 @@ def read_rosbag_theodolite_with_tf(file, Tf):
 		if(marker.status == 0): # If theodolite can see the prism, or no mistake in the measurement
 			# Find number of theodolite
 			if(marker.theodolite_id==1):
-				add_point_in_frame(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_1, Tf[0], 2)
-				time_trimble_1.append(second_nsecond(marker.header.stamp.secs, marker.header.stamp.nsecs))
-				it[0]+=1
+				if(check_double_1!=second_nsecond(marker.header.stamp.secs, marker.header.stamp.nsecs)):
+					add_point_in_frame(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_1, Tf[0], 2)
+					time_trimble_1.append(second_nsecond(marker.header.stamp.secs, marker.header.stamp.nsecs))
+					it[0]+=1
+					check_double_1 = second_nsecond(marker.header.stamp.secs, marker.header.stamp.nsecs)
 			if(marker.theodolite_id==2):
-				add_point_in_frame(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_2, Tf[1], 2)
-				time_trimble_2.append(second_nsecond(marker.header.stamp.secs, marker.header.stamp.nsecs))
-				it[1]+=1
+				if (check_double_2 != second_nsecond(marker.header.stamp.secs, marker.header.stamp.nsecs)):
+					add_point_in_frame(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_2, Tf[1], 2)
+					time_trimble_2.append(second_nsecond(marker.header.stamp.secs, marker.header.stamp.nsecs))
+					it[1]+=1
+					check_double_2 = second_nsecond(marker.header.stamp.secs, marker.header.stamp.nsecs)
 			if(marker.theodolite_id==3):
-				add_point_in_frame(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_3, Tf[2], 2)
-				time_trimble_3.append(second_nsecond(marker.header.stamp.secs, marker.header.stamp.nsecs))
-				it[2]+=1
+				if (check_double_3 != second_nsecond(marker.header.stamp.secs, marker.header.stamp.nsecs)):
+					add_point_in_frame(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_3, Tf[2], 2)
+					time_trimble_3.append(second_nsecond(marker.header.stamp.secs, marker.header.stamp.nsecs))
+					it[2]+=1
+					check_double_3 = second_nsecond(marker.header.stamp.secs, marker.header.stamp.nsecs)
 		# Count mistakes
 		if(marker.status != 0):
 			bad_measures+=1
@@ -159,6 +167,7 @@ def read_rosbag_theodolite_with_tf_more(file, Tf):
 	distance_1 = []
 	distance_2 = []
 	distance_3 = []
+
 	# Variable for counting number of data and number of mistakes
 	it = np.array([0,0,0])
 	bad_measures = 0
@@ -206,6 +215,9 @@ def read_rosbag_theodolite_without_tf_raw_data(file):
 	elevation_1 = []
 	elevation_2 = []
 	elevation_3 = []
+	check_double_1 = 0
+	check_double_2 = 0
+	check_double_3 = 0
 	# Variable for counting number of data and number of mistakes
 	it = np.array([0,0,0])
 	bad_measures = 0
@@ -216,26 +228,32 @@ def read_rosbag_theodolite_without_tf_raw_data(file):
 		if(marker.status == 0): # If theodolite can see the prism, or no mistake in the measurement
 			# Find number of theodolite
 			if(marker.theodolite_id==1):
-				#add_point_in_frame(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_1, Tf[0], 2)
-				time_trimble_1.append(timestamp)
-				distance_1.append(marker.distance)
-				azimuth_1.append(marker.azimuth)
-				elevation_1.append(marker.elevation)
-				it[0]+=1
+				if (check_double_1 != timestamp):
+					#add_point_in_frame(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_1, Tf[0], 2)
+					time_trimble_1.append(timestamp)
+					distance_1.append(marker.distance)
+					azimuth_1.append(marker.azimuth)
+					elevation_1.append(marker.elevation)
+					it[0]+=1
+					check_double_1 = timestamp
 			if(marker.theodolite_id==2):
-				#add_point_in_frame(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_2, Tf[1], 2)
-				time_trimble_2.append(timestamp)
-				distance_2.append(marker.distance)
-				azimuth_2.append(marker.azimuth)
-				elevation_2.append(marker.elevation)
-				it[1]+=1
+				if (check_double_2 != timestamp):
+					#add_point_in_frame(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_2, Tf[1], 2)
+					time_trimble_2.append(timestamp)
+					distance_2.append(marker.distance)
+					azimuth_2.append(marker.azimuth)
+					elevation_2.append(marker.elevation)
+					it[1]+=1
+					check_double_2 = timestamp
 			if(marker.theodolite_id==3):
-				#add_point_in_frame(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_3, Tf[2], 2)
-				time_trimble_3.append(timestamp)
-				distance_3.append(marker.distance)
-				azimuth_3.append(marker.azimuth)
-				elevation_3.append(marker.elevation)
-				it[2]+=1
+				if (check_double_3 != timestamp):
+					#add_point_in_frame(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_3, Tf[2], 2)
+					time_trimble_3.append(timestamp)
+					distance_3.append(marker.distance)
+					azimuth_3.append(marker.azimuth)
+					elevation_3.append(marker.elevation)
+					it[2]+=1
+					check_double_3 = timestamp
 		# Count mistakes
 		if(marker.status != 0):
 			bad_measures+=1
@@ -245,6 +263,64 @@ def read_rosbag_theodolite_without_tf_raw_data(file):
 
 	return time_trimble_1, time_trimble_2, time_trimble_3, distance_1, distance_2, distance_3, azimuth_1, azimuth_2, azimuth_3, elevation_1, elevation_2, elevation_3
 
+def read_rosbag_theodolite_without_tf_raw_data_all(file):
+	bag = rosbag.Bag(file)
+	time_trimble_1 = []
+	time_trimble_2 = []
+	time_trimble_3 = []
+	distance_1 = []
+	distance_2 = []
+	distance_3 = []
+	azimuth_1 = []
+	azimuth_2 = []
+	azimuth_3 = []
+	elevation_1 = []
+	elevation_2 = []
+	elevation_3 = []
+	status_1 = []
+	status_2 = []
+	status_3 = []
+	# Variable for counting number of data and number of mistakes
+	it = np.array([0,0,0])
+	bad_measures = 0
+	#Read topic of trimble
+	for _, msg, t in bag.read_messages(topics=['/theodolite_master/theodolite_data']):
+		marker = TheodoliteCoordsStamped(msg.header, msg.theodolite_time, msg.theodolite_id, msg.status, msg.azimuth, msg.elevation, msg.distance)
+		timestamp = second_nsecond(marker.header.stamp.secs, marker.header.stamp.nsecs)
+		# Find number of theodolite
+		if(marker.theodolite_id==1):
+			#add_point_in_frame(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_1, Tf[0], 2)
+			time_trimble_1.append(timestamp)
+			distance_1.append(marker.distance)
+			azimuth_1.append(marker.azimuth)
+			elevation_1.append(marker.elevation)
+			status_1.append(marker.status)
+			it[0]+=1
+		if(marker.theodolite_id==2):
+			#add_point_in_frame(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_2, Tf[1], 2)
+			time_trimble_2.append(timestamp)
+			distance_2.append(marker.distance)
+			azimuth_2.append(marker.azimuth)
+			elevation_2.append(marker.elevation)
+			status_2.append(marker.status)
+			it[1]+=1
+		if(marker.theodolite_id==3):
+			#add_point_in_frame(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_3, Tf[2], 2)
+			time_trimble_3.append(timestamp)
+			distance_3.append(marker.distance)
+			azimuth_3.append(marker.azimuth)
+			elevation_3.append(marker.elevation)
+			status_3.append(marker.status)
+			it[2]+=1
+		# Count mistakes
+		if(marker.status != 0):
+			bad_measures+=1
+	# Print number of data for each theodolite and the total number of mistakes
+	print("Number of data for theodolites:", it)
+	print("Bad measures:", bad_measures)
+
+	return time_trimble_1, time_trimble_2, time_trimble_3, distance_1, distance_2, distance_3, azimuth_1, azimuth_2, azimuth_3, elevation_1, elevation_2, elevation_3, status_1, status_2, status_3
+
 def read_rosbag_theodolite_without_tf(file):
 	bag = rosbag.Bag(file)
 	time_trimble_1 = []
@@ -253,6 +329,9 @@ def read_rosbag_theodolite_without_tf(file):
 	trimble_1 = []
 	trimble_2 = []
 	trimble_3 = []
+	check_double_1 = 0
+	check_double_2 = 0
+	check_double_3 = 0
 	# Variable for counting number of data and number of mistakes
 	it = np.array([0, 0, 0])
 	bad_measures = 0
@@ -269,17 +348,23 @@ def read_rosbag_theodolite_without_tf(file):
 		if (marker.status == 0):  # If theodolite can see the prism, or no mistake in the measurement
 			# Find number of theodolite
 			if (marker.theodolite_id == 1):
-				add_point(marker.distance, marker.azimuth, marker.elevation, trimble_1, 2)
-				time_trimble_1.append(timestamp)
-				it[0] += 1
+				if (check_double_1 != timestamp):
+					add_point(marker.distance, marker.azimuth, marker.elevation, trimble_1, 2)
+					time_trimble_1.append(timestamp)
+					it[0] += 1
+					check_double_1 = timestamp
 			if (marker.theodolite_id == 2):
-				add_point(marker.distance, marker.azimuth, marker.elevation, trimble_2, 2)
-				time_trimble_2.append(timestamp)
-				it[1] += 1
+				if (check_double_2 != timestamp):
+					add_point(marker.distance, marker.azimuth, marker.elevation, trimble_2, 2)
+					time_trimble_2.append(timestamp)
+					it[1] += 1
+					check_double_2 = timestamp
 			if (marker.theodolite_id == 3):
-				add_point(marker.distance, marker.azimuth, marker.elevation, trimble_3, 2)
-				time_trimble_3.append(timestamp)
-				it[2] += 1
+				if (check_double_3 != timestamp):
+					add_point(marker.distance, marker.azimuth, marker.elevation, trimble_3, 2)
+					time_trimble_3.append(timestamp)
+					it[2] += 1
+					check_double_3 = timestamp
 		# Count mistakes
 		if (marker.status != 0):
 			bad_measures += 1
