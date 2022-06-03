@@ -1477,19 +1477,34 @@ def split_time_interval(time_trimble, limit_time_interval):
 	list_time_interval = []
 	begin = 0
 	min_number_points = 6
+	max_number_points = 500
+
 	for i in range(1,len(time_trimble)):
-		if(abs(time_trimble[i]-time_trimble[i-1])>limit_time_interval):
-			if(i-begin>min_number_points):
-				interval = np.array([begin, i-1])
+		if abs(time_trimble[i] - time_trimble[i-1]) > limit_time_interval or i == len(time_trimble)-1:
+			number_points = i-begin
+
+			if (min_number_points < number_points <= max_number_points) or (number_points > max_number_points and number_points / max_number_points <= 1.5):
+				last = i if i== len(time_trimble)-1 else i-1
+				interval = np.array([begin, last])
 				begin = i
 				list_time_interval.append(interval)
+			elif number_points > max_number_points and number_points / max_number_points > 1.5:
+				number_subintervals = math.ceil(number_points / max_number_points)
+				subinterval_number_points = number_points // number_subintervals
+				last_subinterval_number_points = number_points - subinterval_number_points*(number_subintervals-1)
+
+				for j in range(number_subintervals-1):
+					subinterval = np.array([begin, begin+subinterval_number_points-1])
+					list_time_interval.append(subinterval)
+					begin += subinterval_number_points
+
+				last = last_subinterval_number_points if i == len(time_trimble)-1 else last_subinterval_number_points-1
+				last_subinterval = np.array([begin, begin+last])
+				list_time_interval.append(last_subinterval)
+				begin = i
 			else:
 				begin = i
-		else:
-			if(i == len(time_trimble)-1):
-				interval = np.array([begin, i])
-				begin = i
-				list_time_interval.append(interval)
+
 	return list_time_interval
 
 # Function to find the closest index according to a timestamp in an simple list
