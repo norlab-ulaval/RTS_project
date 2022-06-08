@@ -1,0 +1,12 @@
+evo
+numpy
+scipy
+matplotlib
+GPy
+ipython
+jupyter
+torch
+torchvision
+scikit-learn
+seaborn
+tqdm
