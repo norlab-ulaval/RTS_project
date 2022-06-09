@@ -63,17 +63,15 @@ def read_marker_file(file_name: str, theodolite_reference_frame: int, threshold:
 
 	with open(file_name, "r") as file:
 		file.readline()
-		line = file.readline()
 
-		while line:
-			item = line.split(" , ")
+		for line in file:
+			item = line.strip().split(" , ")
 			if int(item[0]) == 1 and int(item[2]) == 0:
 				add_point(float(item[5]), float(item[4]), float(item[3]), points_theodolite_1, 2)
 			if int(item[0]) == 2 and int(item[2]) == 0:
 				add_point(float(item[5]), float(item[4]), float(item[3]), points_theodolite_2, 2)
 			if int(item[0]) == 3 and int(item[2]) == 0:
 				add_point(float(item[5]), float(item[4]), float(item[3]), points_theodolite_3, 2)
-			line = file.readline()
 
 	prob = np.random.default_rng().uniform(size=len(points_theodolite_1))
 	mask = (prob <= threshold)
