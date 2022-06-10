@@ -10,3 +10,7 @@ torchvision
 scikit-learn
 seaborn
 tqdm
+rosbag
+rospkg
+pycryptodomex
+gnupg
