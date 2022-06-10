@@ -34,27 +34,33 @@ def read_marker_file(file_name: str, theodolite_reference_frame: int, threshold:
 	Function to read a text file which contains the marker data for the calibration. The result given
 	will be the different markers positions in one theodolite frame.
 
-	Format of the file must be:
+	It can also return a subsample of the markers position by providing a probability (prob) value less than one.
+
+	The format of the file must be:
 	theodolite_number , marker_number , status , elevation , azimuth , distance , sec , nsec
 
 	Parameters
 	----------
 	file_name: Name of the file to read (the file should have the same structure then the usual one use by the raspi)
 	theodolite_reference_frame: {1,2,3} Number which indicates the frame where the markers positions will be.
-	threshold: (0, 1] optional
+	threshold: Probability threshold at which a marker position is kept. (0, 1] optional
 
 	Returns
 	-------
 	points_theodolite_1: list of array markers points coordinates of the theodolite 1, in the frame chosen
 	points_theodolite_2: list of array markers points coordinates of the theodolite 2, in the frame chosen
 	points_theodolite_3: list of array markers points coordinates of the theodolite 3, in the frame chosen
-	T_.1: 4x4 rigid transform obtain according to the point-to-point minimization between the chosen frame and the theodolite 1 frame (Identity matrix if frame 1 chosen)
-	T_.2: 4x4 rigid transform obtain according to the point-to-point minimization between the chosen frame and the theodolite 2 frame (Identity matrix if frame 2 chosen)
-	T_.3: 4x4 rigid transform obtain according to the point-to-point minimization between the chosen frame and the theodolite 3 frame (Identity matrix if frame 3 chosen)
+	T_.1: 4x4 rigid transform obtain according to the point-to-point minimization between the chosen frame and the
+	theodolite 1 frame (Identity matrix if frame 1 chosen)
+	T_.2: 4x4 rigid transform obtain according to the point-to-point minimization between the chosen frame and the
+	theodolite 2 frame (Identity matrix if frame 2 chosen)
+	T_.3: 4x4 rigid transform obtain according to the point-to-point minimization between the chosen frame and the
+	theodolite 3 frame (Identity matrix if frame 3 chosen)
 	"""
 	assert theodolite_reference_frame == 1 or theodolite_reference_frame == 2 or theodolite_reference_frame == 3, \
-		"Invalid theodolite_reference_frame value, must be either 1, 2 or 3"
-	assert 0.0 < threshold <= 1.0, "Invalid threshold value, must be greater than 0 and less than or equal to 1"
+		"Invalid theodolite_reference_frame value, it must be either 1, 2 or 3"
+	assert 0.0 < threshold <= 1.0, \
+		"Invalid probability threshold value, it must be greater than 0 and less than or equal to 1"
 
 	points_theodolite_1 = []
 	points_theodolite_2 = []
@@ -73,8 +79,8 @@ def read_marker_file(file_name: str, theodolite_reference_frame: int, threshold:
 			if int(item[0]) == 3 and int(item[2]) == 0:
 				add_point(float(item[5]), float(item[4]), float(item[3]), points_theodolite_3, 2)
 
-	prob = np.random.default_rng().uniform(size=len(points_theodolite_1))
-	mask = (prob <= threshold)
+	probs = np.random.default_rng().uniform(size=len(points_theodolite_1))
+	mask = (probs <= threshold)
 	points_theodolite_1 = np.array(points_theodolite_1)[mask].T
 	points_theodolite_2 = np.array(points_theodolite_2)[mask].T
 	points_theodolite_3 = np.array(points_theodolite_3)[mask].T
