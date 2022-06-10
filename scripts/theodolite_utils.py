@@ -161,7 +161,18 @@ def read_rosbag_theodolite_with_tf(file, Tf):
 	print("Number of data for theodolites:", it)
 	print("Bad measures:", bad_measures)
 
-	return trajectory_trimble_1, trajectory_trimble_2, trajectory_trimble_3, time_trimble_1, time_trimble_2, time_trimble_3
+	sort_index1 = np.argsort(time_trimble_1)
+	sort_index2 = np.argsort(time_trimble_2)
+	sort_index3 = np.argsort(time_trimble_3)
+
+	traj1 = np.array(trajectory_trimble_1)[sort_index1]
+	traj2 = np.array(trajectory_trimble_2)[sort_index2]
+	traj3 = np.array(trajectory_trimble_3)[sort_index3]
+	tt1 = np.array(time_trimble_1)[sort_index1]
+	tt2 = np.array(time_trimble_2)[sort_index2]
+	tt3 = np.array(time_trimble_3)[sort_index3]
+
+	return traj1, traj2, traj3, tt1, tt2, tt3
 
 
 def read_rosbag_theodolite_with_tf_more(file, Tf):
@@ -207,7 +218,21 @@ def read_rosbag_theodolite_with_tf_more(file, Tf):
 	print("Number of data for theodolites:", it)
 	print("Bad measures:", bad_measures)
 
-	return trajectory_trimble_1, trajectory_trimble_2, trajectory_trimble_3, time_trimble_1, time_trimble_2, time_trimble_3, distance_1, distance_2, distance_3
+	sort_index1 = np.argsort(time_trimble_1)
+	sort_index2 = np.argsort(time_trimble_2)
+	sort_index3 = np.argsort(time_trimble_3)
+
+	traj1 = np.array(trajectory_trimble_1)[sort_index1]
+	traj2 = np.array(trajectory_trimble_2)[sort_index2]
+	traj3 = np.array(trajectory_trimble_3)[sort_index3]
+	tt1 = np.array(time_trimble_1)[sort_index1]
+	tt2 = np.array(time_trimble_2)[sort_index2]
+	tt3 = np.array(time_trimble_3)[sort_index3]
+	d1 = np.array(distance_1)[sort_index1]
+	d2 = np.array(distance_2)[sort_index2]
+	d3 = np.array(distance_3)[sort_index3]
+
+	return traj1, traj2, traj3, tt1, tt2, tt3, d1, d2, d3
 
 def read_rosbag_theodolite_without_tf_raw_data(file):
 	bag = rosbag.Bag(file)
@@ -269,7 +294,25 @@ def read_rosbag_theodolite_without_tf_raw_data(file):
 	print("Number of data for theodolites:", it)
 	print("Bad measures:", bad_measures)
 
-	return time_trimble_1, time_trimble_2, time_trimble_3, distance_1, distance_2, distance_3, azimuth_1, azimuth_2, azimuth_3, elevation_1, elevation_2, elevation_3
+	sort_index1 = np.argsort(time_trimble_1)
+	sort_index2 = np.argsort(time_trimble_2)
+	sort_index3 = np.argsort(time_trimble_3)
+
+	tt1 = np.array(time_trimble_1)[sort_index1]
+	tt2 = np.array(time_trimble_2)[sort_index2]
+	tt3 = np.array(time_trimble_3)[sort_index3]
+	d1 = np.array(distance_1)[sort_index1]
+	d2 = np.array(distance_2)[sort_index2]
+	d3 = np.array(distance_3)[sort_index3]
+	a1 = np.array(azimuth_1)[sort_index1]
+	a2 = np.array(azimuth_2)[sort_index2]
+	a3 = np.array(azimuth_3)[sort_index3]
+	e1 = np.array(elevation_1)[sort_index1]
+	e2 = np.array(elevation_2)[sort_index2]
+	e3 = np.array(elevation_3)[sort_index3]
+
+	return tt1, tt2, tt3, d1, d2, d3, a1, a2, a3, e1, e2, e3
+
 
 def read_rosbag_theodolite_without_tf_raw_data_all(file):
 	bag = rosbag.Bag(file)
@@ -288,6 +331,9 @@ def read_rosbag_theodolite_without_tf_raw_data_all(file):
 	status_1 = []
 	status_2 = []
 	status_3 = []
+	check_double_1 = 0
+	check_double_2 = 0
+	check_double_3 = 0
 	# Variable for counting number of data and number of mistakes
 	it = np.array([0,0,0])
 	bad_measures = 0
@@ -297,29 +343,35 @@ def read_rosbag_theodolite_without_tf_raw_data_all(file):
 		timestamp = second_nsecond(marker.header.stamp.secs, marker.header.stamp.nsecs)
 		# Find number of theodolite
 		if(marker.theodolite_id==1):
-			#add_point_in_frame(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_1, Tf[0], 2)
-			time_trimble_1.append(timestamp)
-			distance_1.append(marker.distance)
-			azimuth_1.append(marker.azimuth)
-			elevation_1.append(marker.elevation)
-			status_1.append(marker.status)
-			it[0]+=1
+			if (check_double_1 != timestamp):
+				#add_point_in_frame(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_1, Tf[0], 2)
+				time_trimble_1.append(timestamp)
+				distance_1.append(marker.distance)
+				azimuth_1.append(marker.azimuth)
+				elevation_1.append(marker.elevation)
+				status_1.append(marker.status)
+				it[0]+=1
+				check_double_1 = timestamp
 		if(marker.theodolite_id==2):
-			#add_point_in_frame(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_2, Tf[1], 2)
-			time_trimble_2.append(timestamp)
-			distance_2.append(marker.distance)
-			azimuth_2.append(marker.azimuth)
-			elevation_2.append(marker.elevation)
-			status_2.append(marker.status)
-			it[1]+=1
+			if (check_double_2 != timestamp):
+				#add_point_in_frame(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_2, Tf[1], 2)
+				time_trimble_2.append(timestamp)
+				distance_2.append(marker.distance)
+				azimuth_2.append(marker.azimuth)
+				elevation_2.append(marker.elevation)
+				status_2.append(marker.status)
+				it[1]+=1
+				check_double_2 = timestamp
 		if(marker.theodolite_id==3):
-			#add_point_in_frame(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_3, Tf[2], 2)
-			time_trimble_3.append(timestamp)
-			distance_3.append(marker.distance)
-			azimuth_3.append(marker.azimuth)
-			elevation_3.append(marker.elevation)
-			status_3.append(marker.status)
-			it[2]+=1
+			if (check_double_3 != timestamp):
+				#add_point_in_frame(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_3, Tf[2], 2)
+				time_trimble_3.append(timestamp)
+				distance_3.append(marker.distance)
+				azimuth_3.append(marker.azimuth)
+				elevation_3.append(marker.elevation)
+				status_3.append(marker.status)
+				it[2]+=1
+				check_double_3 = timestamp
 		# Count mistakes
 		if(marker.status != 0):
 			bad_measures+=1
@@ -327,7 +379,27 @@ def read_rosbag_theodolite_without_tf_raw_data_all(file):
 	print("Number of data for theodolites:", it)
 	print("Bad measures:", bad_measures)
 
-	return time_trimble_1, time_trimble_2, time_trimble_3, distance_1, distance_2, distance_3, azimuth_1, azimuth_2, azimuth_3, elevation_1, elevation_2, elevation_3, status_1, status_2, status_3
+	sort_index1 = np.argsort(time_trimble_1)
+	sort_index2 = np.argsort(time_trimble_2)
+	sort_index3 = np.argsort(time_trimble_3)
+
+	tt1 = np.array(time_trimble_1)[sort_index1]
+	tt2 = np.array(time_trimble_2)[sort_index2]
+	tt3 = np.array(time_trimble_3)[sort_index3]
+	d1 = np.array(distance_1)[sort_index1]
+	d2 = np.array(distance_2)[sort_index2]
+	d3 = np.array(distance_3)[sort_index3]
+	a1 = np.array(azimuth_1)[sort_index1]
+	a2 = np.array(azimuth_2)[sort_index2]
+	a3 = np.array(azimuth_3)[sort_index3]
+	e1 = np.array(elevation_1)[sort_index1]
+	e2 = np.array(elevation_2)[sort_index2]
+	e3 = np.array(elevation_3)[sort_index3]
+	s1 = np.array(status_1)[sort_index1]
+	s2 = np.array(status_2)[sort_index2]
+	s3 = np.array(status_3)[sort_index3]
+
+	return tt1, tt2, tt3, d1, d2, d3, a1, a2, a3, e1, e2, e3, s1, s2, s3
 
 def read_rosbag_theodolite_without_tf(file):
 	bag = rosbag.Bag(file)
@@ -380,7 +452,18 @@ def read_rosbag_theodolite_without_tf(file):
 	print("Number of data for theodolites:", it)
 	print("Bad measures:", bad_measures)
 
-	return time_trimble_1, time_trimble_2, time_trimble_3, trimble_1, trimble_2, trimble_3
+	sort_index1 = np.argsort(time_trimble_1)
+	sort_index2 = np.argsort(time_trimble_2)
+	sort_index3 = np.argsort(time_trimble_3)
+
+	tt1 = np.array(time_trimble_1)[sort_index1]
+	tt2 = np.array(time_trimble_2)[sort_index2]
+	tt3 = np.array(time_trimble_3)[sort_index3]
+	t1 = np.array(trimble_1)[sort_index1]
+	t2 = np.array(trimble_2)[sort_index2]
+	t3 = np.array(trimble_3)[sort_index3]
+
+	return tt1, tt2, tt3, t1, t2, t3
 
 
 # Function which read a rosbag of icp data and return the a list of the pose
