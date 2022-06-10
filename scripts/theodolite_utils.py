@@ -491,23 +491,24 @@ def read_prediction_data_csv_file(file_name):
 	file.close()
 	return data
 
-def read_prediction_data_resection_csv_file(file_name):
+
+def read_prediction_data_resection_csv_file(file_name: str, threshold: float = 1.0):
 	data = []
-	# Read text file
-	file = open(file_name, "r")
-	line = file.readline()
-	while line:
-		#line = line.replace("]","")
-		item = line.replace("]","").replace("[","").split(" ")
-		Time = float(item[0])
-		Px = float(item[1])
-		Py = float(item[2])
-		Pz = float(item[3])
-		array_point = np.array([Time, Px, Py, Pz, 1])
-		data.append(array_point)
-		line = file.readline()
-	file.close()
-	return data
+
+	with open(file_name, "r") as file:
+		for line in file:
+			item = line.strip().split(" ")
+			Time = float(item[0])
+			Px = float(item[1])
+			Py = float(item[2])
+			Pz = float(item[3])
+			array_point = np.array([Time, Px, Py, Pz, 1])
+			data.append(array_point)
+
+	prob = np.random.default_rng().uniform(size=len(data))
+	mask = (prob <= threshold)
+
+	return np.array(data)[mask], data
 
 # Function which convert interpolated data pose into a specific format to use evo library
 # Input:
