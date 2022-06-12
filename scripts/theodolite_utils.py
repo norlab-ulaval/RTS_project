@@ -597,7 +597,7 @@ def read_prediction_data_resection_csv_file(file_name: str, threshold: float = 1
 	prob = np.random.default_rng().uniform(size=len(data))
 	mask = (prob <= threshold)
 
-	return np.array(data)[mask], data
+	return np.array(data)[mask]
 
 # Function which convert interpolated data pose into a specific format to use evo library
 # Input:
