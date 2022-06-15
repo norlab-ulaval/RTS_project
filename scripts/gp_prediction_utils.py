@@ -10,6 +10,7 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import (RBF, Matern, RationalQuadratic, ExpSineSquared, DotProduct, ConstantKernel)
 import math
 import GPy
+from scipy import interpolate
 #from pypointmatcher import pointmatcher as pm, pointmatchersupport as pms
 #PM = pm.PointMatcher
 #DP = PM.DataPoints
@@ -262,6 +263,52 @@ def data_training_MGPO_raw(time_1, time_2, time_3, d_1, a_1, e_1, d_2, a_2, e_2,
 
     return T_MGPO, S_MGPO
 
+def data_training_L(time_1, time_2, time_3, traj_1, traj_2, traj_3, index_1, index_2, index_3):
+    T_1_train_L = np.atleast_2d(time_1[index_1[0]:index_1[1]+1]).T.flatten()
+    X_1_train_L = np.atleast_2d(traj_1[0, index_1[0]:index_1[1]+1]).T.flatten()
+    Y_1_train_L = np.atleast_2d(traj_1[1, index_1[0]:index_1[1]+1]).T.flatten()
+    Z_1_train_L = np.atleast_2d(traj_1[2, index_1[0]:index_1[1]+1]).T.flatten()
+    T_2_train_L = np.atleast_2d(time_2[index_2[0]:index_2[1]+1]).T.flatten()
+    X_2_train_L = np.atleast_2d(traj_2[0, index_2[0]:index_2[1]+1]).T.flatten()
+    Y_2_train_L = np.atleast_2d(traj_2[1, index_2[0]:index_2[1]+1]).T.flatten()
+    Z_2_train_L = np.atleast_2d(traj_2[2, index_2[0]:index_2[1]+1]).T.flatten()
+    T_3_train_L = np.atleast_2d(time_3[index_3[0]:index_3[1]+1]).T.flatten()
+    X_3_train_L = np.atleast_2d(traj_3[0, index_3[0]:index_3[1]+1]).T.flatten()
+    Y_3_train_L = np.atleast_2d(traj_3[1, index_3[0]:index_3[1]+1]).T.flatten()
+    Z_3_train_L = np.atleast_2d(traj_3[2, index_3[0]:index_3[1]+1]).T.flatten()
+
+    return T_1_train_L, X_1_train_L, Y_1_train_L, Z_1_train_L, T_2_train_L, X_2_train_L, Y_2_train_L, Z_2_train_L, T_3_train_L, X_3_train_L, Y_3_train_L, Z_3_train_L
+
+def linear_interpolation(T_1_L, X_1_L, Y_1_L, Z_1_L, T_2_L, X_2_L, Y_2_L, Z_2_L, T_3_L, X_3_L, Y_3_L, Z_3_L):
+    X_1_interp = interpolate.interp1d(T_1_L, X_1_L)
+    Y_1_interp = interpolate.interp1d(T_1_L, Y_1_L)
+    Z_1_interp = interpolate.interp1d(T_1_L, Z_1_L)
+    X_2_interp = interpolate.interp1d(T_2_L, X_2_L)
+    Y_2_interp = interpolate.interp1d(T_2_L, Y_2_L)
+    Z_2_interp = interpolate.interp1d(T_2_L, Z_2_L)
+    X_3_interp = interpolate.interp1d(T_3_L, X_3_L)
+    Y_3_interp = interpolate.interp1d(T_3_L, Y_3_L)
+    Z_3_interp = interpolate.interp1d(T_3_L, Z_3_L)
+
+    return X_1_interp, Y_1_interp, Z_1_interp, X_2_interp, Y_2_interp, Z_2_interp, X_3_interp, Y_3_interp, Z_3_interp
+
+def linear_prediction(T_pred, time_origin, X_1_interp, Y_1_interp, Z_1_interp, X_2_interp, Y_2_interp, Z_2_interp, X_3_interp, Y_3_interp, Z_3_interp):
+    X_1 = X_1_interp(T_pred)
+    Y_1 = Y_1_interp(T_pred)
+    Z_1 = Z_1_interp(T_pred)
+    X_2 = X_2_interp(T_pred)
+    Y_2 = Y_2_interp(T_pred)
+    Z_2 = Z_2_interp(T_pred)
+    X_3 = X_3_interp(T_pred)
+    Y_3 = Y_3_interp(T_pred)
+    Z_3 = Z_3_interp(T_pred)
+
+    P_1 = np.array([X_1, Y_1, Z_1])
+    P_2 = np.array([X_2, Y_2, Z_2])
+    P_3 = np.array([X_3, Y_3, Z_3])
+
+    return P_1, P_2, P_3
+
 def data_training_GP(time_1, time_2, time_3, traj_1, traj_2, traj_3, index_1, index_2, index_3):
     T_1_train_GP = np.atleast_2d(time_1[index_1[0]:index_1[1]+1]).T
     X_1_train_GP = np.atleast_2d(traj_1[0, index_1[0]:index_1[1]+1]).T
@@ -310,7 +357,7 @@ def training_MGPO(num_restarts, verbose, T_MGPO, S_MGPO):
 
 def training_GP(num_restarts, verbose, T_1_train_GP, X_1_train_GP, Y_1_train_GP, Z_1_train_GP, T_2_train_GP, X_2_train_GP, Y_2_train_GP, Z_2_train_GP, T_3_train_GP, X_3_train_GP, Y_3_train_GP, Z_3_train_GP):
     input_dim = 1
-    #variance = 0
+    variance = 0
     #variance_constraint = 1000
     lengthscale = 1.
 
@@ -529,7 +576,7 @@ import lab as B
 import matplotlib.pyplot as plt
 import torch
 from wbml.plot import tweak
-from stheno.torch import EQ, GP, Matern52
+from stheno.torch import EQ, GP, Matern52, Matern32
 
 class Model_stheno(torch.nn.Module):
     """A GP model with learnable parameters."""
@@ -544,9 +591,9 @@ class Model_stheno(torch.nn.Module):
         self.var = torch.exp(self.log_var)
         self.scale = torch.exp(self.log_scale)
         self.noise = torch.exp(self.log_noise)
-        # kernel = self.var * EQ().stretch(self.scale)
-        kernel = self.var * Matern52().stretch(self.scale)
-        return GP(0, kernel), self.noise
+        kernel = self.var * EQ().stretch(self.scale)
+        # = self.var * Matern32().stretch(self.scale)
+        return GP(kernel), self.noise
 
 def GP_function_stheno(x, x_obs, y_obs, variance, lengthscale, noise_init, optimization_nb):
     model = Model_stheno(init_var=variance, init_scale=lengthscale, init_noise=noise_init)
@@ -556,7 +603,7 @@ def GP_function_stheno(x, x_obs, y_obs, variance, lengthscale, noise_init, optim
     prior_before = f, noise
     pred_before = f_post(x, noise).marginal_credible_bounds()
     # Perform optimisation.
-    opt = torch.optim.Adam(model.parameters(), lr=1e-3)
+    opt = torch.optim.Adam(model.parameters(), lr=5e-2)
     for _ in range(optimization_nb):
         opt.zero_grad()
         f, noise = model.construct()
@@ -567,6 +614,7 @@ def GP_function_stheno(x, x_obs, y_obs, variance, lengthscale, noise_init, optim
     # Condition on observations and make predictions after optimisation.
     f_post = f | (f(x_obs, noise), y_obs)
     prior_after = f, noise
+    print(f)
     #mean, lower, upper = f_post(x, noise).marginal_credible_bounds()
     mean, variance = f_post(x, noise).marginals()
     return mean.detach().numpy().flatten(), variance.detach().numpy().flatten()
