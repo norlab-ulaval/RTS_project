@@ -28,6 +28,15 @@ class TheodoliteCoordsStamped:
 		self.elevation = elevation
 		self.distance = distance
 
+class TheodoliteTimeCorrection:
+	def __init__(self, header, theodolite_id, estimated_time_offset):
+		self.header = header
+		self.theodolite_id = theodolite_id
+		self.estimated_time_offset = estimated_time_offset
+
+###################################################################################################
+###################################################################################################
+# Read/write data from files
 
 def read_marker_file(file_name: str, theodolite_reference_frame: int, threshold: float = 1.0) -> tuple:
 	"""
@@ -105,6 +114,32 @@ def read_marker_file(file_name: str, theodolite_reference_frame: int, threshold:
 		points_theodolite_1 = T_31@points_theodolite_1
 		points_theodolite_2 = T_32@points_theodolite_2
 		return points_theodolite_1, points_theodolite_2, points_theodolite_3, T_31, T_32, T_I
+
+
+def read_rosbag_time_correction_theodolite(file):
+	bag = rosbag.Bag(file)
+	timestamp_1=[]
+	timeCorrection_1=[]
+	timestamp_2 = []
+	timeCorrection_2 = []
+	timestamp_3 = []
+	timeCorrection_3 = []
+	#Read topic of trimble
+	for _, msg, t in bag.read_messages(topics=['/theodolite_master/theodolite_correction_timestamp']):
+		marker = TheodoliteTimeCorrection(msg.header, msg.theodolite_id, msg.estimated_time_offset)
+		if(marker.theodolite_id==1):
+			timestamp_1.append(second_nsecond(marker.header.stamp.secs, marker.header.stamp.nsecs))
+			timeCorrection_1.append(second_nsecond(marker.estimated_time_offset.secs,marker.estimated_time_offset.nsecs))
+		if (marker.theodolite_id == 2):
+			timestamp_2.append(second_nsecond(marker.header.stamp.secs, marker.header.stamp.nsecs))
+			timeCorrection_2.append(second_nsecond(marker.estimated_time_offset.secs,
+												   marker.estimated_time_offset.nsecs))
+		if (marker.theodolite_id == 3):
+			timestamp_3.append(second_nsecond(marker.header.stamp.secs, marker.header.stamp.nsecs))
+			timeCorrection_3.append(second_nsecond(marker.estimated_time_offset.secs,
+												   marker.estimated_time_offset.nsecs))
+
+	return timestamp_1, timestamp_2, timestamp_3, timeCorrection_1, timeCorrection_2, timeCorrection_3
 
 # Function which read a rosbag of theodolite data and return the trajectories found by each theodolite, and the timestamp of each point as a list
 # Input:
@@ -401,6 +436,64 @@ def read_rosbag_theodolite_without_tf_raw_data_all(file):
 
 	return tt1, tt2, tt3, d1, d2, d3, a1, a2, a3, e1, e2, e3, s1, s2, s3
 
+def read_rosbag_theodolite_without_tf_raw_data_all_2(file):
+	bag = rosbag.Bag(file)
+	time_trimble_1 = []
+	time_trimble_2 = []
+	time_trimble_3 = []
+	distance_1 = []
+	distance_2 = []
+	distance_3 = []
+	azimuth_1 = []
+	azimuth_2 = []
+	azimuth_3 = []
+	elevation_1 = []
+	elevation_2 = []
+	elevation_3 = []
+	status_1 = []
+	status_2 = []
+	status_3 = []
+	# Variable for counting number of data and number of mistakes
+	it = np.array([0,0,0])
+	bad_measures = 0
+	#Read topic of trimble
+	for _, msg, t in bag.read_messages(topics=['/theodolite_master/theodolite_data']):
+		marker = TheodoliteCoordsStamped(msg.header, msg.theodolite_time, msg.theodolite_id, msg.status, msg.azimuth, msg.elevation, msg.distance)
+		timestamp = second_nsecond(marker.header.stamp.secs, marker.header.stamp.nsecs)
+		# Find number of theodolite
+		if(marker.theodolite_id==1):
+				#add_point_in_frame(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_1, Tf[0], 2)
+				time_trimble_1.append(timestamp)
+				distance_1.append(marker.distance)
+				azimuth_1.append(marker.azimuth)
+				elevation_1.append(marker.elevation)
+				status_1.append(marker.status)
+				it[0]+=1
+		if(marker.theodolite_id==2):
+				#add_point_in_frame(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_2, Tf[1], 2)
+				time_trimble_2.append(timestamp)
+				distance_2.append(marker.distance)
+				azimuth_2.append(marker.azimuth)
+				elevation_2.append(marker.elevation)
+				status_2.append(marker.status)
+				it[1]+=1
+		if(marker.theodolite_id==3):
+				#add_point_in_frame(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_3, Tf[2], 2)
+				time_trimble_3.append(timestamp)
+				distance_3.append(marker.distance)
+				azimuth_3.append(marker.azimuth)
+				elevation_3.append(marker.elevation)
+				status_3.append(marker.status)
+				it[2]+=1
+		# Count mistakes
+		if(marker.status != 0):
+			bad_measures+=1
+	# Print number of data for each theodolite and the total number of mistakes
+	print("Number of data for theodolites:", it)
+	print("Bad measures:", bad_measures)
+
+	return time_trimble_1, time_trimble_2, time_trimble_2, distance_1, distance_2, distance_3, azimuth_1, azimuth_2, azimuth_3, elevation_1, elevation_2, elevation_3, status_1, status_2, status_3
+
 def read_rosbag_theodolite_without_tf(file):
 	bag = rosbag.Bag(file)
 	time_trimble_1 = []
@@ -464,6 +557,59 @@ def read_rosbag_theodolite_without_tf(file):
 	t3 = np.array(trimble_3)[sort_index3]
 
 	return tt1, tt2, tt3, t1, t2, t3
+
+def read_rosbag_theodolite_without_tf_2(file):
+	bag = rosbag.Bag(file)
+	time_trimble_1 = []
+	time_trimble_2 = []
+	time_trimble_3 = []
+	trimble_1 = []
+	trimble_2 = []
+	trimble_3 = []
+	check_double_1 = 0
+	check_double_2 = 0
+	check_double_3 = 0
+	# Variable for counting number of data and number of mistakes
+	it = np.array([0, 0, 0])
+	bad_measures = 0
+	# Read topic of trimble
+	for _, msg, t in bag.read_messages(topics=['/theodolite_master/theodolite_data']):
+		marker = TheodoliteCoordsStamped(msg.header,
+										 msg.theodolite_time,
+										 msg.theodolite_id,
+										 msg.status,
+										 msg.azimuth,
+										 msg.elevation,
+										 msg.distance)
+		timestamp = second_nsecond(marker.header.stamp.secs, marker.header.stamp.nsecs)
+		if (marker.status == 0):  # If theodolite can see the prism, or no mistake in the measurement
+			# Find number of theodolite
+			if (marker.theodolite_id == 1):
+				if (check_double_1 != timestamp):
+					add_point(marker.distance, marker.azimuth, marker.elevation, trimble_1, 2)
+					time_trimble_1.append(timestamp)
+					it[0] += 1
+					check_double_1 = timestamp
+			if (marker.theodolite_id == 2):
+				if (check_double_2 != timestamp):
+					add_point(marker.distance, marker.azimuth, marker.elevation, trimble_2, 2)
+					time_trimble_2.append(timestamp)
+					it[1] += 1
+					check_double_2 = timestamp
+			if (marker.theodolite_id == 3):
+				if (check_double_3 != timestamp):
+					add_point(marker.distance, marker.azimuth, marker.elevation, trimble_3, 2)
+					time_trimble_3.append(timestamp)
+					it[2] += 1
+					check_double_3 = timestamp
+		# Count mistakes
+		if (marker.status != 0):
+			bad_measures += 1
+	# Print number of data for each theodolite and the total number of mistakes
+	print("Number of data for theodolites:", it)
+	print("Bad measures:", bad_measures)
+
+	return time_trimble_1, time_trimble_2, time_trimble_3, trimble_1, trimble_2, trimble_3
 
 
 # Function which read a rosbag of icp data and return the a list of the pose
@@ -1138,7 +1284,7 @@ def Convert_inter_distance_to_csv(time_data, distance, file_name):
 
 
 def Convert_gps_ape_error(gps_data, gps_ape, file_name):
-	csv_file = open(file_name, "w+")
+	csv_file = open(file_name, "w+")…P with stheno
 	for i,j,k in zip(gps_data.positions_xyz,gps_data.timestamps, gps_ape):
 		csv_file.write(str(j))
 		csv_file.write(" ")
@@ -1151,7 +1297,7 @@ def Convert_gps_ape_error(gps_data, gps_ape, file_name):
 		csv_file.write(str(k))
 		csv_file.write("\n")
 	csv_file.close()
-	print("Conversion done !")
+	print("Conversion done !")…P with stheno
 
 # Function which reads data coming from a calibration file and put them in another file
 # Input:
@@ -1174,7 +1320,7 @@ def read_calibration_gps_prism(file_name, file_name_output):
 		line = file.readline()
 	file.close()
 
-	dp12 = np.linalg.norm(points[0]-points[1], axis=0)
+	dp12 = np.linalg.norm(points[0]-points[1], axis=0)…P with stheno
 	dp13 = np.linalg.norm(points[0] - points[2], axis=0)
 	dp23 = np.linalg.norm(points[1] - points[2], axis=0)
 	dg12 = np.linalg.norm(points[3] - points[4], axis=0)
@@ -1220,7 +1366,7 @@ def read_calibration_gps_prism_lidar(file_name, file_name_output):
 			d = float(item[12]) + 0.01  # Add 10mm because prisms
 		number = number + 1
 		points.append(give_points_calibration(d, ha, va, 1))
-		line = file.readline()
+		line = file.readline()…P with stheno
 	file.close()
 
 	dp12 = np.linalg.norm(points[0] - points[1], axis=0)
@@ -1236,7 +1382,7 @@ def read_calibration_gps_prism_lidar(file_name, file_name_output):
 	l4n = 1 / np.linalg.norm(l4, axis=0)
 	l = l1 - distance_lidar_top_to_lidar_origin * l4n
 
-	print("Distance inter-prism: ", dp12, dp13, dp23)
+	print("Distance inter-prism: ", dp12, dp13, dp23)…P with stheno
 	print("Distance inter-GPS: ", dg12, dg13, dg23)
 
 	csv_file = open(file_name_output, "w+")
@@ -1791,7 +1937,7 @@ def sample3DCurves(row, res=10, method='linear'):
 	coords = np.linspace(path[0], path[-1], res) #p[0]=0 p[-1]=max(p)
 	# interpolation func for each axis with the path
 	sampleX = interpolate.interp1d(path, row[0], kind=method)
-	sampleY = interpolate.interp1d(path, row[1], kind=method)
+	sampleY = interpolate.interp1d(path, row[1…P with stheno], kind=method)
 	sampleZ = interpolate.interp1d(path, row[2], kind=method)
 	# sample each dim
 	xnew = sampleX(coords)
@@ -1820,7 +1966,7 @@ def normal_dist(x , mean , sd):
 # - gps_list: list of GPS position, array of 1x4, [0] timestamp
 # - index_list: list of index of the GPS list to test
 # - time_interval: timestamp given (s)
-# - limit_search: threshold for the time research (s)
+# - limit_search: threshold for the time res…P with sthenoearch (s)
 # Output:
 # - index: index corresponding to the closest timestamp found, -1 if no one found
 def research_index_for_time_gps(gps_list, index_list, time_interval, limit_search):
