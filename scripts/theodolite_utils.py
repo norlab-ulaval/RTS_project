@@ -1284,7 +1284,7 @@ def Convert_inter_distance_to_csv(time_data, distance, file_name):
 
 
 def Convert_gps_ape_error(gps_data, gps_ape, file_name):
-	csv_file = open(file_name, "w+")…P with stheno
+	csv_file = open(file_name, "w+")
 	for i,j,k in zip(gps_data.positions_xyz,gps_data.timestamps, gps_ape):
 		csv_file.write(str(j))
 		csv_file.write(" ")
@@ -1297,7 +1297,7 @@ def Convert_gps_ape_error(gps_data, gps_ape, file_name):
 		csv_file.write(str(k))
 		csv_file.write("\n")
 	csv_file.close()
-	print("Conversion done !")…P with stheno
+	print("Conversion done !")
 
 # Function which reads data coming from a calibration file and put them in another file
 # Input:
@@ -1320,7 +1320,7 @@ def read_calibration_gps_prism(file_name, file_name_output):
 		line = file.readline()
 	file.close()
 
-	dp12 = np.linalg.norm(points[0]-points[1], axis=0)…P with stheno
+	dp12 = np.linalg.norm(points[0]-points[1], axis=0)
 	dp13 = np.linalg.norm(points[0] - points[2], axis=0)
 	dp23 = np.linalg.norm(points[1] - points[2], axis=0)
 	dg12 = np.linalg.norm(points[3] - points[4], axis=0)
@@ -1366,7 +1366,7 @@ def read_calibration_gps_prism_lidar(file_name, file_name_output):
 			d = float(item[12]) + 0.01  # Add 10mm because prisms
 		number = number + 1
 		points.append(give_points_calibration(d, ha, va, 1))
-		line = file.readline()…P with stheno
+		line = file.readline()
 	file.close()
 
 	dp12 = np.linalg.norm(points[0] - points[1], axis=0)
@@ -1382,7 +1382,7 @@ def read_calibration_gps_prism_lidar(file_name, file_name_output):
 	l4n = 1 / np.linalg.norm(l4, axis=0)
 	l = l1 - distance_lidar_top_to_lidar_origin * l4n
 
-	print("Distance inter-prism: ", dp12, dp13, dp23)…P with stheno
+	print("Distance inter-prism: ", dp12, dp13, dp23)
 	print("Distance inter-GPS: ", dg12, dg13, dg23)
 
 	csv_file = open(file_name_output, "w+")
@@ -1937,7 +1937,7 @@ def sample3DCurves(row, res=10, method='linear'):
 	coords = np.linspace(path[0], path[-1], res) #p[0]=0 p[-1]=max(p)
 	# interpolation func for each axis with the path
 	sampleX = interpolate.interp1d(path, row[0], kind=method)
-	sampleY = interpolate.interp1d(path, row[1…P with stheno], kind=method)
+	sampleY = interpolate.interp1d(path, row[1], kind=method)
 	sampleZ = interpolate.interp1d(path, row[2], kind=method)
 	# sample each dim
 	xnew = sampleX(coords)
@@ -1966,7 +1966,7 @@ def normal_dist(x , mean , sd):
 # - gps_list: list of GPS position, array of 1x4, [0] timestamp
 # - index_list: list of index of the GPS list to test
 # - time_interval: timestamp given (s)
-# - limit_search: threshold for the time res…P with sthenoearch (s)
+# - limit_search: threshold for the time research (s)
 # Output:
 # - index: index corresponding to the closest timestamp found, -1 if no one found
 def research_index_for_time_gps(gps_list, index_list, time_interval, limit_search):
