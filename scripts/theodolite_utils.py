@@ -269,7 +269,7 @@ def read_rosbag_theodolite_with_tf_more(file, Tf):
 
 	return traj1, traj2, traj3, tt1, tt2, tt3, d1, d2, d3
 
-def read_rosbag_theodolite_without_tf_raw_data(file):
+def read_rosbag_theodolite_without_tf_raw_data_pre_filtered(file):
 	bag = rosbag.Bag(file)
 	time_trimble_1 = []
 	time_trimble_2 = []
@@ -283,6 +283,9 @@ def read_rosbag_theodolite_without_tf_raw_data(file):
 	elevation_1 = []
 	elevation_2 = []
 	elevation_3 = []
+	trajectory_trimble_1 = []
+	trajectory_trimble_2 = []
+	trajectory_trimble_3 = []
 	check_double_1 = 0
 	check_double_2 = 0
 	check_double_3 = 0
@@ -297,7 +300,7 @@ def read_rosbag_theodolite_without_tf_raw_data(file):
 			# Find number of theodolite
 			if(marker.theodolite_id==1):
 				if (check_double_1 != timestamp):
-					#add_point_in_frame(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_1, Tf[0], 2)
+					add_point(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_1, 2)
 					time_trimble_1.append(timestamp)
 					distance_1.append(marker.distance)
 					azimuth_1.append(marker.azimuth)
@@ -306,7 +309,7 @@ def read_rosbag_theodolite_without_tf_raw_data(file):
 					check_double_1 = timestamp
 			if(marker.theodolite_id==2):
 				if (check_double_2 != timestamp):
-					#add_point_in_frame(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_2, Tf[1], 2)
+					add_point(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_2, 2)
 					time_trimble_2.append(timestamp)
 					distance_2.append(marker.distance)
 					azimuth_2.append(marker.azimuth)
@@ -315,7 +318,7 @@ def read_rosbag_theodolite_without_tf_raw_data(file):
 					check_double_2 = timestamp
 			if(marker.theodolite_id==3):
 				if (check_double_3 != timestamp):
-					#add_point_in_frame(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_3, Tf[2], 2)
+					add_point(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_3, 2)
 					time_trimble_3.append(timestamp)
 					distance_3.append(marker.distance)
 					azimuth_3.append(marker.azimuth)
@@ -333,9 +336,12 @@ def read_rosbag_theodolite_without_tf_raw_data(file):
 	sort_index2 = np.argsort(time_trimble_2)
 	sort_index3 = np.argsort(time_trimble_3)
 
-	tt1 = np.array(time_trimble_1)[sort_index1]
-	tt2 = np.array(time_trimble_2)[sort_index2]
-	tt3 = np.array(time_trimble_3)[sort_index3]
+	t1 = np.array(time_trimble_1)[sort_index1]
+	t2 = np.array(time_trimble_2)[sort_index2]
+	t3 = np.array(time_trimble_3)[sort_index3]
+	tp1 = np.array(trajectory_trimble_1)[sort_index1]
+	tp2 = np.array(trajectory_trimble_2)[sort_index2]
+	tp3 = np.array(trajectory_trimble_3)[sort_index3]
 	d1 = np.array(distance_1)[sort_index1]
 	d2 = np.array(distance_2)[sort_index2]
 	d3 = np.array(distance_3)[sort_index3]
@@ -346,7 +352,63 @@ def read_rosbag_theodolite_without_tf_raw_data(file):
 	e2 = np.array(elevation_2)[sort_index2]
 	e3 = np.array(elevation_3)[sort_index3]
 
-	return tt1, tt2, tt3, d1, d2, d3, a1, a2, a3, e1, e2, e3
+	return t1, t2, t3, tp1, tp2, tp3, d1, d2, d3, a1, a2, a3, e1, e2, e3
+
+def read_rosbag_theodolite_without_tf_raw_data(file):
+	bag = rosbag.Bag(file)
+	time_trimble_1 = []
+	time_trimble_2 = []
+	time_trimble_3 = []
+	distance_1 = []
+	distance_2 = []
+	distance_3 = []
+	azimuth_1 = []
+	azimuth_2 = []
+	azimuth_3 = []
+	elevation_1 = []
+	elevation_2 = []
+	elevation_3 = []
+	trajectory_trimble_1 = []
+	trajectory_trimble_2 = []
+	trajectory_trimble_3 = []
+	# Variable for counting number of data and number of mistakes
+	it = np.array([0,0,0])
+	bad_measures = 0
+	#Read topic of trimble
+	for _, msg, t in bag.read_messages(topics=['/theodolite_master/theodolite_data']):
+		marker = TheodoliteCoordsStamped(msg.header, msg.theodolite_time, msg.theodolite_id, msg.status, msg.azimuth, msg.elevation, msg.distance)
+		timestamp = second_nsecond(marker.header.stamp.secs, marker.header.stamp.nsecs)
+		if(marker.status == 0): # If theodolite can see the prism, or no mistake in the measurement
+			# Find number of theodolite
+			if(marker.theodolite_id==1):
+					add_point(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_1, 2)
+					time_trimble_1.append(timestamp)
+					distance_1.append(marker.distance)
+					azimuth_1.append(marker.azimuth)
+					elevation_1.append(marker.elevation)
+					it[0]+=1
+			if(marker.theodolite_id==2):
+					add_point(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_2, 2)
+					time_trimble_2.append(timestamp)
+					distance_2.append(marker.distance)
+					azimuth_2.append(marker.azimuth)
+					elevation_2.append(marker.elevation)
+					it[1]+=1
+			if(marker.theodolite_id==3):
+					add_point(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_3, 2)
+					time_trimble_3.append(timestamp)
+					distance_3.append(marker.distance)
+					azimuth_3.append(marker.azimuth)
+					elevation_3.append(marker.elevation)
+					it[2]+=1
+		# Count mistakes
+		if(marker.status != 0):
+			bad_measures+=1
+	# Print number of data for each theodolite and the total number of mistakes
+	print("Number of data for theodolites:", it)
+	print("Bad measures:", bad_measures)
+
+	return time_trimble_1, time_trimble_2, time_trimble_3, trajectory_trimble_1, trajectory_trimble_2, trajectory_trimble_3, distance_1, distance_2, distance_3, azimuth_1, azimuth_2, azimuth_3, elevation_1, elevation_2, elevation_3
 
 
 def read_rosbag_theodolite_without_tf_raw_data_all(file):
@@ -2188,3 +2250,32 @@ def noise_apply(mode, mean_e, std_e, mean_g, std_g, mean_noise_t, std_noise_t, r
 				P3_wnoise_sub.append(p3_ref)
 
 	return P1_ref, P2_ref ,P3_ref, P1_noise, P2_noise, P3_noise, P1_noise_sub, P2_noise_sub , P3_noise_sub, t_sub_1, t_sub_2, t_sub_3, e_noise, t_noise_1, t_noise_2, t_noise_3, t_ref_1, t_ref_2, t_ref_3, P1_wnoise_sub, P2_wnoise_sub, P3_wnoise_sub, d1, d2, d3
+
+
+def thresold_raw_data(time, distance, azimuth, elevation, e_distance, e_azimuth, e_elevation, time_limit):
+	begin_t = 0
+	index_time = []
+	for i in range(0, len(time) - 1):
+		if (abs(time[i + 1] - time[i]) > time_limit):
+			if (abs((i - 1) - begin_t >= 2)):
+				index_time.append([begin_t, i - 1])
+				begin_t = i
+		if ((abs(time[i + 1] - time[i]) <= time_limit) and (
+				i + 1 == len(time) - 1)):
+			index_time.append([begin_t, i + 1])
+
+	index_final = []
+	for i in index_time:
+		for j in range(i[0], i[1] - 1):
+			if (time[j + 1] != time[j]):
+				deltad = abs(distance[j + 1] - distance[j])
+				deltae = abs(elevation[j + 1] - elevation[j])
+				deltaa = abs(azimuth[j + 1] - azimuth[j])
+				if (deltaa > 6):
+					deltaa = abs(deltaa - 2*math.pi)
+
+				if (deltad/abs(time[j + 1] - time[j]) < e_distance and
+						deltae/abs(time[j + 1] - time[j]) < e_elevation and
+						deltaa/abs(time[j + 1] - time[j]) < e_azimuth):
+					index_final.append(j)
+	return index_final
