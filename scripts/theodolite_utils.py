@@ -38,71 +38,82 @@ class TheodoliteTimeCorrection:
 ###################################################################################################
 # Read/write data from files
 
-# Function to read a text file which contains the marker data for the calibration. The result given
-# will be the different markers positions in one theodolite frame
-# Input:
-# - file_name: name of the file to read (the file should have the same structure than the usual one use by the raspi)
-# - theodolite_reference_frame: number which indicates the frame where the markers positions will be
-# Output:
-# - trimble_1: list of array markers points coordinates of the theodolite 1, in the frame chosen
-# - trimble_2: list of array markers points coordinates of the theodolite 2, in the frame chosen
-# - trimble_3: list of array markers points coordinates of the theodolite 3, in the frame chosen
-# - T_.1: 4x4 rigid transform obtain according to the point-to-point minimization between the chosen frame and the theodolite 1 frame (Identity matrix if frame 1 chosen)
-# - T_.2: 4x4 rigid transform obtain according to the point-to-point minimization between the chosen frame and the theodolite 2 frame (Identity matrix if frame 2 chosen)
-# - T_.3: 4x4 rigid transform obtain according to the point-to-point minimization between the chosen frame and the theodolite 3 frame (Identity matrix if frame 3 chosen)
-def read_marker_file(file_name, theodolite_reference_frame):
-	Points_t1_rasp = []
-	Points_t2_rasp = []
-	Points_t3_rasp = []
+def read_marker_file(file_name: str, theodolite_reference_frame: int, threshold: float = 1.0) -> tuple:
+	"""
+	Function to read a text file which contains the marker data for the calibration. The result given
+	will be the different markers positions in one theodolite frame.
+
+	It can also return a subsample of the markers position by providing a probability (prob) value less than one.
+
+	The format of the file must be:
+	theodolite_number , marker_number , status , elevation , azimuth , distance , sec , nsec
+
+	Parameters
+	----------
+	file_name: Name of the file to read (the file should have the same structure then the usual one use by the raspi)
+	theodolite_reference_frame: {1,2,3} Number which indicates the frame where the markers positions will be.
+	threshold: Probability threshold at which a marker position is kept. (0, 1] optional
+
+	Returns
+	-------
+	points_theodolite_1: list of array markers points coordinates of the theodolite 1, in the frame chosen
+	points_theodolite_2: list of array markers points coordinates of the theodolite 2, in the frame chosen
+	points_theodolite_3: list of array markers points coordinates of the theodolite 3, in the frame chosen
+	T_.1: 4x4 rigid transform obtain according to the point-to-point minimization between the chosen frame and the
+	theodolite 1 frame (Identity matrix if frame 1 chosen)
+	T_.2: 4x4 rigid transform obtain according to the point-to-point minimization between the chosen frame and the
+	theodolite 2 frame (Identity matrix if frame 2 chosen)
+	T_.3: 4x4 rigid transform obtain according to the point-to-point minimization between the chosen frame and the
+	theodolite 3 frame (Identity matrix if frame 3 chosen)
+	"""
+	assert theodolite_reference_frame == 1 or theodolite_reference_frame == 2 or theodolite_reference_frame == 3, \
+		"Invalid theodolite_reference_frame value, it must be either 1, 2 or 3"
+	assert 0.0 < threshold <= 1.0, \
+		"Invalid probability threshold value, it must be greater than 0 and less than or equal to 1"
+
+	points_theodolite_1 = []
+	points_theodolite_2 = []
+	points_theodolite_3 = []
 	T_I = np.identity(4)
-	# Read text file
-	file = open(file_name, "r")
-	line = file.readline()
-	line = file.readline()
-	while line:
-		item = line.split(",")
-		if(int(item[0])==1 and int(item[2])==0):
-			add_point(float(item[5]),float(item[4]),float(item[3]),Points_t1_rasp, 2)
-		if(int(item[0])==2 and int(item[2])==0):
-			add_point(float(item[5]),float(item[4]),float(item[3]),Points_t2_rasp, 2)
-		if(int(item[0])==3 and int(item[2])==0):
-			add_point(float(item[5]),float(item[4]),float(item[3]),Points_t3_rasp, 2)
-		line = file.readline()
-	file.close()
 
-	Points_t1_rasp_arr = np.array(Points_t1_rasp).T
-	Points_t2_rasp_arr = np.array(Points_t2_rasp).T
-	Points_t3_rasp_arr = np.array(Points_t3_rasp).T
-	trimble_1 = Points_t1_rasp_arr
-	trimble_2 = Points_t2_rasp_arr
-	trimble_3 = Points_t3_rasp_arr
+	with open(file_name, "r") as file:
+		file.readline()
 
-	if(theodolite_reference_frame<=1):
-		T_12_rasp = point_to_point_minimization(Points_t2_rasp_arr, Points_t1_rasp_arr)
-		T_13_rasp = point_to_point_minimization(Points_t3_rasp_arr, Points_t1_rasp_arr)
-		Points_t12_rasp = T_12_rasp@Points_t2_rasp_arr
-		Points_t13_rasp = T_13_rasp@Points_t3_rasp_arr
-		trimble_2 = Points_t12_rasp
-		trimble_3 = Points_t13_rasp
-		return trimble_1, trimble_2, trimble_3, T_I, T_12_rasp, T_13_rasp
+		for line in file:
+			item = line.strip().split(" , ")
+			if int(item[0]) == 1 and int(item[2]) == 0:
+				add_point(float(item[5]), float(item[4]), float(item[3]), points_theodolite_1, 2)
+			if int(item[0]) == 2 and int(item[2]) == 0:
+				add_point(float(item[5]), float(item[4]), float(item[3]), points_theodolite_2, 2)
+			if int(item[0]) == 3 and int(item[2]) == 0:
+				add_point(float(item[5]), float(item[4]), float(item[3]), points_theodolite_3, 2)
 
-	if(theodolite_reference_frame==2):
-		T_21_rasp = point_to_point_minimization(Points_t1_rasp_arr, Points_t2_rasp_arr)
-		T_23_rasp = point_to_point_minimization(Points_t3_rasp_arr, Points_t2_rasp_arr)
-		Points_t21_rasp = T_21_rasp@Points_t1_rasp_arr
-		Points_t23_rasp = T_23_rasp@Points_t3_rasp_arr
-		trimble_1 = Points_t21_rasp
-		trimble_3 = Points_t23_rasp
-		return trimble_1, trimble_2, trimble_3, T_21_rasp, T_I, T_23_rasp
+	probs = np.random.default_rng().uniform(size=len(points_theodolite_1))
+	mask = (probs <= threshold)
+	points_theodolite_1 = np.array(points_theodolite_1)[mask].T
+	points_theodolite_2 = np.array(points_theodolite_2)[mask].T
+	points_theodolite_3 = np.array(points_theodolite_3)[mask].T
 
-	if(theodolite_reference_frame>=3):
-		T_31_rasp = point_to_point_minimization(Points_t1_rasp_arr, Points_t3_rasp_arr)
-		T_32_rasp = point_to_point_minimization(Points_t2_rasp_arr, Points_t3_rasp_arr)
-		Points_t31_rasp = T_31_rasp@Points_t1_rasp_arr
-		Points_t32_rasp = T_32_rasp@Points_t2_rasp_arr
-		trimble_1 = Points_t31_rasp
-		trimble_2 = Points_t32_rasp
-		return trimble_1, trimble_2, trimble_3, T_31_rasp, T_32_rasp, T_I
+	if theodolite_reference_frame == 1:
+		T_12 = point_to_point_minimization(points_theodolite_2, points_theodolite_1)
+		T_13 = point_to_point_minimization(points_theodolite_3, points_theodolite_1)
+		points_theodolite_2 = T_12@points_theodolite_2
+		points_theodolite_3 = T_13@points_theodolite_3
+		return points_theodolite_1, points_theodolite_2, points_theodolite_3, T_I, T_12, T_13
+
+	if theodolite_reference_frame == 2:
+		T_21 = point_to_point_minimization(points_theodolite_1, points_theodolite_2)
+		T_23 = point_to_point_minimization(points_theodolite_3, points_theodolite_2)
+		points_theodolite_1 = T_21@points_theodolite_1
+		points_theodolite_3 = T_23@points_theodolite_3
+		return points_theodolite_1, points_theodolite_2, points_theodolite_3, T_21, T_I, T_23
+
+	if theodolite_reference_frame == 3:
+		T_31 = point_to_point_minimization(points_theodolite_1, points_theodolite_3)
+		T_32 = point_to_point_minimization(points_theodolite_2, points_theodolite_3)
+		points_theodolite_1 = T_31@points_theodolite_1
+		points_theodolite_2 = T_32@points_theodolite_2
+		return points_theodolite_1, points_theodolite_2, points_theodolite_3, T_31, T_32, T_I
 
 
 def read_rosbag_time_correction_theodolite(file):
@@ -715,23 +726,24 @@ def read_prediction_data_csv_file(file_name):
 	file.close()
 	return data
 
-def read_prediction_data_resection_csv_file(file_name):
+
+def read_prediction_data_resection_csv_file(file_name: str, threshold: float = 1.0):
 	data = []
-	# Read text file
-	file = open(file_name, "r")
-	line = file.readline()
-	while line:
-		#line = line.replace("]","")
-		item = line.replace("]","").replace("[","").split(" ")
-		Time = float(item[0])
-		Px = float(item[1])
-		Py = float(item[2])
-		Pz = float(item[3])
-		array_point = np.array([Time, Px, Py, Pz, 1])
-		data.append(array_point)
-		line = file.readline()
-	file.close()
-	return data
+
+	with open(file_name, "r") as file:
+		for line in file:
+			item = line.strip().split(" ")
+			Time = float(item[0])
+			Px = float(item[1])
+			Py = float(item[2])
+			Pz = float(item[3])
+			array_point = np.array([Time, Px, Py, Pz, 1])
+			data.append(array_point)
+
+	prob = np.random.default_rng().uniform(size=len(data))
+	mask = (prob <= threshold)
+
+	return np.array(data)[mask]
 
 # Function which convert interpolated data pose into a specific format to use evo library
 # Input:
@@ -1272,7 +1284,7 @@ def Convert_inter_distance_to_csv(time_data, distance, file_name):
 
 
 def Convert_gps_ape_error(gps_data, gps_ape, file_name):
-	csv_file = open(file_name, "w+")
+	csv_file = open(file_name, "w+")…P with stheno
 	for i,j,k in zip(gps_data.positions_xyz,gps_data.timestamps, gps_ape):
 		csv_file.write(str(j))
 		csv_file.write(" ")
@@ -1285,7 +1297,7 @@ def Convert_gps_ape_error(gps_data, gps_ape, file_name):
 		csv_file.write(str(k))
 		csv_file.write("\n")
 	csv_file.close()
-	print("Conversion done !")
+	print("Conversion done !")…P with stheno
 
 # Function which reads data coming from a calibration file and put them in another file
 # Input:
@@ -1308,7 +1320,7 @@ def read_calibration_gps_prism(file_name, file_name_output):
 		line = file.readline()
 	file.close()
 
-	dp12 = np.linalg.norm(points[0]-points[1], axis=0)
+	dp12 = np.linalg.norm(points[0]-points[1], axis=0)…P with stheno
 	dp13 = np.linalg.norm(points[0] - points[2], axis=0)
 	dp23 = np.linalg.norm(points[1] - points[2], axis=0)
 	dg12 = np.linalg.norm(points[3] - points[4], axis=0)
@@ -1354,7 +1366,7 @@ def read_calibration_gps_prism_lidar(file_name, file_name_output):
 			d = float(item[12]) + 0.01  # Add 10mm because prisms
 		number = number + 1
 		points.append(give_points_calibration(d, ha, va, 1))
-		line = file.readline()
+		line = file.readline()…P with stheno
 	file.close()
 
 	dp12 = np.linalg.norm(points[0] - points[1], axis=0)
@@ -1370,7 +1382,7 @@ def read_calibration_gps_prism_lidar(file_name, file_name_output):
 	l4n = 1 / np.linalg.norm(l4, axis=0)
 	l = l1 - distance_lidar_top_to_lidar_origin * l4n
 
-	print("Distance inter-prism: ", dp12, dp13, dp23)
+	print("Distance inter-prism: ", dp12, dp13, dp23)…P with stheno
 	print("Distance inter-GPS: ", dg12, dg13, dg23)
 
 	csv_file = open(file_name_output, "w+")
@@ -1925,7 +1937,7 @@ def sample3DCurves(row, res=10, method='linear'):
 	coords = np.linspace(path[0], path[-1], res) #p[0]=0 p[-1]=max(p)
 	# interpolation func for each axis with the path
 	sampleX = interpolate.interp1d(path, row[0], kind=method)
-	sampleY = interpolate.interp1d(path, row[1], kind=method)
+	sampleY = interpolate.interp1d(path, row[1…P with stheno], kind=method)
 	sampleZ = interpolate.interp1d(path, row[2], kind=method)
 	# sample each dim
 	xnew = sampleX(coords)
@@ -1954,7 +1966,7 @@ def normal_dist(x , mean , sd):
 # - gps_list: list of GPS position, array of 1x4, [0] timestamp
 # - index_list: list of index of the GPS list to test
 # - time_interval: timestamp given (s)
-# - limit_search: threshold for the time research (s)
+# - limit_search: threshold for the time res…P with sthenoearch (s)
 # Output:
 # - index: index corresponding to the closest timestamp found, -1 if no one found
 def research_index_for_time_gps(gps_list, index_list, time_interval, limit_search):
