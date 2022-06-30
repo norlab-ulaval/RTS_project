@@ -1,3 +1,4 @@
+bagpy
 evo
 numpy
 scipy
