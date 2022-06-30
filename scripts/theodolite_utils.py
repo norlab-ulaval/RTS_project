@@ -97,22 +97,22 @@ def read_marker_file(file_name: str, theodolite_reference_frame: int, threshold:
 	if theodolite_reference_frame == 1:
 		T_12 = point_to_point_minimization(points_theodolite_2, points_theodolite_1)
 		T_13 = point_to_point_minimization(points_theodolite_3, points_theodolite_1)
-		points_theodolite_2 = T_12@points_theodolite_2
-		points_theodolite_3 = T_13@points_theodolite_3
+		#points_theodolite_2 = T_12@points_theodolite_2
+		#points_theodolite_3 = T_13@points_theodolite_3
 		return points_theodolite_1, points_theodolite_2, points_theodolite_3, T_I, T_12, T_13
 
 	if theodolite_reference_frame == 2:
 		T_21 = point_to_point_minimization(points_theodolite_1, points_theodolite_2)
 		T_23 = point_to_point_minimization(points_theodolite_3, points_theodolite_2)
-		points_theodolite_1 = T_21@points_theodolite_1
-		points_theodolite_3 = T_23@points_theodolite_3
+		#points_theodolite_1 = T_21@points_theodolite_1
+		#points_theodolite_3 = T_23@points_theodolite_3
 		return points_theodolite_1, points_theodolite_2, points_theodolite_3, T_21, T_I, T_23
 
 	if theodolite_reference_frame == 3:
 		T_31 = point_to_point_minimization(points_theodolite_1, points_theodolite_3)
 		T_32 = point_to_point_minimization(points_theodolite_2, points_theodolite_3)
-		points_theodolite_1 = T_31@points_theodolite_1
-		points_theodolite_2 = T_32@points_theodolite_2
+		#points_theodolite_1 = T_31@points_theodolite_1
+		#points_theodolite_2 = T_32@points_theodolite_2
 		return points_theodolite_1, points_theodolite_2, points_theodolite_3, T_31, T_32, T_I
 
 
@@ -1009,6 +1009,28 @@ def save_tf(tf1, tf2, tf3, output):
 	file.close()
 	print("Conversion done !")
 
+def read_saved_tf(file_name):
+	Tf = []
+	with open(file_name, "r") as file:
+		for line in file:
+			item = line.strip().split(" ")
+			T = np.identity(4)
+			T[0, 0] = item[0]
+			T[0, 1] = item[1]
+			T[0, 2] = item[2]
+			T[0, 3] = item[3]
+			T[1, 0] = item[4]
+			T[1, 1] = item[5]
+			T[1, 2] = item[6]
+			T[1, 3] = item[7]
+			T[2, 0] = item[8]
+			T[2, 1] = item[9]
+			T[2, 2] = item[10]
+			T[2, 3] = item[11]
+			Tf.append(T)
+
+	return Tf
+
 # Function which read a rosbag of odometry data and return the lists of the speed and acceleration data
 # Input:
 # - filename: name of the rosbag to open
@@ -1022,6 +1044,7 @@ def read_rosbag_imu_node(filename, wheel):
 	speed_only = []
 	time_only = []
 	accel = []
+	accel_only = []
 	if(wheel==True):
 		topic_name = '/warthog_velocity_controller/odom'
 	else:
@@ -1031,7 +1054,7 @@ def read_rosbag_imu_node(filename, wheel):
 		time = second_nsecond(odom.header.stamp.secs, odom.header.stamp.nsecs)
 		vitesse_lineaire = odom.twist.twist.linear.x
 		speed.append(np.array([time,vitesse_lineaire]))
-		speed_only.append(vitesse_lineaire)
+		speed_only.append(abs(vitesse_lineaire))
 		time_only.append(time)
 	speed_only_arr = np.array(speed_only)
 	time_only_arr = np.array(time_only)
@@ -1039,7 +1062,8 @@ def read_rosbag_imu_node(filename, wheel):
 	time_diff_mean = np.mean(np.diff(time_only_arr), axis=0)
 	for i in range(0, len(diff_speed)):
 		accel.append(np.array([time_only[i],diff_speed[i]/time_diff_mean]))
-	return speed, accel
+		accel_only.append(abs(diff_speed[i]/time_diff_mean))
+	return speed, accel, speed_only, accel_only
 
 # Function which read a rosbag of imu data and return the list of the angular velocity around Z axis
 # Input:
@@ -1049,7 +1073,8 @@ def read_rosbag_imu_node(filename, wheel):
 # - speed: list of 1x2 matrix which contain the timestamp [0] and the angular velocity around Z axis [1] for each data
 def read_rosbag_imu_data(filename, wheel):
 	bag = rosbag.Bag(filename)
-	speed = []
+	angular_speed = []
+	angular_speed_only = []
 	if(wheel==True):
 		topic_name = '/imu/data' #topic_name = '/imu_data'
 	else:
@@ -1058,8 +1083,9 @@ def read_rosbag_imu_data(filename, wheel):
 		imu = Imu(msg.header, msg.orientation, msg.orientation_covariance, msg.angular_velocity, msg.angular_velocity_covariance, msg.linear_acceleration, msg.linear_acceleration_covariance)
 		time = second_nsecond(imu.header.stamp.secs, imu.header.stamp.nsecs)
 		angular_velocity_z = imu.angular_velocity.z
-		speed.append(np.array([time, angular_velocity_z]))
-	return speed
+		angular_speed.append(np.array([time, angular_velocity_z]))
+		angular_speed_only.append(abs(angular_velocity_z))
+	return angular_speed, angular_speed_only
 
 # Function which read a rosbag of both GPS data and return the lists of the position data
 # Input:
