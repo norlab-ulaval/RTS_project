@@ -17,6 +17,8 @@ from scipy import interpolate
 #from theodolite_node_msgs.msg import *
 #from theodolite_node_msgs.msg import TheodoliteCoordsStamped
 from std_msgs.msg import Header
+from bagpy import bagreader
+from pathlib import PurePath
 
 class TheodoliteCoordsStamped:
 	def __init__(self, header, theodolite_time, theodolite_id, status, azimuth, elevation, distance):
@@ -731,6 +733,53 @@ def read_rosbag_icp(filename):
 		time_icp.append(time)
 
 	return pose, time_icp
+
+
+def read_rosbag_topics_to_convert(topics_file_path: str) -> list:
+	"""
+	Read a text file containing a list of ROS topics and put them into a list. Each topic must be on its own line.
+
+	Parameters
+	----------
+	topics_file_path (str): A full-qualified or relative path to the ROS topics text file
+
+	Returns
+	-------
+	A list of ROS topics to be converted
+	"""
+	with open(topics_file_path) as topics_file:
+		return [topic.strip() for topic in topics_file.readlines()]
+
+
+def convert_rosbag_topics_to_csv(rosbag_file_path: str, topics: list) -> None:
+	"""
+	Convert a list of ROS topics from a rosbag to csv file.
+
+	Each topic will be converted into its own csv file.
+	The name of the csv file will be the same as the topic name with '/' replaced by '-'.
+
+	Parameters
+	----------
+	rosbag_file_path (str): A full-qualified or relative path to the rosbag file
+	topics (list): A list of the topics to be converted
+	"""
+	rosbag_file_name = PurePath(rosbag_file_path).name
+
+	print(f'Opening "{rosbag_file_name}" file...')
+	bag = bagreader(rosbag_file_path)
+	print("Opening done!\n")
+
+	print(f'Converted topics will be put into the "{bag.datafolder}" directory\n')
+	for topic in topics:
+		if topic in bag.topics:
+			print(f'Converting "{topic}" topic...')
+			topic_csv_file_name = PurePath(bag.message_by_topic(topic)).name
+			print(f'Topic converted to the "{topic_csv_file_name}" file.\n')
+		else:
+			print(f'Topic "{topic}" not found. Skipping...')
+
+	print(f'Conversion done!')
+
 
 # Function which read a csv file of points data with their timestamps
 # Input:
