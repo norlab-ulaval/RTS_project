@@ -2404,3 +2404,27 @@ def random_splitting(data: np.ndarray, threshold: float = 0.8):
 	mask = prob <= threshold
 
 	return data[mask], data[~mask]
+
+def random_splitting_mask(data: np.ndarray, threshold: float = 0.8):
+	"""
+	Randomly split a numpy array in two using a uniform distribution.
+
+	Parameters
+	----------
+	data : numpy.ndarray
+		The numpy array to be split.
+	threshold : float
+		The percentage used to split data. Default = 0.8
+
+	Returns
+	-------
+	out: mask numpy array
+		The first numpy array contains approximately the percentage of elements given by 'threshold' and
+		the second numpy array contains the complement of the first.
+	"""
+	assert 0 < threshold <= 1, "The threshold must be greater than 0 and less than or equal to 1."
+
+	prob = np.random.default_rng().uniform(size=data.shape[0])
+	mask = prob <= threshold
+
+	return mask

@@ -309,6 +309,23 @@ def linear_prediction(T_pred, time_origin, X_1_interp, Y_1_interp, Z_1_interp, X
 
     return P_1, P_2, P_3
 
+def linear_prediction_2(T_pred, time_origin, X_1_interp, Y_1_interp, Z_1_interp, X_2_interp, Y_2_interp, Z_2_interp, X_3_interp, Y_3_interp, Z_3_interp):
+    X_1 = X_1_interp(T_pred)
+    Y_1 = Y_1_interp(T_pred)
+    Z_1 = Z_1_interp(T_pred)
+    X_2 = X_2_interp(T_pred)
+    Y_2 = Y_2_interp(T_pred)
+    Z_2 = Z_2_interp(T_pred)
+    X_3 = X_3_interp(T_pred)
+    Y_3 = Y_3_interp(T_pred)
+    Z_3 = Z_3_interp(T_pred)
+
+    P_1 = np.array([X_1, Y_1, Z_1, 1])
+    P_2 = np.array([X_2, Y_2, Z_2, 1])
+    P_3 = np.array([X_3, Y_3, Z_3, 1])
+
+    return P_1, P_2, P_3
+
 def data_training_GP(time_1, time_2, time_3, traj_1, traj_2, traj_3, index_1, index_2, index_3):
     T_1_train_GP = np.atleast_2d(time_1[index_1[0]:index_1[1]+1]).T
     X_1_train_GP = np.atleast_2d(traj_1[0, index_1[0]:index_1[1]+1]).T
