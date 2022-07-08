@@ -2472,8 +2472,9 @@ def tf_from_pose_roll_pitch_yaw(pose6dof):
     pitch=pose6dof[4]
     yaw=pose6dof[5]
     T = np.identity(4)
-    r = R_scipy.from_euler('zyx', [roll, pitch, yaw])
-    Rot_r = r.as_matrix()
+    Rot_r = np.array([[np.cos(yaw), -np.sin(yaw), 0],
+                     [np.sin(yaw), np.cos(yaw), 0],
+                     [0, 0, 0]])
     T[0:3,0:3]=Rot_r
     T[0,3] = x
     T[1,3] = y
