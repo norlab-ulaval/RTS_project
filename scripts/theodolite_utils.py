@@ -2498,7 +2498,7 @@ def tf_from_pose_roll_pitch_yaw(pose6dof):
     T = np.identity(4)
     Rot_r = np.array([[np.cos(yaw), -np.sin(yaw), 0],
                      [np.sin(yaw), np.cos(yaw), 0],
-                     [0, 0, 0]])
+                     [0, 0, 1]])
     T[0:3,0:3]=Rot_r
     T[0,3] = x
     T[1,3] = y
