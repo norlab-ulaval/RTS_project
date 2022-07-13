@@ -2405,6 +2405,7 @@ def random_splitting(data: np.ndarray, threshold: float = 0.8):
 
 	return data[mask], data[~mask]
 
+
 def random_splitting_mask(data: np.ndarray, threshold: float = 0.8):
 	"""
 	Randomly split a numpy array in two using a uniform distribution.
@@ -2426,5 +2427,37 @@ def random_splitting_mask(data: np.ndarray, threshold: float = 0.8):
 
 	prob = np.random.default_rng().uniform(size=data.shape[0])
 	mask = prob <= threshold
+
+	return mask
+
+
+def uniform_random_mask(size: int, threshold: float = 0.75):
+	"""
+	Return a mask filter using a uniform distribution.
+
+	Parameters
+	----------
+	size : int
+		The size of the mask to generate.
+	threshold : float
+		The threshold used to generate the mask. Default = 0.75
+
+	Returns
+	-------
+	mask : ndarray
+		A new 1D array holding boolean values.
+
+	Examples
+	--------
+	>> a = np.arange(m*n).reshape(m,n)
+	>> mask = uniform_random_mask(m.shape[0], 0.75) # filter along first axis
+	>> filtered_m = m[mask]
+	>> mask = uniform_random_mask(m.shape[1], 0.75) # filter along second axis
+	>> filtered_m = m[:,mask]
+	"""
+	assert 0 < threshold <= 1, "The threshold must be greater than 0 and less than or equal to 1."
+
+	uniform_dist = np.random.default_rng().uniform(size=size)
+	mask = uniform_dist <= threshold
 
 	return mask
