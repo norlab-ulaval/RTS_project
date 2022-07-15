@@ -148,6 +148,7 @@ def read_marker_file_raw_data(file_name: str):
     raw_data_theodolite_2 = []
     raw_data_theodolite_3 = []
     T_I = np.identity(4)
+    correction = 0.01
 
     with open(file_name, "r") as file:
         file.readline()
@@ -155,14 +156,14 @@ def read_marker_file_raw_data(file_name: str):
         for line in file:
             item = line.strip().split(" , ")
             if int(item[0]) == 1 and int(item[2]) == 0:
-                add_point(float(item[5]), float(item[4]), float(item[3]), points_theodolite_1, 2)
-                raw_data_theodolite_1.append([float(item[3]), float(item[4]), float(item[5])])
+                add_point_resection(float(item[5]), float(item[4]), float(item[3]), points_theodolite_1, 2)
+                raw_data_theodolite_1.append([float(item[3]), 2*np.pi-float(item[4]), float(item[5])+correction])
             if int(item[0]) == 2 and int(item[2]) == 0:
-                add_point(float(item[5]), float(item[4]), float(item[3]), points_theodolite_2, 2)
-                raw_data_theodolite_2.append([float(item[3]), float(item[4]), float(item[5])])
+                add_point_resection(float(item[5]), float(item[4]), float(item[3]), points_theodolite_2, 2)
+                raw_data_theodolite_2.append([float(item[3]), 2*np.pi-float(item[4]), float(item[5])+correction])
             if int(item[0]) == 3 and int(item[2]) == 0:
-                add_point(float(item[5]), float(item[4]), float(item[3]), points_theodolite_3, 2)
-                raw_data_theodolite_3.append([float(item[3]), float(item[4]), float(item[5])])
+                add_point_resection(float(item[5]), float(item[4]), float(item[3]), points_theodolite_3, 2)
+                raw_data_theodolite_3.append([float(item[3]), 2*np.pi-float(item[4]), float(item[5])+correction])
 
     points_theodolite_1 = np.array(points_theodolite_1).T
     points_theodolite_2 = np.array(points_theodolite_2).T
@@ -170,6 +171,7 @@ def read_marker_file_raw_data(file_name: str):
 
     T_12 = point_to_point_minimization(points_theodolite_2, points_theodolite_1)
     T_13 = point_to_point_minimization(points_theodolite_3, points_theodolite_1)
+
     return raw_data_theodolite_1, raw_data_theodolite_2, raw_data_theodolite_3, points_theodolite_1, points_theodolite_2, points_theodolite_3, T_I, T_12, T_13
 
 def read_rosbag_time_correction_theodolite(file):
@@ -1334,7 +1336,7 @@ def LLtoUTM(Lat, Long):
 			ZoneNumber = 37
 	# +3 puts origin in middle of zone
 	LongOrigin = (ZoneNumber - 1)*6 - 180 + 3
-	LongOriginRad = LongOrigin * RADIANS_PER_DEGREE   
+	LongOriginRad = LongOrigin * RADIANS_PER_DEGREE
 	# compute the UTM Zone from the latitude and longitude
 	#snprintf(UTMZone, 4, "%d%c", ZoneNumber, UTMLetterDesignator(Lat))
 	eccPrimeSquared = (eccSquared)/(1-eccSquared)
@@ -1736,8 +1738,20 @@ def give_points(d, ha, va, param):
 		z=d*math.sin(np.pi/2-va)
 	return np.array([x, y, z, 1],dtype=np.float64)
 
-def give_points_without_correction(d, ha, va, param):
+def give_points_resection(d, ha, va, param):
 	d = d + 0.01 # add 10mm because measurements done by raspi
+	if(param ==1):
+		x=d*math.cos((360-ha)*np.pi/180)*math.cos((va-90)*np.pi/180)
+		y=d*math.sin((360-ha)*np.pi/180)*math.cos((va-90)*np.pi/180)
+		z=-d*math.sin((va-90)*np.pi/180)
+	if(param ==2):
+		x=d*math.cos((2*np.pi-ha))*math.cos(va-np.pi/2)
+		y=d*math.sin((2*np.pi-ha))*math.cos(va-np.pi/2)
+		z=-d*math.sin(va-np.pi/2)
+	return np.array([x, y, z, 1],dtype=np.float64)
+
+def give_points_without_correction(d, ha, va, param):
+	d = d + 0
 	if(param ==1):
 		x=d*math.cos((-ha)*np.pi/180)*math.cos((90-va)*np.pi/180)
 		y=d*math.sin((-ha)*np.pi/180)*math.cos((90-va)*np.pi/180)
@@ -1782,6 +1796,9 @@ def add_point_in_frame(d, ha, va, points, T, param):
 # - param: 1 use angle in degrees, param: 2 use angle in radians
 def add_point(d, ha, va, points, param):
 	points.append(give_points(d, ha, va, param))
+
+def add_point_resection(d, ha, va, points, param):
+	points.append(give_points_resection(d, ha, va, param))
 
 ###################################################################################################
 ###################################################################################################
@@ -1872,7 +1889,7 @@ def find_not_moving_points_GP(pose, limit_speed, time_inter):
 # - ind_not_moving: list of index of the moving points
 def find_moving_points_lidar(pose_lidar, limit_speed, time_inter):
 	ind_not_moving = []
-	for i in range(1,len(pose_lidar)):   
+	for i in range(1,len(pose_lidar)):
 		if(np.linalg.norm(pose_lidar[i,0:3,3]-pose_lidar[i-1,0:3,3])/time_inter>=limit_speed):
 			speed = np.linalg.norm(pose_lidar[i,0:3,3]-pose_lidar[i-1,0:3,3])/time_inter
 			ind_not_moving.append(np.array([i,speed]))
@@ -2481,7 +2498,7 @@ def random_splitting_mask(data: np.ndarray, threshold: float = 0.8):
 	mask = prob <= threshold
 
 	return mask
-	
+
 # Function which converts pose and roll,pitch,yaw to Transformation matrix
 # Input:
 # - file: name of the rosbag to open
