@@ -1738,28 +1738,28 @@ def second_nsecond(secs, nsecs):
 # - param: 1 use angle in degrees, param: 2 use angle in radians
 # Ouput: 4x1 array with the 3D coordinates according to the data
 def give_points(d, ha, va, param):
-	d = d + 0.01 # add 10mm because measurements done by raspi
-	if(param ==1):
-		x=d*math.cos((-ha)*np.pi/180)*math.cos((90-va)*np.pi/180)
-		y=d*math.sin((-ha)*np.pi/180)*math.cos((90-va)*np.pi/180)
-		z=d*math.sin((90-va)*np.pi/180)
-	if(param ==2):
-		x=d*math.cos(-ha)*math.cos(np.pi/2-va)
-		y=d*math.sin(-ha)*math.cos(np.pi/2-va)
-		z=d*math.sin(np.pi/2-va)
-	return np.array([x, y, z, 1],dtype=np.float64)
+    d = d + 0.01 # add 10mm because measurements done by raspi
+    if(param ==1):
+        x=d*math.cos((90-ha)*np.pi/180)*math.sin(va*np.pi/180)
+        y=d*math.sin((90-ha)*np.pi/180)*math.sin(va*np.pi/180)
+        z=d*math.cos(va*np.pi/180)
+    if(param ==2):
+        x=d*math.cos(np.pi/2-ha)*math.sin(va)
+        y=d*math.sin(np.pi/2-ha)*math.sin(va)
+        z=d*math.cos(va)
+    return np.array([x, y, z, 1],dtype=np.float64)
 
 def give_points_resection(d, ha, va, param):
-	d = d + 0.01 # add 10mm because measurements done by raspi
-	if(param ==1):
-		x=d*math.cos((360-ha)*np.pi/180)*math.cos((va-90)*np.pi/180)
-		y=d*math.sin((360-ha)*np.pi/180)*math.cos((va-90)*np.pi/180)
-		z=-d*math.sin((va-90)*np.pi/180)
-	if(param ==2):
-		x=d*math.cos((2*np.pi-ha))*math.cos(va-np.pi/2)
-		y=d*math.sin((2*np.pi-ha))*math.cos(va-np.pi/2)
-		z=-d*math.sin(va-np.pi/2)
-	return np.array([x, y, z, 1],dtype=np.float64)
+    d = d + 0.01 # add 10mm because measurements done by raspi
+    if(param ==1):
+        x=d*math.cos((360-ha)*np.pi/180)*math.cos((va-90)*np.pi/180)
+        y=d*math.sin((360-ha)*np.pi/180)*math.cos((va-90)*np.pi/180)
+        z=-d*math.sin((va-90)*np.pi/180)
+    if(param ==2):
+        x=d*math.cos((2*np.pi-ha))*math.cos(va-np.pi/2)
+        y=d*math.sin((2*np.pi-ha))*math.cos(va-np.pi/2)
+        z=-d*math.sin(va-np.pi/2)
+    return np.array([x, y, z, 1],dtype=np.float64)
 
 def give_points_without_correction(d, ha, va, param):
 	d = d + 0
