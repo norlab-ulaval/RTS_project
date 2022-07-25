@@ -155,15 +155,26 @@ def read_marker_file_raw_data(file_name: str):
 
         for line in file:
             item = line.strip().split(" , ")
+            '''
             if int(item[0]) == 1 and int(item[2]) == 0:
                 add_point_resection(float(item[5]), float(item[4]), float(item[3]), points_theodolite_1, 2)
-                raw_data_theodolite_1.append([float(item[3]), 2*np.pi-float(item[4]), float(item[5])+correction])
+                raw_data_theodolite_1.append([float(item[3])-np.pi/2, 2*np.pi-float(item[4]), float(item[5])+correction])
             if int(item[0]) == 2 and int(item[2]) == 0:
                 add_point_resection(float(item[5]), float(item[4]), float(item[3]), points_theodolite_2, 2)
-                raw_data_theodolite_2.append([float(item[3]), 2*np.pi-float(item[4]), float(item[5])+correction])
+                raw_data_theodolite_2.append([float(item[3])-np.pi/2, 2*np.pi-float(item[4]), float(item[5])+correction])
             if int(item[0]) == 3 and int(item[2]) == 0:
                 add_point_resection(float(item[5]), float(item[4]), float(item[3]), points_theodolite_3, 2)
-                raw_data_theodolite_3.append([float(item[3]), 2*np.pi-float(item[4]), float(item[5])+correction])
+                raw_data_theodolite_3.append([float(item[3])-np.pi/2, 2*np.pi-float(item[4]), float(item[5])+correction])
+            '''
+            if int(item[0]) == 1 and int(item[2]) == 0:
+                add_point(float(item[5]), float(item[4]), float(item[3]), points_theodolite_1, 2)
+                raw_data_theodolite_1.append([float(item[3])-np.pi/2, float(item[4]), float(item[5])+correction])
+            if int(item[0]) == 2 and int(item[2]) == 0:
+                add_point(float(item[5]), float(item[4]), float(item[3]), points_theodolite_2, 2)
+                raw_data_theodolite_2.append([float(item[3])-np.pi/2, float(item[4]), float(item[5])+correction])
+            if int(item[0]) == 3 and int(item[2]) == 0:
+                add_point(float(item[5]), float(item[4]), float(item[3]), points_theodolite_3, 2)
+                raw_data_theodolite_3.append([float(item[3])-np.pi/2, float(item[4]), float(item[5])+correction])
 
     points_theodolite_1 = np.array(points_theodolite_1).T
     points_theodolite_2 = np.array(points_theodolite_2).T
@@ -1727,28 +1738,28 @@ def second_nsecond(secs, nsecs):
 # - param: 1 use angle in degrees, param: 2 use angle in radians
 # Ouput: 4x1 array with the 3D coordinates according to the data
 def give_points(d, ha, va, param):
-	d = d + 0.01 # add 10mm because measurements done by raspi
-	if(param ==1):
-		x=d*math.cos((-ha)*np.pi/180)*math.cos((90-va)*np.pi/180)
-		y=d*math.sin((-ha)*np.pi/180)*math.cos((90-va)*np.pi/180)
-		z=d*math.sin((90-va)*np.pi/180)
-	if(param ==2):
-		x=d*math.cos(-ha)*math.cos(np.pi/2-va)
-		y=d*math.sin(-ha)*math.cos(np.pi/2-va)
-		z=d*math.sin(np.pi/2-va)
-	return np.array([x, y, z, 1],dtype=np.float64)
+    d = d + 0.01 # add 10mm because measurements done by raspi
+    if(param ==1):
+        x=d*math.cos((90-ha)*np.pi/180)*math.sin(va*np.pi/180)
+        y=d*math.sin((90-ha)*np.pi/180)*math.sin(va*np.pi/180)
+        z=d*math.cos(va*np.pi/180)
+    if(param ==2):
+        x=d*math.cos(np.pi/2-ha)*math.sin(va)
+        y=d*math.sin(np.pi/2-ha)*math.sin(va)
+        z=d*math.cos(va)
+    return np.array([x, y, z, 1],dtype=np.float64)
 
 def give_points_resection(d, ha, va, param):
-	d = d + 0.01 # add 10mm because measurements done by raspi
-	if(param ==1):
-		x=d*math.cos((360-ha)*np.pi/180)*math.cos((va-90)*np.pi/180)
-		y=d*math.sin((360-ha)*np.pi/180)*math.cos((va-90)*np.pi/180)
-		z=-d*math.sin((va-90)*np.pi/180)
-	if(param ==2):
-		x=d*math.cos((2*np.pi-ha))*math.cos(va-np.pi/2)
-		y=d*math.sin((2*np.pi-ha))*math.cos(va-np.pi/2)
-		z=-d*math.sin(va-np.pi/2)
-	return np.array([x, y, z, 1],dtype=np.float64)
+    d = d + 0.01 # add 10mm because measurements done by raspi
+    if(param ==1):
+        x=d*math.cos((360-ha)*np.pi/180)*math.cos((va-90)*np.pi/180)
+        y=d*math.sin((360-ha)*np.pi/180)*math.cos((va-90)*np.pi/180)
+        z=-d*math.sin((va-90)*np.pi/180)
+    if(param ==2):
+        x=d*math.cos((2*np.pi-ha))*math.cos(va-np.pi/2)
+        y=d*math.sin((2*np.pi-ha))*math.cos(va-np.pi/2)
+        z=-d*math.sin(va-np.pi/2)
+    return np.array([x, y, z, 1],dtype=np.float64)
 
 def give_points_without_correction(d, ha, va, param):
 	d = d + 0
@@ -2475,6 +2486,7 @@ def random_splitting(data: np.ndarray, threshold: float = 0.8):
 
 	return data[mask], data[~mask]
 
+
 def random_splitting_mask(data: np.ndarray, threshold: float = 0.8):
 	"""
 	Randomly split a numpy array in two using a uniform distribution.
@@ -2499,6 +2511,7 @@ def random_splitting_mask(data: np.ndarray, threshold: float = 0.8):
 
 	return mask
 
+
 # Function which converts pose and roll,pitch,yaw to Transformation matrix
 # Input:
 # - file: name of the rosbag to open
@@ -2521,3 +2534,34 @@ def tf_from_pose_roll_pitch_yaw(pose6dof):
     T[1,3] = y
     T[2,3] = z
     return T
+
+def uniform_random_mask(size: int, threshold: float = 0.75):
+	"""
+	Return a mask filter using a uniform distribution.
+
+	Parameters
+	----------
+	size : int
+		The size of the mask to generate.
+	threshold : float
+		The threshold used to generate the mask. Default = 0.75
+
+	Returns
+	-------
+	mask : ndarray
+		A new 1D array holding boolean values.
+
+	Examples
+	--------
+	>> a = np.arange(m*n).reshape(m,n)
+	>> mask = uniform_random_mask(m.shape[0], 0.75) # filter along first axis
+	>> filtered_m = m[mask]
+	>> mask = uniform_random_mask(m.shape[1], 0.75) # filter along second axis
+	>> filtered_m = m[:,mask]
+	"""
+	assert 0 < threshold <= 1, "The threshold must be greater than 0 and less than or equal to 1."
+
+	uniform_dist = np.random.default_rng().uniform(size=size)
+	mask = uniform_dist <= threshold
+
+	return mask
