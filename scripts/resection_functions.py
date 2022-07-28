@@ -4,6 +4,7 @@ import scipy.linalg
 import scipy.optimize
 import time
 import scripts.liblie as ll
+from scipy.spatial.transform import Rotation as R
 
 def R_z(theta):
     R = np.eye(4, 4)
@@ -304,7 +305,23 @@ def geomatic_resection_optimization_on_pose(file_name, pilier_ref):
     tol = 1e-10
     maxfun = 500
 
-    x0 = [0, 0, 0, np.pi/2.]
+    # x0 = [0, 0, 0, np.pi/2.]
+    TF1 = tu.point_to_point_minimization(trimble_1, pilier_ref)
+    R1 = TF1[0:3,0:3]
+    eulerAngles1= R.from_matrix(R1).as_euler('xyz')
+    x1 = [0, 0, 0, abs(eulerAngles1[2])]
+    TF2 = tu.point_to_point_minimization(trimble_2, pilier_ref)
+    R2 = TF2[0:3,0:3]
+    eulerAngles2= R.from_matrix(R2).as_euler('xyz')
+    x2 = [0, 0, 0, abs(eulerAngles1[2])]
+    TF3 = tu.point_to_point_minimization(trimble_3, pilier_ref)
+    R3 = TF3[0:3,0:3]
+    eulerAngles3= R.from_matrix(R3).as_euler('xyz')
+    x3 = [0, 0, 0, abs(eulerAngles3[2])]
+    print("x1: ", x1)
+    print("x2: ", x2)
+    print("x3: ", x3)
+    
     error_all = []
     errors1 = []
     errors2 = []
@@ -321,13 +338,13 @@ def geomatic_resection_optimization_on_pose(file_name, pilier_ref):
         ps2_c = trimble_2[:, ~bmask]
         ps3_c = trimble_3[:, ~bmask]
 
-        res = scipy.optimize.minimize(lambda X: cost_fun_one_pose(X, pilier_t, ps1), x0=x0, method=method, tol=tol,
+        res = scipy.optimize.minimize(lambda X: cost_fun_one_pose(X, pilier_t, ps1), x0=x1, method=method, tol=tol,
                             options={'maxfun': maxfun})
         TW1 = T_z_so3(*res.x)
-        res = scipy.optimize.minimize(lambda X: cost_fun_one_pose(X, pilier_t, ps2), x0=x0, method=method, tol=tol,
+        res = scipy.optimize.minimize(lambda X: cost_fun_one_pose(X, pilier_t, ps2), x0=x2, method=method, tol=tol,
                             options={'maxfun': maxfun})
         TW2 = T_z_so3(*res.x)
-        res = scipy.optimize.minimize(lambda X: cost_fun_one_pose(X, pilier_t, ps3), x0=x0, method=method, tol=tol,
+        res = scipy.optimize.minimize(lambda X: cost_fun_one_pose(X, pilier_t, ps3), x0=x3, method=method, tol=tol,
                             options={'maxfun': maxfun})
         TW3 = T_z_so3(*res.x)
 
@@ -336,6 +353,9 @@ def geomatic_resection_optimization_on_pose(file_name, pilier_ref):
         trimble_1_w = TW1@ps1_c
         trimble_2_w = TW2@ps2_c
         trimble_3_w = TW3@ps3_c
+        # trimble_1_w = TW1@ps1
+        # trimble_2_w = TW2@ps2
+        # trimble_3_w = TW3@ps3
         compute_error_between_points(trimble_1_w, trimble_2_w, trimble_3_w, error_all)
 
         verrors1 = pilier_c - trimble_1_w
@@ -349,5 +369,17 @@ def geomatic_resection_optimization_on_pose(file_name, pilier_ref):
         verrors3 = pilier_c - trimble_3_w
         for i in range(verrors3.shape[1]):
             errors3 += [np.linalg.norm(verrors3[:, i])*1000]
+        
+#         verrors1 = pilier_t - trimble_1_w
+#         for i in range(verrors1.shape[1]):
+#             errors1 += [np.linalg.norm(verrors1[:, i])*1000]
+
+#         verrors2 = pilier_t - trimble_2_w
+#         for i in range(verrors2.shape[1]):
+#             errors2 += [np.linalg.norm(verrors2[:, i])*1000]
+
+#         verrors3 = pilier_t - trimble_3_w
+#         for i in range(verrors3.shape[1]):
+#             errors3 += [np.linalg.norm(verrors3[:, i])*1000]
 
     return TW1,TW2,TW3,TW1@trimble_1, TW2@trimble_2, TW3@trimble_3, error_all, errors1, errors2, errors3
