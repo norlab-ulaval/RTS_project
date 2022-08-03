@@ -589,7 +589,7 @@ def error_calculation_eucli(Prediction_1, Prediction_2, Prediction_3, Dist_prism
     return error_euclidian_GP, T_prediction
 
 
-import lab as B
+#import lab as B
 import matplotlib.pyplot as plt
 import torch
 from wbml.plot import tweak

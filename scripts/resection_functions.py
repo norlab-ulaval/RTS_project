@@ -117,7 +117,6 @@ def dynamic_vs_static_control_points_error_comparison(static_file_path: str, dyn
     """
     ts1_static, ts2_static, ts3_static, T1_static, T12_static, T13_static = tu.read_marker_file(
         file_name=static_file_path, theodolite_reference_frame=1)
-
     ts1_dynamic = tu.read_prediction_data_resection_csv_file(dynamic_file_path + "_1.csv")[:, 1:].T
     ts2_dynamic = tu.read_prediction_data_resection_csv_file(dynamic_file_path + "_2.csv")[:, 1:].T
     ts3_dynamic = tu.read_prediction_data_resection_csv_file(dynamic_file_path + "_3.csv")[:, 1:].T
@@ -161,7 +160,7 @@ def dynamic_vs_static_control_points_error_comparison(static_file_path: str, dyn
             static_errors.append(dist_12)
             static_errors.append(dist_13)
             static_errors.append(dist_23)
-
+    print(ts1_static, '\n', ts2_static, '\n', ts3_static, '\n', T1_static, '\n', T12_static, '\n', T13_static, '\n', T12_dynamic, '\n', T13_dynamic)
     return [dynamic_errors, static_errors]
 
 
@@ -318,9 +317,9 @@ def geomatic_resection_optimization_on_pose(file_name, pilier_ref):
     R3 = TF3[0:3,0:3]
     eulerAngles3= R.from_matrix(R3).as_euler('xyz')
     x3 = [0, 0, 0, abs(eulerAngles3[2])]
-    print("x1: ", x1)
-    print("x2: ", x2)
-    print("x3: ", x3)
+    # print("x1: ", x1)
+    # print("x2: ", x2)
+    # print("x3: ", x3)
     
     error_all = []
     errors1 = []
