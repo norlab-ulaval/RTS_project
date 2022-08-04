@@ -98,8 +98,8 @@ def plot_trajectories_prism(number_data, trimble_1, trimble_2, trimble_3, T_1_ra
 			ax.scatter(trimble_2[0], trimble_2[1], trimble_2[2], c='b', marker='.', label="Prism with rasp 2")
 		if(number_data>2):
 			ax.scatter(trimble_3[0], trimble_3[1], trimble_3[2], c='g', marker='.', label="Prism with rasp 3")
-		ax.set_xlabel('X Label')
-		ax.set_ylabel('Y Label')
+		ax.set_xlabel('x[m]')
+		ax.set_ylabel('y[m]')
 		ax.set_zlabel('Z Label')
 		ax.legend(loc='best') 
 		if(plot_equal==1):
@@ -118,8 +118,8 @@ def plot_trajectories_prism(number_data, trimble_1, trimble_2, trimble_3, T_1_ra
 			ax.scatter(trimble_2[0], trimble_2[1], c='b', marker='.', label="Prism with rasp 2")
 		if(number_data>2):
 			ax.scatter(trimble_3[0], trimble_3[1], c='g', marker='.', label="Prism with rasp 3")
-		ax.set_xlabel('X Label')
-		ax.set_ylabel('Y Label')
+		ax.set_xlabel('x[m]')
+		ax.set_ylabel('y[m]')
 		ax.legend(loc='best')
 		if(plot_equal==1):
 			ax.set_aspect('equal')
