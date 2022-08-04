@@ -163,6 +163,121 @@ def dynamic_vs_static_control_points_error_comparison(static_file_path: str, dyn
     print(ts1_static, '\n', ts2_static, '\n', ts3_static, '\n', T1_static, '\n', T12_static, '\n', T13_static, '\n', T12_dynamic, '\n', T13_dynamic)
     return [dynamic_errors, static_errors]
 
+def static_control_points_error(static_file_path: str, training_threshold: float = 0.75, nb_iterations: int = 20) -> list:
+    """
+    Compute the errors between dynamic and static control points.
+
+    Parameters
+    ----------
+    static_file_path : str
+        The path to the file containing the static control points. e.g. theodolite_reference_prisms.txt
+    training_threshold : float
+        The threshold used to split the dynamic control points into the training and prediction dataset. Default = 0.75
+    nb_iterations : int
+        The number of iterations. Default = 20
+
+    Returns
+    -------
+    errors : list
+        Returns a list containing all the errors, for the static control points.
+        The list holds the errors for the static control points.
+    """
+    ts1_static, ts2_static, ts3_static, T1_static, T12_static, T13_static = tu.read_marker_file(
+        file_name=static_file_path, theodolite_reference_frame=1)
+
+    nb_points = ts1_static.shape[1]
+    static_errors = []
+
+    for it in range(nb_iterations):
+        mask = tu.uniform_random_mask(nb_points, threshold=training_threshold)
+
+        training_1 = ts1_static[:, mask]
+        training_2 = ts2_static[:, mask]
+        training_3 = ts3_static[:, mask]
+
+        prediction_1 = ts1_static[:, ~mask]
+        prediction_2 = ts2_static[:, ~mask]
+        prediction_3 = ts3_static[:, ~mask]
+
+        T12_trained = tu.point_to_point_minimization(training_2, training_1)
+        T13_trained = tu.point_to_point_minimization(training_3, training_1)
+
+        prediction_1_static = ts1_static
+        prediction_2_static = T12_trained @ ts2_static
+        prediction_3_static = T13_trained @ ts3_static
+
+        for i, j, k in zip(prediction_1_static.T, prediction_2_static.T, prediction_3_static.T):
+            dist_12 = np.linalg.norm(i[0:3] - j[0:3]) * 1000
+            dist_13 = np.linalg.norm(i[0:3] - k[0:3]) * 1000
+            dist_23 = np.linalg.norm(j[0:3] - k[0:3]) * 1000
+            static_errors.append(dist_12)
+            static_errors.append(dist_13)
+            static_errors.append(dist_23)
+
+    return static_errors
+
+def dynamic_control_points_error_comparison(dynamic_file_path: str, training_threshold: float = 0.75, nb_iterations: int = 20, rate: float = 10,
+                                            velocity_outlier: float = 2):
+    """
+    Compute the errors between dynamic and static control points.
+
+    Parameters
+    ----------
+    dynamic_file_path : str
+        The path to the file containing the dynamic control points.
+    training_threshold : float
+        The threshold used to split the dynamic control points into the training and prediction dataset. Default = 0.75
+    nb_iterations : int
+        The number of iterations. Default = 20
+
+    Returns
+    -------
+    errors : list
+        Returns a list containing all the errors, for the dynamic control points.
+        The list holds the errors for the dynamic control points.
+    """
+    ts1_dynamic = tu.read_prediction_data_resection_csv_file(dynamic_file_path + "_1.csv")[:, 1:]
+    ts2_dynamic = tu.read_prediction_data_resection_csv_file(dynamic_file_path + "_2.csv")[:, 1:]
+    ts3_dynamic = tu.read_prediction_data_resection_csv_file(dynamic_file_path + "_3.csv")[:, 1:]
+
+    if (ts1_dynamic.shape[1] > 0 and ts2_dynamic.shape[1] > 0 and ts3_dynamic.shape[1] > 0):
+        speed_limit = velocity_outlier
+        index = tu.find_not_moving_points_GP(ts1_dynamic, speed_limit, 1/rate)
+
+        p1 = ts1_dynamic[index, :]
+        p2 = ts2_dynamic[index, :]
+        p3 = ts3_dynamic[index, :]
+
+        nb_points = p1.T.shape[1]
+        dynamic_errors = []
+
+        for it in range(nb_iterations):
+            mask = tu.uniform_random_mask(nb_points, threshold=training_threshold)
+
+            training_1 = p1.T[:, mask]
+            training_2 = p2.T[:, mask]
+            training_3 = p3.T[:, mask]
+
+            prediction_1 = p1.T[:, ~mask]
+            prediction_2 = p2.T[:, ~mask]
+            prediction_3 = p3.T[:, ~mask]
+
+            T12_dynamic = tu.point_to_point_minimization(training_2, training_1)
+            T13_dynamic = tu.point_to_point_minimization(training_3, training_1)
+
+            prediction_2_dynamic = T12_dynamic @ prediction_2
+            prediction_3_dynamic = T13_dynamic @ prediction_3
+
+            for i, j, k in zip(prediction_1.T, prediction_2_dynamic.T, prediction_3_dynamic.T):
+                dist_12 = np.linalg.norm(i[0:3] - j[0:3]) * 1000
+                dist_13 = np.linalg.norm(i[0:3] - k[0:3]) * 1000
+                dist_23 = np.linalg.norm(j[0:3] - k[0:3]) * 1000
+                dynamic_errors.append(dist_12)
+                dynamic_errors.append(dist_13)
+                dynamic_errors.append(dist_23)
+
+    return dynamic_errors
+
 
 def inter_prism_resection(Inter_distance, file_name_path, path_type, path_file_type, file_name_marker, rate,
                           prior, velocity_outlier, threshold_training, number_iteration):
@@ -283,6 +398,122 @@ def inter_prism_resection(Inter_distance, file_name_path, path_type, path_file_t
 
     return dist_prism_new_all, dist_prism_basic_all, error_prism_new_all, error_prism_basic_all
 
+def one_inter_prism_resection(Inter_distance, file_name, file_name_marker, rate: float=10, prior: str="CP", velocity_outlier: float = 1,
+                              threshold_training: float = 0.75, number_iteration: int = 5):
+    dist_prism_new_all = []
+    dist_prism_basic_all = []
+    error_prism_new_all = []
+    error_prism_basic_all = []
+
+    trimble_1 = tu.read_prediction_data_resection_csv_file(file_name + "1.csv")
+    trimble_2 = tu.read_prediction_data_resection_csv_file(file_name + "2.csv")
+    trimble_3 = tu.read_prediction_data_resection_csv_file(file_name + "3.csv")
+
+    if (len(np.array(trimble_1)) > 0 and len(np.array(trimble_2)) > 0 and len(np.array(trimble_3)) > 0):
+        speed_limit = velocity_outlier
+        index1 = tu.find_not_moving_points_GP(np.array(trimble_1), speed_limit, 1/rate)
+
+        p1 = np.array(trimble_1)[index1, 1:5]
+        p2 = np.array(trimble_2)[index1, 1:5]
+        p3 = np.array(trimble_3)[index1, 1:5]
+
+        dist_prism_new = []
+        dist_prism_basic = []
+        error_new = []
+        error_basic = []
+
+        marker_1, marker_2, marker_3, T1_basic, T12_basic, T13_basic = tu.read_marker_file(file_name_marker, 1, 1)
+        if(prior=="PTP"):
+            T12_init = tu.point_to_point_minimization(p2.T, p1.T)
+            T13_init = tu.point_to_point_minimization(p3.T, p1.T)
+        else:
+            if(prior=="CP"):
+                T12_init = T12_basic
+                T13_init = T13_basic
+
+        T12_init_log = exp_inv_T(T12_init)
+        T13_init_log = exp_inv_T(T13_init)
+
+        x_init = [T12_init_log[2, 1], T12_init_log[0, 2], T12_init_log[1, 0], T12_init_log[0, 3],
+                  T12_init_log[1, 3], T12_init_log[2, 3],
+                  T13_init_log[2, 1], T13_init_log[0, 2], T13_init_log[1, 0], T13_init_log[0, 3],
+                  T13_init_log[1, 3], T13_init_log[2, 3]]
+
+        dist_12_t = Inter_distance[0]
+        dist_13_t = Inter_distance[1]
+        dist_23_t = Inter_distance[2]
+
+        for num_it in range(0, number_iteration):
+            print(num_it)
+            mask = tu.random_splitting_mask(p1, threshold_training)
+            p1_t = p1[mask]
+            p2_t = p2[mask]
+            p3_t = p3[mask]
+            p1_p = p1[~mask]
+            p2_p = p2[~mask]
+            p3_p = p3[~mask]
+            start_time = time.time()
+            res = scipy.optimize.least_squares(lambda x: cost_fun_ls(p1_t,
+                                                                     p2_t,
+                                                                     p3_t,
+                                                                     x[:6],
+                                                                     x[6:],
+                                                                     dist_12_t,
+                                                                     dist_13_t,
+                                                                     dist_23_t), x0=x_init, method='lm',
+                                               ftol=1e-15, xtol=1e-15, x_scale=1.0, loss='linear',
+                                               f_scale=1.0, diff_step=None, tr_solver=None, tr_options={},
+                                               jac_sparsity=None, max_nfev=30000000, verbose=2, args=(), kwargs={})
+            stop_time = time.time()
+            print("Time [s]: ", stop_time - start_time)
+            xi_12 = res.x[:6]
+            xi_13 = res.x[6:]
+            T12 = exp_T(xi_12)
+            T13 = exp_T(xi_13)
+            T_1 = np.identity(4)
+            p1t = (T_1@p1_p.T).T
+            p2t = (T12@p2_p.T).T
+            p3t = (T13@p3_p.T).T
+
+            for i_n in range(0, len(p1t) - 1):
+                dp1 = abs(np.linalg.norm(p1t[i_n, 0:3] - p2t[i_n, 0:3]) - dist_12_t)*1000
+                dp2 = abs(np.linalg.norm(p1t[i_n, 0:3] - p3t[i_n, 0:3]) - dist_13_t)*1000
+                dp3 = abs(np.linalg.norm(p3t[i_n, 0:3] - p2t[i_n, 0:3]) - dist_23_t)*1000
+                dist_prism_new.append(dp1)
+                dist_prism_new.append(dp2)
+                dist_prism_new.append(dp3)
+
+                dp1 = abs(np.linalg.norm(p1_p[i_n, 0:3] - (T12_basic@p2_p[i_n, 0:4].T)[0:3]) - dist_12_t)*1000
+                dp2 = abs(np.linalg.norm(p1_p[i_n, 0:3] - (T13_basic@p3_p[i_n, 0:4].T)[0:3]) - dist_13_t)*1000
+                dp3 = abs(np.linalg.norm((T13_basic@p3_p[i_n, 0:4].T)[0:3] - (T12_basic@p2_p[i_n, 0:4].T)[
+                                                                             0:3]) - dist_23_t)*1000
+                dist_prism_basic.append(dp1)
+                dist_prism_basic.append(dp2)
+                dist_prism_basic.append(dp3)
+
+            m1_b = marker_1
+            m2_b = T12_basic@marker_2
+            m3_b = T13_basic@marker_3
+
+            m1_n = marker_1
+            m2_n = T12@marker_2
+            m3_n = T13@marker_3
+
+            compute_error_between_points(m1_b, m2_b, m3_b, error_basic)
+            compute_error_between_points(m1_n, m2_n, m3_n, error_new)
+
+        dist_prism_new_all.append(dist_prism_new)
+        dist_prism_basic_all.append(dist_prism_basic)
+        error_prism_new_all.append(error_new)
+        error_prism_basic_all.append(error_basic)
+
+    else:
+        print("No data in file(s) " + k + "  !!")
+
+    print("Results done !")
+
+    return dist_prism_new_all[0], dist_prism_basic_all[0], error_prism_new_all[0], error_prism_basic_all[0]
+
 def compute_error_between_points(m1_n, m2_n, m3_n, error):
     for i, j, k in zip(m1_n.T, m2_n.T, m3_n.T):
         dist_12 = np.linalg.norm(i[0:3] - j[0:3])*1000
@@ -320,7 +551,7 @@ def geomatic_resection_optimization_on_pose(file_name, pilier_ref):
     # print("x1: ", x1)
     # print("x2: ", x2)
     # print("x3: ", x3)
-    
+
     error_all = []
     errors1 = []
     errors2 = []
@@ -368,7 +599,7 @@ def geomatic_resection_optimization_on_pose(file_name, pilier_ref):
         verrors3 = pilier_c - trimble_3_w
         for i in range(verrors3.shape[1]):
             errors3 += [np.linalg.norm(verrors3[:, i])*1000]
-        
+
 #         verrors1 = pilier_t - trimble_1_w
 #         for i in range(verrors1.shape[1]):
 #             errors1 += [np.linalg.norm(verrors1[:, i])*1000]
