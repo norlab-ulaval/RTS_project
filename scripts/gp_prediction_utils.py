@@ -600,9 +600,9 @@ class Model_stheno(torch.nn.Module):
     def __init__(self, init_var=1, init_scale=1, init_noise=0):
         super().__init__()
         # Ensure that the parameters are positive and make them learnable.
-        self.log_var = torch.nn.Parameter(torch.log(torch.tensor(init_var)))
-        self.log_scale = torch.nn.Parameter(torch.log(torch.tensor(init_scale)))
-        self.log_noise = torch.nn.Parameter(torch.log(torch.tensor(init_noise)))
+        self.log_var = torch.nn.Parameter(torch.log(torch.tensor(init_var, dtype=torch.float)))
+        self.log_scale = torch.nn.Parameter(torch.log(torch.tensor(init_scale, dtype=torch.float)))
+        self.log_noise = torch.nn.Parameter(torch.log(torch.tensor(init_noise, dtype=torch.float)))
 
     def construct(self):
         self.var = torch.exp(self.log_var)
