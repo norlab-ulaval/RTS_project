@@ -475,7 +475,7 @@ def one_inter_prism_resection(Inter_distance, file_name, file_name_marker, rate:
             p2t = (T12@p2_p.T).T
             p3t = (T13@p3_p.T).T
 
-            for i_n in range(0, len(p1t) - 1):
+            for i_n in range(len(p1t)):
                 dp1 = abs(np.linalg.norm(p1t[i_n, 0:3] - p2t[i_n, 0:3]) - dist_12_t)*1000
                 dp2 = abs(np.linalg.norm(p1t[i_n, 0:3] - p3t[i_n, 0:3]) - dist_13_t)*1000
                 dp3 = abs(np.linalg.norm(p3t[i_n, 0:3] - p2t[i_n, 0:3]) - dist_23_t)*1000
