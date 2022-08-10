@@ -543,7 +543,7 @@ def geomatic_resection_optimization_on_pose(file_name, pilier_ref):
     TF2 = tu.point_to_point_minimization(trimble_2, pilier_ref)
     R2 = TF2[0:3,0:3]
     eulerAngles2= R.from_matrix(R2).as_euler('xyz')
-    x2 = [0, 0, 0, abs(eulerAngles1[2])]
+    x2 = [0, 0, 0, abs(eulerAngles2[2])]
     TF3 = tu.point_to_point_minimization(trimble_3, pilier_ref)
     R3 = TF3[0:3,0:3]
     eulerAngles3= R.from_matrix(R3).as_euler('xyz')
