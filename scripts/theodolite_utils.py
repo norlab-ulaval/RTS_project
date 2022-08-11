@@ -131,6 +131,9 @@ def read_marker_file_raw_data(file_name: str):
 
     Returns
     -------
+    raw_data_theodolite_1: nx3 list containing the elevation, the azimuth and the distance measurements of n markers in theodolite 1 frame
+    raw_data_theodolite_2: nx3 list containing the elevation, the azimuth and the distance measurements of n markers in theodolite 2 frame
+    raw_data_theodolite_3: nx3 list containing the elevation, the azimuth and the distance measurements of n markers in theodolite 3 frame
     points_theodolite_1: list of array markers points coordinates of the theodolite 1, in the frame chosen
     points_theodolite_2: list of array markers points coordinates of the theodolite 2, in the frame chosen
     points_theodolite_3: list of array markers points coordinates of the theodolite 3, in the frame chosen
@@ -155,26 +158,15 @@ def read_marker_file_raw_data(file_name: str):
 
         for line in file:
             item = line.strip().split(" , ")
-            '''
-            if int(item[0]) == 1 and int(item[2]) == 0:
-                add_point_resection(float(item[5]), float(item[4]), float(item[3]), points_theodolite_1, 2)
-                raw_data_theodolite_1.append([float(item[3])-np.pi/2, 2*np.pi-float(item[4]), float(item[5])+correction])
-            if int(item[0]) == 2 and int(item[2]) == 0:
-                add_point_resection(float(item[5]), float(item[4]), float(item[3]), points_theodolite_2, 2)
-                raw_data_theodolite_2.append([float(item[3])-np.pi/2, 2*np.pi-float(item[4]), float(item[5])+correction])
-            if int(item[0]) == 3 and int(item[2]) == 0:
-                add_point_resection(float(item[5]), float(item[4]), float(item[3]), points_theodolite_3, 2)
-                raw_data_theodolite_3.append([float(item[3])-np.pi/2, 2*np.pi-float(item[4]), float(item[5])+correction])
-            '''
             if int(item[0]) == 1 and int(item[2]) == 0:
                 add_point(float(item[5]), float(item[4]), float(item[3]), points_theodolite_1, 2)
-                raw_data_theodolite_1.append([float(item[3]), float(item[4]), float(item[5])+correction])
+                raw_data_theodolite_1.append([float(item[3]), float(item[4]), float(item[5]) + correction])
             if int(item[0]) == 2 and int(item[2]) == 0:
                 add_point(float(item[5]), float(item[4]), float(item[3]), points_theodolite_2, 2)
-                raw_data_theodolite_2.append([float(item[3]), float(item[4]), float(item[5])+correction])
+                raw_data_theodolite_2.append([float(item[3]), float(item[4]), float(item[5]) + correction])
             if int(item[0]) == 3 and int(item[2]) == 0:
                 add_point(float(item[5]), float(item[4]), float(item[3]), points_theodolite_3, 2)
-                raw_data_theodolite_3.append([float(item[3]), float(item[4]), float(item[5])+correction])
+                raw_data_theodolite_3.append([float(item[3]), float(item[4]), float(item[5]) + correction])
 
     points_theodolite_1 = np.array(points_theodolite_1).T
     points_theodolite_2 = np.array(points_theodolite_2).T
