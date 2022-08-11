@@ -168,13 +168,13 @@ def read_marker_file_raw_data(file_name: str):
             '''
             if int(item[0]) == 1 and int(item[2]) == 0:
                 add_point(float(item[5]), float(item[4]), float(item[3]), points_theodolite_1, 2)
-                raw_data_theodolite_1.append([np.pi/2-float(item[3]), float(item[4]), float(item[5])+correction])
+                raw_data_theodolite_1.append([float(item[3]), float(item[4]), float(item[5])+correction])
             if int(item[0]) == 2 and int(item[2]) == 0:
                 add_point(float(item[5]), float(item[4]), float(item[3]), points_theodolite_2, 2)
-                raw_data_theodolite_2.append([np.pi/2-float(item[3]), float(item[4]), float(item[5])+correction])
+                raw_data_theodolite_2.append([float(item[3]), float(item[4]), float(item[5])+correction])
             if int(item[0]) == 3 and int(item[2]) == 0:
                 add_point(float(item[5]), float(item[4]), float(item[3]), points_theodolite_3, 2)
-                raw_data_theodolite_3.append([np.pi/2-float(item[3]), float(item[4]), float(item[5])+correction])
+                raw_data_theodolite_3.append([float(item[3]), float(item[4]), float(item[5])+correction])
 
     points_theodolite_1 = np.array(points_theodolite_1).T
     points_theodolite_2 = np.array(points_theodolite_2).T
