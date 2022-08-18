@@ -1,5 +1,6 @@
 import numpy as np
 from scripts import theodolite_utils as tu
+from scripts import theodolite_function as tf
 import scipy.linalg
 import scipy.optimize
 import time
@@ -163,7 +164,7 @@ def dynamic_vs_static_control_points_error_comparison(static_file_path: str, dyn
     print(ts1_static, '\n', ts2_static, '\n', ts3_static, '\n', T1_static, '\n', T12_static, '\n', T13_static, '\n', T12_dynamic, '\n', T13_dynamic)
     return [dynamic_errors, static_errors]
 
-def static_control_points_error(static_file_path: str, training_threshold: float = 0.75, nb_iterations: int = 20) -> list:
+def static_control_points_error(static_file_path: str, exp_file_path: str = "", inter_prism_dist: list = [], training_threshold: float = 0.75, nb_iterations: int = 20) -> list:
     """
     Compute the errors between dynamic and static control points.
 
@@ -187,7 +188,8 @@ def static_control_points_error(static_file_path: str, training_threshold: float
 
     nb_points = ts1_static.shape[1]
     static_errors = []
-
+    exp_errors = []
+    
     for it in range(nb_iterations):
         mask = tu.uniform_random_mask(nb_points, threshold=training_threshold)
 
@@ -213,11 +215,11 @@ def static_control_points_error(static_file_path: str, training_threshold: float
             static_errors.append(dist_12)
             static_errors.append(dist_13)
             static_errors.append(dist_23)
+        if exp_file_path != "":
+            exp_errors += tf.inter_prism_distance_error_experiment(exp_file_path, [T1_static, T12_trained, T13_trained], inter_prism_dist)
+    return static_errors,exp_errors
 
-    return static_errors
-
-def dynamic_control_points_error_comparison(dynamic_file_path: str, training_threshold: float = 0.75, nb_iterations: int = 20, rate: float = 10,
-                                            velocity_outlier: float = 2):
+def dynamic_control_points_error_comparison(dynamic_file_path: str, exp_file_path: str = "", inter_prism_dist: list = [], training_threshold: float = 0.75, nb_iterations: int = 20, rate: float = 10, velocity_outlier: float = 2):
     """
     Compute the errors between dynamic and static control points.
 
@@ -250,6 +252,7 @@ def dynamic_control_points_error_comparison(dynamic_file_path: str, training_thr
 
         nb_points = p1.T.shape[1]
         dynamic_errors = []
+        errors_exp = []
 
         for it in range(nb_iterations):
             mask = tu.uniform_random_mask(nb_points, threshold=training_threshold)
@@ -275,8 +278,10 @@ def dynamic_control_points_error_comparison(dynamic_file_path: str, training_thr
                 dynamic_errors.append(dist_12)
                 dynamic_errors.append(dist_13)
                 dynamic_errors.append(dist_23)
-
-    return dynamic_errors
+            T1 = np.identity(4)
+            if exp_file_path != "":
+                errors_exp += tf.inter_prism_distance_error_experiment(exp_file_path, [T1, T12_dynamic, T13_dynamic], inter_prism_dist)
+    return dynamic_errors, errors_exp
 
 
 def inter_prism_resection(Inter_distance, file_name_path, path_type, path_file_type, file_name_marker, rate,
@@ -404,6 +409,7 @@ def one_inter_prism_resection(Inter_distance, file_name, file_name_marker, rate:
     dist_prism_basic_all = []
     error_prism_new_all = []
     error_prism_basic_all = []
+    exp_errors = []
 
     trimble_1 = tu.read_prediction_data_resection_csv_file(file_name + "1.csv")
     trimble_2 = tu.read_prediction_data_resection_csv_file(file_name + "2.csv")
@@ -501,6 +507,7 @@ def one_inter_prism_resection(Inter_distance, file_name, file_name_marker, rate:
 
             compute_error_between_points(m1_b, m2_b, m3_b, error_basic)
             compute_error_between_points(m1_n, m2_n, m3_n, error_new)
+            exp_errors += tf.inter_prism_distance_error_experiment(file_name, [T_1, T12, T13], Inter_distance)
 
         dist_prism_new_all.append(dist_prism_new)
         dist_prism_basic_all.append(dist_prism_basic)
@@ -512,7 +519,7 @@ def one_inter_prism_resection(Inter_distance, file_name, file_name_marker, rate:
 
     print("Results done !")
 
-    return dist_prism_new_all[0], dist_prism_basic_all[0], error_prism_new_all[0], error_prism_basic_all[0]
+    return dist_prism_new_all[0], dist_prism_basic_all[0], error_prism_new_all[0], error_prism_basic_all[0], exp_errors
 
 def compute_error_between_points(m1_n, m2_n, m3_n, error):
     for i, j, k in zip(m1_n.T, m2_n.T, m3_n.T):
@@ -523,7 +530,7 @@ def compute_error_between_points(m1_n, m2_n, m3_n, error):
         error.append(dist_13)
         error.append(dist_23)
 
-def geomatic_resection_optimization_on_pose(file_name, pilier_ref):
+def geomatic_resection_optimization_on_pose(file_name, pilier_ref, exp_file_name = "", inter_prism_dist = []):
     _, _, _, trimble_1, trimble_2, trimble_3, _, _, _ = tu.read_marker_file_raw_data(file_name)
     subsets = [[1, 1, 0, 0],
            [1, 0, 1, 0],
@@ -551,7 +558,8 @@ def geomatic_resection_optimization_on_pose(file_name, pilier_ref):
     # print("x1: ", x1)
     # print("x2: ", x2)
     # print("x3: ", x3)
-
+    
+    error_exp = []
     error_all = []
     errors1 = []
     errors2 = []
@@ -599,7 +607,8 @@ def geomatic_resection_optimization_on_pose(file_name, pilier_ref):
         verrors3 = pilier_c - trimble_3_w
         for i in range(verrors3.shape[1]):
             errors3 += [np.linalg.norm(verrors3[:, i])*1000]
-
+        if exp_file_name != "":
+            error_exp += tf.inter_prism_distance_error_experiment(exp_file_name, [TW1, TW2, TW3], inter_prism_dist)
 #         verrors1 = pilier_t - trimble_1_w
 #         for i in range(verrors1.shape[1]):
 #             errors1 += [np.linalg.norm(verrors1[:, i])*1000]
@@ -612,4 +621,4 @@ def geomatic_resection_optimization_on_pose(file_name, pilier_ref):
 #         for i in range(verrors3.shape[1]):
 #             errors3 += [np.linalg.norm(verrors3[:, i])*1000]
 
-    return TW1,TW2,TW3,TW1@trimble_1, TW2@trimble_2, TW3@trimble_3, error_all, errors1, errors2, errors3
+    return TW1,TW2,TW3,TW1@trimble_1, TW2@trimble_2, TW3@trimble_3, error_all, errors1, errors2, errors3, error_exp

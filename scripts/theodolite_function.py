@@ -870,3 +870,33 @@ def distance_between_not_moving_gps(not_moving_gps_front, not_moving_gps_back, g
 				distance = np.linalg.norm(gps_front_position-gps_back_position)*1000
 				distance_gps.append(distance)
 	return distance_gps
+
+
+# Function to compute the inter-prism distance error during an experiment
+# Input:
+# file_name: csv file name containing prism poses in the total station frame.
+# TF_list: list containing the 3 total stations TFs in order (1,2,3)
+# Inter_prism_dist_list: list containing the different inter prism distances (12, 13, 23)
+# Output:
+# experiment error: list containing the inter prism distance error throughout the experiment
+def inter_prism_distance_error_experiment(file_name, TF_list, Inter_prism_dist_list):
+    trimble_1 = read_prediction_data_experiment_csv_file(file_name + "1.csv")
+    trimble_2 = read_prediction_data_experiment_csv_file(file_name + "2.csv")
+    trimble_3 = read_prediction_data_experiment_csv_file(file_name + "3.csv")
+
+    trimble_1 = TF_list[0]@trimble_1.T
+    trimble_2 = TF_list[1]@trimble_2.T
+    trimble_3 = TF_list[2]@trimble_3.T
+    
+    dist_12_t = Inter_prism_dist_list[0]
+    dist_13_t = Inter_prism_dist_list[1]
+    dist_23_t = Inter_prism_dist_list[2]
+    
+    error_inter_prism_dist = []
+    
+    for i, j, k in zip(trimble_1.T, trimble_2.T, trimble_3.T):
+        error_inter_prism_dist.append(abs(np.linalg.norm(i[0:3] - j[0:3])-dist_12_t) * 1000)
+        error_inter_prism_dist.append(abs(np.linalg.norm(i[0:3] - k[0:3])-dist_13_t) * 1000)
+        error_inter_prism_dist.append(abs(np.linalg.norm(j[0:3] - k[0:3])-dist_23_t) * 1000)
+    
+    return error_inter_prism_dist
