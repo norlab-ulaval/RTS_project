@@ -560,7 +560,8 @@ def compute_error_between_points(m1_n, m2_n, m3_n, error):
         error.append(dist_13)
         error.append(dist_23)
 
-@dispatch(np.ndarray, np.ndarray, np.ndarray, np.ndarray, str, list)
+
+@dispatch(np.ndarray, np.ndarray, np.ndarray, np.ndarray, str="", list=[])
 def geomatic_resection_optimization_on_pose(trimble_1: NDArray, trimble_2: NDArray, trimble_3: NDArray, pillars_ref: NDArray, exp_file_name: str = "", inter_prism_dist: list = []) -> \
         Tuple[NDArray, NDArray, NDArray, NDArray, NDArray, NDArray, List[float], List[float], List[float], List[float], List[float]]:
     TF1 = tu.point_to_point_minimization(trimble_1, pillars_ref)
@@ -674,7 +675,163 @@ def geomatic_resection_optimization_on_pose(trimble_1: NDArray, trimble_2: NDArr
     return TW1, TW2, TW3, TW1@trimble_1, TW2@trimble_2, TW3@trimble_3, error_all, errors1, errors2, errors3, error_exp
 
 
-@dispatch(str, np.ndarray)
-def geomatic_resection_optimization_on_pose(file_name: str, pillars_ref: NDArray):
+@dispatch(str, np.ndarray, str, list)
+def geomatic_resection_optimization_on_pose(file_name: str, pillars_ref: NDArray, exp_file_name: str = "", inter_prism_dist: list = []):
     trimble_1, trimble_2, trimble_3, _, _, _ = tu.read_marker_file(file_name)
-    return geomatic_resection_optimization_on_pose(trimble_1, trimble_2, trimble_3, pillars_ref)
+    return geomatic_resection_optimization_on_pose(trimble_1, trimble_2, trimble_3, pillars_ref, exp_file_name, inter_prism_dist)
+
+
+def cartesian_2_spherical_coords(x: float, y: float, z: float) -> NDArray:
+    """
+    Convert a point's cartesian coordinates to spherical coordinates.
+
+    Parameters
+    ----------
+    x: float
+        The x coordinate of a 3D point.
+    y: float
+        The y coordinate of a 3D point.
+    z: float
+        The z coordinate of a 3D point.
+
+    Returns
+    -------
+    ndarray
+        Returns the distance, the vertical angle and the horizontal angle coordinates, in radians, of a 3D point in cartesian coordinates.
+    """
+    distance = np.linalg.norm([x, y, z])
+    if distance == 0.:
+        vertical_angle = 0.
+    else:
+        vertical_angle = np.arccos(z/distance)
+    if x == 0. and y == 0.:
+        horizontal_angle = 0.
+    else:
+        horizontal_angle = np.pi/2. - np.arctan2(y, x)
+
+    return np.array([distance, vertical_angle, horizontal_angle])
+
+
+def spherical_2_cartesian_coords(distance: float, vertical_angle: float, horizontal_angle: float) -> NDArray:
+    """
+    Convert a point's spherical coordinates to cartesian coordinates.
+
+    Parameters
+    ----------
+    distance: float
+        The slope distance measured by a total station in meter.
+    vertical_angle: float
+        The vertical angle in radian measured by a total station in radian. Z-axis reference.
+    horizontal_angle: float
+        The horizontal angle measured by a total station in radian. Y-axis reference and clockwise.
+
+    Returns
+    -------
+    ndarray
+        Returns the x, y and z coordinates of the 3D point in spherical coordinates.
+    """
+    x = distance*np.cos(np.pi/2 - horizontal_angle)*np.sin(vertical_angle)
+    y = distance*np.sin(np.pi/2 - horizontal_angle)*np.sin(vertical_angle)
+    z = distance*np.cos(vertical_angle)
+
+    return np.array([x, y, z])
+
+
+def calculate_tf_angle_using_scalar_product(reference_1: NDArray, reference_2: NDArray, reading_1: NDArray, reading_2: NDArray) -> NDArray:
+    """
+    Compute the angle between two pair of points from two different frames.
+
+    The translation from the reading frame to the reference frame must have been applied prior to compute the angle.
+
+    Parameters
+    ----------
+    reference_1: ndarray
+        The first point's cartesian coordinates in the reference frame.
+    reference_2: ndarray
+        The second point's cartesian coordinates in the reference frame.
+    reading_1: ndarray
+        The first point's cartesian coordinates in the reading frame.
+    reading_2: ndarray
+        The second point's cartesian coordinates in the reading frame.
+
+    Returns
+    -------
+    ndarray
+        Return the angle between two pair of point in two different frames encoded into a 3D rigid transformation matrix.
+    """
+    ref_line = reference_1[:2] - reference_2[:2]
+    ts_line = reading_1[:2] - reading_2[:2]
+    angle = np.arccos(np.dot(ref_line, ts_line)/(np.linalg.norm(ts_line)*np.linalg.norm(ref_line)))
+
+    if reading_1[0] > reading_2[0]:
+        angle = -angle
+
+    return T_z(angle, np.zeros(3))
+
+
+def resection_with_2_known_points(reference_point_1: NDArray, reference_point_2: NDArray, reading_point_1: NDArray, reading_point_2: NDArray) -> Tuple[NDArray, NDArray]:
+    """
+    Compute the position and orientation of a total station based on two reference points and their respective reading made by the total station.
+
+    The reference points must be in the cartesian coordinate system, i.e. [x, y, z] and the measured points must be in the spherical coordinate system, i.e. [elevation, azimuth, distance].
+
+    Parameters
+    ----------
+    reference_point_1 : ndarray
+        Cartesian coordinates, i.e. [x, y, z], of the first reference point.
+    reference_point_2 : ndarray
+        Cartesian coordinates, i.e. [x, y, z], of the second reference point.
+    reading_point_1 : ndarray
+        Spherical coordinates, i.e. [distance, elevation, azimuth], of the first reference point measured by the total station.
+    reading_point_2 : ndarray
+        Spherical coordinates, i.e. [distance, elevation, azimuth], of the second reference point measured by the total station.
+
+    Returns
+    -------
+    list[ndarray]
+        A list of the two possible position and orientation of the total station.
+    """
+    x_1, y_1, z_1 = reference_point_1
+    x_2, y_2, z_2 = reference_point_2
+    distance_1, elevation_1, _ = reading_point_1
+    distance_2, elevation_2, _ = reading_point_2
+
+    z = np.mean([z_1 - distance_1*np.cos(elevation_1), z_2 - distance_2*np.cos(elevation_2)])
+
+    # find the position of the total station using the intersection of 2 circles given by the measurements of the prism position.
+    radius_1 = distance_1*np.sin(elevation_1)
+    radius_2 = distance_2*np.sin(elevation_2)
+
+    delta_y = y_2 - y_1
+
+    # find the value of y based on the circles' radius and the reference points
+    if delta_y != 0:
+        y = (radius_1**2 - radius_2**2 - y_1**2 + y_2**2)/(2*delta_y)
+    else:
+        y = 0
+
+    # find the possible values of x based on the y value
+    x_1_1 = np.sqrt(radius_1**2 - (y - y_1)**2)
+    x_1_2 = np.sqrt(radius_2**2 - (y - y_2)**2)
+    x_2_1 = -x_1_1
+    x_2_2 = -x_1_2
+
+    x_1 = np.mean([x_1_1, x_1_2])
+    x_2 = np.mean([x_2_1, x_2_2])
+
+    position_1 = np.array([x_1, y, z, 0, 0, 0])
+    position_2 = np.array([x_2, y, z, 0, 0, 0])
+
+    TF1 = tu.tf_from_pose_roll_pitch_yaw(position_1)
+    TF2 = tu.tf_from_pose_roll_pitch_yaw(position_2)
+
+    reading_1_homogeneous = np.append(spherical_2_cartesian_coords(*reading_point_1), 1)
+    reading_2_homogeneous = np.append(spherical_2_cartesian_coords(*reading_point_2), 1)
+
+    R1 = calculate_tf_angle_using_scalar_product(reference_point_1, reference_point_2, TF1@reading_1_homogeneous, TF1@reading_2_homogeneous)
+    R2 = calculate_tf_angle_using_scalar_product(reference_point_1, reference_point_2, TF2@reading_1_homogeneous, TF2@reading_2_homogeneous)
+
+    TF1 = TF1@R1
+    TF2 = TF2@R2
+
+    return TF1, TF2
