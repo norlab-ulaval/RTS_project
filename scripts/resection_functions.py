@@ -404,7 +404,7 @@ def inter_prism_resection(Inter_distance, file_name_path, path_type, path_file_t
     return dist_prism_new_all, dist_prism_basic_all, error_prism_new_all, error_prism_basic_all
 
 def one_inter_prism_resection(Inter_distance, file_name, file_name_marker, rate: float=10, prior: str="CP", velocity_outlier: float = 1,
-                              threshold_training: float = 0.75, number_iteration: int = 5):
+                              threshold_training: float = 0.75, number_iteration: int = 5, threshold_marker: int = 1):
     dist_prism_new_all = []
     dist_prism_basic_all = []
     error_prism_new_all = []
@@ -430,7 +430,7 @@ def one_inter_prism_resection(Inter_distance, file_name, file_name_marker, rate:
 
         if(len(index1)>6):
 
-            marker_1, marker_2, marker_3, T1_basic, T12_basic, T13_basic = tu.read_marker_file(file_name_marker, 1, 1)
+            marker_1, marker_2, marker_3, T1_basic, T12_basic, T13_basic = tu.read_marker_file(file_name_marker, 1, threshold_marker)
             if(prior=="PTP"):
                 T12_init = tu.point_to_point_minimization(p2.T, p1.T)
                 T13_init = tu.point_to_point_minimization(p3.T, p1.T)
@@ -471,7 +471,7 @@ def one_inter_prism_resection(Inter_distance, file_name, file_name_marker, rate:
                                                                          dist_23_t), x0=x_init, method='lm',
                                                    ftol=1e-15, xtol=1e-15, x_scale=1.0, loss='linear',
                                                    f_scale=1.0, diff_step=None, tr_solver=None, tr_options={},
-                                                   jac_sparsity=None, max_nfev=30000000, verbose=2, args=(), kwargs={})
+                                                   jac_sparsity=None, max_nfev=100000, verbose=2, args=(), kwargs={})
                 stop_time = time.time()
                 print("Time [s]: ", stop_time - start_time)
                 xi_12 = res.x[:6]
