@@ -759,9 +759,9 @@ def analyze_std_ptp(P, noise_min, noise_max, noise_step, number):
 ###################################################################################################
 
 def find_nearest(array, value):
-    array = np.asarray(array)
-    idx = (np.abs(array - value)).argmin()
-    return idx
+	array = np.asarray(array)
+	idx = (np.abs(array - value)).argmin()
+	return idx
 
 # Function to compute the inter-gps distance
 # Input:
@@ -836,19 +836,19 @@ def find_gps_not_moving_time(not_moving_time, gps_front, gps_back, number_points
 	not_moving_gps_front = []
 	not_moving_gps_back = []
 	for i in not_moving_time:
-		  debut = i[0]
-		  fin = i[1]
-		  list_1 = []
-		  list_2 = []
-		  for j1 in range(0,len(gps_front)):
-		      if(gps_front[j1][0]>= debut and gps_front[j1][0]<fin):
-		          list_1.append(j1)
-		  for j2 in range(0,len(gps_back)):
-		      if(gps_back[j2][0]>= debut and gps_back[j2][0]<fin):
-		          list_2.append(j2)
-		  if(len(list_1)>number_points_limit and len(list_2)>number_points_limit):
-		      not_moving_gps_front.append(list_1)
-		      not_moving_gps_back.append(list_2)
+		debut = i[0]
+		fin = i[1]
+		list_1 = []
+		list_2 = []
+		for j1 in range(0, len(gps_front)):
+			if (gps_front[j1][0] >= debut and gps_front[j1][0] < fin):
+				list_1.append(j1)
+		for j2 in range(0, len(gps_back)):
+			if (gps_back[j2][0] >= debut and gps_back[j2][0] < fin):
+				list_2.append(j2)
+		if (len(list_1) > number_points_limit and len(list_2) > number_points_limit):
+			not_moving_gps_front.append(list_1)
+			not_moving_gps_back.append(list_2)
 	return not_moving_gps_front, not_moving_gps_back
 
 # Function to compute the distance between not moving gps
@@ -887,16 +887,16 @@ def inter_prism_distance_error_experiment(file_name, TF_list, Inter_prism_dist_l
     trimble_1 = TF_list[0]@trimble_1.T
     trimble_2 = TF_list[1]@trimble_2.T
     trimble_3 = TF_list[2]@trimble_3.T
-    
+
     dist_12_t = Inter_prism_dist_list[0]
     dist_13_t = Inter_prism_dist_list[1]
     dist_23_t = Inter_prism_dist_list[2]
-    
+
     error_inter_prism_dist = []
-    
+
     for i, j, k in zip(trimble_1.T, trimble_2.T, trimble_3.T):
         error_inter_prism_dist.append(abs(np.linalg.norm(i[0:3] - j[0:3])-dist_12_t) * 1000)
         error_inter_prism_dist.append(abs(np.linalg.norm(i[0:3] - k[0:3])-dist_13_t) * 1000)
         error_inter_prism_dist.append(abs(np.linalg.norm(j[0:3] - k[0:3])-dist_23_t) * 1000)
-    
+
     return error_inter_prism_dist
