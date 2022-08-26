@@ -838,10 +838,10 @@ def resection_with_2_known_points(reference_point_1: NDArray, reference_point_2:
         y = 0
 
     # find the possible values of x based on the y value
-    x_1_1 = np.sqrt(radius_1**2 - (y - y_1)**2)
-    x_1_2 = np.sqrt(radius_2**2 - (y - y_2)**2)
-    x_2_1 = -x_1_1
-    x_2_2 = -x_1_2
+    x_1_1 = np.sqrt(radius_1**2 - (y - y_1)**2) + x_1
+    x_1_2 = np.sqrt(radius_2**2 - (y - y_2)**2) + x_2
+    x_2_1 = -np.sqrt(radius_1**2 - (y - y_1)**2) + x_1
+    x_2_2 = -np.sqrt(radius_2**2 - (y - y_2)**2) + x_2
 
     x_1 = np.mean([x_1_1, x_1_2])
     x_2 = np.mean([x_2_1, x_2_2])
