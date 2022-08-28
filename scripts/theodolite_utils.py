@@ -1816,6 +1816,17 @@ def give_points_calibration(d, ha, va, param):
 		z=d*math.sin(np.pi/2-va)
 	return np.array([x, y, z, 1],dtype=np.float64)
 
+def give_points_simulation(d, ha, va, param):
+    if(param ==1):
+        x=d*math.cos(ha*np.pi/180)*math.sin(va*np.pi/180)
+        y=d*math.sin(ha*np.pi/180)*math.sin(va*np.pi/180)
+        z=d*math.cos(va*np.pi/180)
+    if(param ==2):
+        x=d*math.cos(ha)*math.sin(va)
+        y=d*math.sin(ha)*math.sin(va)
+        z=d*math.cos(va)
+    return np.array([x, y, z, 1],dtype=np.float64)
+
 # Function to convert a point according to the data of the theodolite into a frame according to a pose T,
 # and put this point into a list of array
 # Input:
