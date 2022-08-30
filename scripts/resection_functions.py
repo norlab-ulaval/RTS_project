@@ -219,12 +219,12 @@ def static_control_points_error(static_file_path: str, exp_file_path: str = "", 
         TF_list.append([T1_static, T12_trained, T13_trained])
 
         for i, j, k in zip(prediction_1_static.T, prediction_2_static.T, prediction_3_static.T):
-            dist_12 = np.linalg.norm(i[0:3] - j[0:3]) * 1000
-            dist_13 = np.linalg.norm(i[0:3] - k[0:3]) * 1000
-            dist_23 = np.linalg.norm(j[0:3] - k[0:3]) * 1000
+            dist_12 = np.linalg.norm(i[0:3] - j[0:3]) * 1000 / np.linalg.norm(i[0:3])
+            dist_13 = np.linalg.norm(i[0:3] - k[0:3]) * 1000 / np.linalg.norm(i[0:3])
+            # dist_23 = np.linalg.norm(j[0:3] - k[0:3]) * 1000 / np.linalg.norm(i[0:3])
             static_errors.append(dist_12)
             static_errors.append(dist_13)
-            static_errors.append(dist_23)
+            # static_errors.append(dist_23)
         if exp_file_path != "":
             exp_errors += tf.inter_prism_distance_error_experiment(exp_file_path, [T1_static, T12_trained, T13_trained], inter_prism_dist)
     return static_errors,exp_errors,TF_list
@@ -288,20 +288,20 @@ def dynamic_control_points_error_comparison(dynamic_file_path: str, exp_file_pat
             for i, j, k in zip(prediction_1.T, prediction_2_dynamic.T, prediction_3_dynamic.T):
                 dist_12 = np.linalg.norm(i[0:3] - j[0:3]) * 1000
                 dist_13 = np.linalg.norm(i[0:3] - k[0:3]) * 1000
-                dist_23 = np.linalg.norm(j[0:3] - k[0:3]) * 1000
+                # dist_23 = np.linalg.norm(j[0:3] - k[0:3]) * 1000
                 dynamic_errors.append(dist_12)
                 dynamic_errors.append(dist_13)
-                dynamic_errors.append(dist_23)
+                # dynamic_errors.append(dist_23)
             cp1 = ts1_static
             cp2 = T12_dynamic @ ts2_static
             cp3 = T13_dynamic @ ts3_static
             for i,j,k in zip(cp1.T, cp2.T, cp3.T):
-                dist_12 = np.linalg.norm(i[0:3] - j[0:3]) * 1000
-                dist_13 = np.linalg.norm(i[0:3] - k[0:3]) * 1000
-                dist_23 = np.linalg.norm(j[0:3] - k[0:3]) * 1000
+                dist_12 = np.linalg.norm(i[0:3] - j[0:3]) * 1000 / np.linalg.norm(i[0:3])
+                dist_13 = np.linalg.norm(i[0:3] - k[0:3]) * 1000 / np.linalg.norm(i[0:3])
+                # dist_23 = np.linalg.norm(j[0:3] - k[0:3]) * 1000 / np.linalg.norm(i[0:3])
                 cp_errors.append(dist_12)
                 cp_errors.append(dist_13)
-                cp_errors.append(dist_23)
+                # cp_errors.append(dist_23)
             T1 = np.identity(4)
             
             TF_list.append([T1, T12_dynamic, T13_dynamic])
@@ -513,18 +513,17 @@ def one_inter_prism_resection(Inter_distance, file_name, file_name_marker, rate:
                 for i_n in range(len(p1t)):
                     dp1 = abs(np.linalg.norm(p1t[i_n, 0:3] - p2t[i_n, 0:3]) - dist_12_t)*1000
                     dp2 = abs(np.linalg.norm(p1t[i_n, 0:3] - p3t[i_n, 0:3]) - dist_13_t)*1000
-                    dp3 = abs(np.linalg.norm(p3t[i_n, 0:3] - p2t[i_n, 0:3]) - dist_23_t)*1000
+                    # dp3 = abs(np.linalg.norm(p3t[i_n, 0:3] - p2t[i_n, 0:3]) - dist_23_t)*1000
                     dist_prism_new.append(dp1)
                     dist_prism_new.append(dp2)
-                    dist_prism_new.append(dp3)
+                    # dist_prism_new.append(dp3)
 
                     dp1 = abs(np.linalg.norm(p1_p[i_n, 0:3] - (T12_basic@p2_p[i_n, 0:4].T)[0:3]) - dist_12_t)*1000
                     dp2 = abs(np.linalg.norm(p1_p[i_n, 0:3] - (T13_basic@p3_p[i_n, 0:4].T)[0:3]) - dist_13_t)*1000
-                    dp3 = abs(np.linalg.norm((T13_basic@p3_p[i_n, 0:4].T)[0:3] - (T12_basic@p2_p[i_n, 0:4].T)[
-                                                                                 0:3]) - dist_23_t)*1000
+                    # dp3 = abs(np.linalg.norm((T13_basic@p3_p[i_n, 0:4].T)[0:3] - (T12_basic@p2_p[i_n, 0:4].T)[0:3]) - dist_23_t)*1000
                     dist_prism_basic.append(dp1)
                     dist_prism_basic.append(dp2)
-                    dist_prism_basic.append(dp3)
+                    # dist_prism_basic.append(dp3)
 
                 m1_b = marker_1
                 m2_b = T12_basic@marker_2
@@ -573,12 +572,12 @@ def compute_error_between_three_points(point_1: NDArray, point_2: NDArray, point
 
 def compute_error_between_points(m1_n, m2_n, m3_n, error):
     for i, j, k in zip(m1_n.T, m2_n.T, m3_n.T):
-        dist_12 = np.linalg.norm(i[0:3] - j[0:3])*1000
-        dist_13 = np.linalg.norm(i[0:3] - k[0:3])*1000
-        dist_23 = np.linalg.norm(k[0:3] - j[0:3])*1000
+        dist_12 = np.linalg.norm(i[0:3] - j[0:3]) * 1000 / np.linalg.norm(i[0:3])
+        dist_13 = np.linalg.norm(i[0:3] - k[0:3]) * 1000 / np.linalg.norm(i[0:3])
+        # dist_23 = np.linalg.norm(j[0:3] - k[0:3]) * 1000 / np.linalg.norm(i[0:3])
         error.append(dist_12)
         error.append(dist_13)
-        error.append(dist_23)
+        # error.append(dist_23)
 
 
 @dispatch(np.ndarray, np.ndarray, np.ndarray, np.ndarray, str, list, str)
