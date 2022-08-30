@@ -70,8 +70,8 @@ def read_marker_file(file_name: str, theodolite_reference_frame: int, threshold:
 	"""
 	assert theodolite_reference_frame == 1 or theodolite_reference_frame == 2 or theodolite_reference_frame == 3, \
 		"Invalid theodolite_reference_frame value, it must be either 1, 2 or 3"
-	assert 0.0 < threshold <= 1.0, \
-		"Invalid probability threshold value, it must be greater than 0 and less than or equal to 1"
+	assert 0.0 < threshold , \
+		"Invalid probability threshold value, it must be greater than 0"
 
 	points_theodolite_1 = []
 	points_theodolite_2 = []
@@ -90,32 +90,55 @@ def read_marker_file(file_name: str, theodolite_reference_frame: int, threshold:
 			if int(item[0]) == 3 and int(item[2]) == 0:
 				add_point(float(item[5]), float(item[4]), float(item[3]), points_theodolite_3, 2)
 
-	probs = np.random.default_rng().uniform(size=len(points_theodolite_1))
-	mask = (probs <= threshold)
-	points_theodolite_1 = np.array(points_theodolite_1)[mask].T
-	points_theodolite_2 = np.array(points_theodolite_2)[mask].T
-	points_theodolite_3 = np.array(points_theodolite_3)[mask].T
+	if(threshold<=1):
+		probs = np.random.default_rng().uniform(size=len(points_theodolite_1))
+		mask = (probs <= threshold)
+		points_theodolite_1 = np.array(points_theodolite_1)[mask].T
+		points_theodolite_2 = np.array(points_theodolite_2)[mask].T
+		points_theodolite_3 = np.array(points_theodolite_3)[mask].T
 
-	if theodolite_reference_frame == 1:
-		T_12 = point_to_point_minimization(points_theodolite_2, points_theodolite_1)
-		T_13 = point_to_point_minimization(points_theodolite_3, points_theodolite_1)
-		#points_theodolite_2 = T_12@points_theodolite_2
-		#points_theodolite_3 = T_13@points_theodolite_3
-		return points_theodolite_1, points_theodolite_2, points_theodolite_3, T_I, T_12, T_13
+		if theodolite_reference_frame == 1:
+			T_12 = point_to_point_minimization(points_theodolite_2, points_theodolite_1)
+			T_13 = point_to_point_minimization(points_theodolite_3, points_theodolite_1)
+			return points_theodolite_1, points_theodolite_2, points_theodolite_3, T_I, T_12, T_13
 
-	if theodolite_reference_frame == 2:
-		T_21 = point_to_point_minimization(points_theodolite_1, points_theodolite_2)
-		T_23 = point_to_point_minimization(points_theodolite_3, points_theodolite_2)
-		#points_theodolite_1 = T_21@points_theodolite_1
-		#points_theodolite_3 = T_23@points_theodolite_3
-		return points_theodolite_1, points_theodolite_2, points_theodolite_3, T_21, T_I, T_23
+		if theodolite_reference_frame == 2:
+			T_21 = point_to_point_minimization(points_theodolite_1, points_theodolite_2)
+			T_23 = point_to_point_minimization(points_theodolite_3, points_theodolite_2)
+			return points_theodolite_1, points_theodolite_2, points_theodolite_3, T_21, T_I, T_23
 
-	if theodolite_reference_frame == 3:
-		T_31 = point_to_point_minimization(points_theodolite_1, points_theodolite_3)
-		T_32 = point_to_point_minimization(points_theodolite_2, points_theodolite_3)
-		#points_theodolite_1 = T_31@points_theodolite_1
-		#points_theodolite_2 = T_32@points_theodolite_2
-		return points_theodolite_1, points_theodolite_2, points_theodolite_3, T_31, T_32, T_I
+		if theodolite_reference_frame == 3:
+			T_31 = point_to_point_minimization(points_theodolite_1, points_theodolite_3)
+			T_32 = point_to_point_minimization(points_theodolite_2, points_theodolite_3)
+			return points_theodolite_1, points_theodolite_2, points_theodolite_3, T_31, T_32, T_I
+	else:
+		size = len(points_theodolite_1)
+
+		assert 2 < size, \
+			"Invalid number of control points, it must be greater than 2"
+		assert 2 < round(threshold) < size, \
+			"Invalid number of control points selected, it must be less than the number of control points and greater than 2"
+
+		index = np.arange(size)
+		mask = np.random.choice(index, size=round(threshold), replace=False)
+		points_theodolite_1 = np.array(points_theodolite_1)[mask].T
+		points_theodolite_2 = np.array(points_theodolite_2)[mask].T
+		points_theodolite_3 = np.array(points_theodolite_3)[mask].T
+
+		if theodolite_reference_frame == 1:
+			T_12 = point_to_point_minimization(points_theodolite_2, points_theodolite_1)
+			T_13 = point_to_point_minimization(points_theodolite_3, points_theodolite_1)
+			return points_theodolite_1, points_theodolite_2, points_theodolite_3, T_I, T_12, T_13
+
+		if theodolite_reference_frame == 2:
+			T_21 = point_to_point_minimization(points_theodolite_1, points_theodolite_2)
+			T_23 = point_to_point_minimization(points_theodolite_3, points_theodolite_2)
+			return points_theodolite_1, points_theodolite_2, points_theodolite_3, T_21, T_I, T_23
+
+		if theodolite_reference_frame == 3:
+			T_31 = point_to_point_minimization(points_theodolite_1, points_theodolite_3)
+			T_32 = point_to_point_minimization(points_theodolite_2, points_theodolite_3)
+			return points_theodolite_1, points_theodolite_2, points_theodolite_3, T_31, T_32, T_I
 
 def read_marker_file_raw_data(file_name: str):
     """
@@ -1792,6 +1815,17 @@ def give_points_calibration(d, ha, va, param):
 		y=d*math.sin(-ha)*math.cos(np.pi/2-va)
 		z=d*math.sin(np.pi/2-va)
 	return np.array([x, y, z, 1],dtype=np.float64)
+
+def give_points_simulation(d, ha, va, param):
+    if(param ==1):
+        x=d*math.cos(ha*np.pi/180)*math.sin(va*np.pi/180)
+        y=d*math.sin(ha*np.pi/180)*math.sin(va*np.pi/180)
+        z=d*math.cos(va*np.pi/180)
+    if(param ==2):
+        x=d*math.cos(ha)*math.sin(va)
+        y=d*math.sin(ha)*math.sin(va)
+        z=d*math.cos(va)
+    return np.array([x, y, z, 1],dtype=np.float64)
 
 # Function to convert a point according to the data of the theodolite into a frame according to a pose T,
 # and put this point into a list of array
