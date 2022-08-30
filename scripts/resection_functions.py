@@ -51,7 +51,6 @@ def cost_fun(p1s_l, p2s_l, p3s_l, xi_12, xi_13, d_truth12, d_truth13, d_truth23)
     c += sum([(dist(p1, T12@p2) - d_truth12)**2 for p1, p2 in zip(p1s_l, p2s_l)])
     c += sum([(dist(p1, T13@p3) - d_truth13)**2 for p1, p3 in zip(p1s_l, p3s_l)])
     c += sum([(dist(T12@p2, T13@p3) - d_truth23)**2 for p2, p3 in zip(p2s_l, p3s_l)])
-
     return c
 
 def cost_fun_ls(p1s_l, p2s_l, p3s_l, xi_12, xi_13, d_truth12, d_truth13, d_truth23):
@@ -66,8 +65,10 @@ def cost_fun_ls(p1s_l, p2s_l, p3s_l, xi_12, xi_13, d_truth12, d_truth13, d_truth
     return c/(3*N)
 
 def cost_fun_ls_4dof(p1s_l, p2s_l, p3s_l, xi_12, xi_13, d_truth12, d_truth13, d_truth23):
-    T12 = exp_T_4dof(xi_12)
-    T13 = exp_T_4dof(xi_13)
+    #T12 = exp_T_4dof(xi_12)
+    #T13 = exp_T_4dof(xi_13)
+    T12 = T_z_so3(*xi_12)
+    T13 = T_z_so3(*xi_13)
 
     N = len(p1s_l)
     c = np.zeros((N*3))
@@ -430,7 +431,7 @@ def inter_prism_resection(Inter_distance, file_name_path, path_type, path_file_t
     return dist_prism_new_all, dist_prism_basic_all, error_prism_new_all, error_prism_basic_all
 
 def one_inter_prism_resection(Inter_distance, file_name, file_name_marker, rate: float=10, prior: str="CP", velocity_outlier: float = 1,
-                              threshold_training: float = 0.75, number_iteration: int = 5):
+                              threshold_training: float = 0.75, number_iteration: int = 5, threshold_marker: int = 1, min_6dof: bool=True):
     dist_prism_new_all = []
     dist_prism_basic_all = []
     error_prism_new_all = []
@@ -457,7 +458,7 @@ def one_inter_prism_resection(Inter_distance, file_name, file_name_marker, rate:
 
         if(len(index1)>6):
 
-            marker_1, marker_2, marker_3, T1_basic, T12_basic, T13_basic = tu.read_marker_file(file_name_marker, 1, 1)
+            marker_1, marker_2, marker_3, T1_basic, T12_basic, T13_basic = tu.read_marker_file(file_name_marker, 1, threshold_marker)
             if(prior=="PTP"):
                 T12_init = tu.point_to_point_minimization(p2.T, p1.T)
                 T13_init = tu.point_to_point_minimization(p3.T, p1.T)
@@ -468,11 +469,6 @@ def one_inter_prism_resection(Inter_distance, file_name, file_name_marker, rate:
 
             T12_init_log = exp_inv_T(T12_init)
             T13_init_log = exp_inv_T(T13_init)
-
-            x_init = [T12_init_log[2, 1], T12_init_log[0, 2], T12_init_log[1, 0], T12_init_log[0, 3],
-                      T12_init_log[1, 3], T12_init_log[2, 3],
-                      T13_init_log[2, 1], T13_init_log[0, 2], T13_init_log[1, 0], T13_init_log[0, 3],
-                      T13_init_log[1, 3], T13_init_log[2, 3]]
 
             dist_12_t = Inter_distance[0]
             dist_13_t = Inter_distance[1]
@@ -487,24 +483,64 @@ def one_inter_prism_resection(Inter_distance, file_name, file_name_marker, rate:
                 p1_p = p1[~mask]
                 p2_p = p2[~mask]
                 p3_p = p3[~mask]
-                start_time = time.time()
-                res = scipy.optimize.least_squares(lambda x: cost_fun_ls(p1_t,
-                                                                         p2_t,
-                                                                         p3_t,
-                                                                         x[:6],
-                                                                         x[6:],
-                                                                         dist_12_t,
-                                                                         dist_13_t,
-                                                                         dist_23_t), x0=x_init, method='lm',
-                                                   ftol=1e-15, xtol=1e-15, x_scale=1.0, loss='linear',
-                                                   f_scale=1.0, diff_step=None, tr_solver=None, tr_options={},
-                                                   jac_sparsity=None, max_nfev=30000000, verbose=2, args=(), kwargs={})
-                stop_time = time.time()
-                print("Time [s]: ", stop_time - start_time)
-                xi_12 = res.x[:6]
-                xi_13 = res.x[6:]
-                T12 = exp_T(xi_12)
-                T13 = exp_T(xi_13)
+
+                if(min_6dof):
+                    x_init = [T12_init_log[2, 1], T12_init_log[0, 2], T12_init_log[1, 0], T12_init_log[0, 3],
+                              T12_init_log[1, 3], T12_init_log[2, 3],
+                              T13_init_log[2, 1], T13_init_log[0, 2], T13_init_log[1, 0], T13_init_log[0, 3],
+                              T13_init_log[1, 3], T13_init_log[2, 3]]
+                    start_time = time.time()
+                    res = scipy.optimize.least_squares(lambda x: cost_fun_ls(p1_t,
+                                                                             p2_t,
+                                                                             p3_t,
+                                                                             x[:6],
+                                                                             x[6:],
+                                                                             dist_12_t,
+                                                                             dist_13_t,
+                                                                             dist_23_t), x0=x_init, method='lm',
+                                                       ftol=1e-15, xtol=1e-15, x_scale=1.0, loss='linear',
+                                                       f_scale=1.0, diff_step=None, tr_solver=None, tr_options={},
+                                                       jac_sparsity=None, max_nfev=100000, verbose=2, args=(), kwargs={})
+                    stop_time = time.time()
+                    print("Time [s]: ", stop_time - start_time)
+                    xi_12 = res.x[:6]
+                    xi_13 = res.x[6:]
+                    T12 = exp_T(xi_12)
+                    T13 = exp_T(xi_13)
+
+                else:
+                    x_init = [T12_init_log[0, 3], T12_init_log[1, 3], T12_init_log[2, 3], T12_init_log[1, 0],
+                              T13_init_log[0, 3], T13_init_log[1, 3], T13_init_log[2, 3], T13_init_log[1, 0]]
+                    start_time = time.time()
+                    res = scipy.optimize.least_squares(lambda x: cost_fun_ls_4dof(p1_t,
+                                                                             p2_t,
+                                                                             p3_t,
+                                                                             x[:4],
+                                                                             x[4:],
+                                                                             dist_12_t,
+                                                                             dist_13_t,
+                                                                             dist_23_t),
+                                                       x0=x_init,
+                                                       method='lm',
+                                                       ftol=1e-15,
+                                                       xtol=1e-15,
+                                                       x_scale=1.0,
+                                                       loss='linear',
+                                                       f_scale=1.0,
+                                                       diff_step=None,
+                                                       tr_solver=None,
+                                                       tr_options={},
+                                                       jac_sparsity=None,
+                                                       max_nfev=100000,
+                                                       verbose=2,
+                                                       args=(),
+                                                       kwargs={})
+                    stop_time = time.time()
+                    print("Time [s]: ", stop_time - start_time)
+                    T12 = T_z_so3(*res.x[:4])
+                    T13 = T_z_so3(*res.x[4:])
+
+
                 T_1 = np.identity(4)
                 p1t = (T_1@p1_p.T).T
                 p2t = (T12@p2_p.T).T
