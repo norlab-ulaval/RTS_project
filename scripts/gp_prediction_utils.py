@@ -664,3 +664,30 @@ def data_training_GP_stheno(time_1, time_2, time_3, traj_1, traj_2, traj_3, inde
     T_3_train_GP = torch.from_numpy(T_3_train_GP.flatten())
 
     return T_1_train_GP, X_1_train_GP, Y_1_train_GP, Z_1_train_GP, T_2_train_GP, X_2_train_GP, Y_2_train_GP, Z_2_train_GP, T_3_train_GP, X_3_train_GP, Y_3_train_GP, Z_3_train_GP
+
+
+def delta_t_function(index, t1, delta_t):
+    new_index = np.array([0, 0])
+    begin = index[0]
+    end = index[1]
+    found = False
+    time_begin = t1[begin]
+    for i in range(begin, end + 1):
+        if (abs(t1[i] - time_begin) > delta_t):
+            new_index[0] = i
+            found = True
+            break
+    if (found == False):
+        new_index[0] = i
+
+    found = False
+    time_end = t1[end]
+    for i in reversed(range(begin - 1, end)):
+        if (abs(t1[i] - time_end) > delta_t):
+            new_index[1] = i
+            found = True
+            break
+    if (found == False):
+        new_index[1] = i
+
+    return new_index
