@@ -977,3 +977,70 @@ def geomatic_resection_angle_based(P1, P2, Field_data1, Field_data2):
     # print("North-East coordinates: ", round(X5,3), round(Y5,3), round(Z_final,3), round(Delta*180/np.pi,3))
     # print("North-West coordinates: ", round(X_final,3), round(Y_final,3), round(Z_final,3), round(Azimuth_final*180/np.pi,3))
     return X_final, Y_final, Z_final, Azimuth_final
+
+def geomatic_resection_errors_angle_based(file_name: str, list_pilier, exp_file_name: str, inter_prism_distance, static_file_name: str):
+    raw_1, raw_2, raw_3, trimble_1, trimble_2, trimble_3, T_1_grand, T_2_grand, T_3_grand = tu.read_marker_file_raw_data(file_name)
+
+    selection = [[0,1],
+                [0,2],
+                [0,3],
+                [1,2],
+                [1,3],
+                [2,3]]
+
+    error_calcul = [[2,3],
+                [1,3],
+                [1,2],
+                [0,3],
+                [0,2],
+                [0,1]]
+    error_cp = []
+    error_exp = []
+    error_all = []
+    TF_1 = []
+    TF_2 = []
+    TF_3 = []
+    for i,j in zip(selection,error_calcul):
+        Field_data11 = [raw_1[i[0]][2], raw_1[i[0]][0], raw_1[i[0]][1]]
+        Field_data12 = [raw_1[i[1]][2], raw_1[i[1]][0], raw_1[i[1]][1]]
+        Field_data21 = [raw_2[i[0]][2], raw_2[i[0]][0], raw_2[i[0]][1]]
+        Field_data22 = [raw_2[i[1]][2], raw_2[i[1]][0], raw_2[i[1]][1]]
+        Field_data31 = [raw_3[i[0]][2], raw_3[i[0]][0], raw_3[i[0]][1]]
+        Field_data32 = [raw_3[i[1]][2], raw_3[i[1]][0], raw_3[i[1]][1]]
+        X1,Y1,Z1,A1 = geomatic_resection_angle_based(list_pilier[i[0]], list_pilier[i[1]], Field_data11, Field_data12)
+        X2,Y2,Z2,A2 = geomatic_resection_angle_based(list_pilier[i[0]], list_pilier[i[1]], Field_data21, Field_data22)
+        X3,Y3,Z3,A3 = geomatic_resection_angle_based(list_pilier[i[0]], list_pilier[i[1]], Field_data31, Field_data32)
+
+        T1 = T_z(A1, [X1,Y1,Z1])
+        T2 = T_z(A2, [X2,Y2,Z2])
+        T3 = T_z(A3, [X3,Y3,Z3])
+        tc1 = T1@np.array(trimble_1)
+        tc2 = T2@np.array(trimble_2)
+        tc3 = T3@np.array(trimble_3)
+
+        TF_1.append(T1)
+        TF_2.append(T2)
+        TF_3.append(T3)
+        
+        # Calcul errors
+        dist_12 = np.linalg.norm(tc1.T[j[0],0:3] - tc2.T[j[0],0:3]) * 1000
+        dist_13 = np.linalg.norm(tc1.T[j[0],0:3] - tc3.T[j[0],0:3]) * 1000
+        dist_23 = np.linalg.norm(tc2.T[j[0],0:3] - tc3.T[j[0],0:3]) * 1000
+        error_all.append(dist_12)
+        error_all.append(dist_13)
+        error_all.append(dist_23)
+        dist_12 = np.linalg.norm(tc1.T[j[1],0:3] - tc2.T[j[1],0:3]) * 1000
+        dist_13 = np.linalg.norm(tc1.T[j[1],0:3] - tc3.T[j[1],0:3]) * 1000
+        dist_23 = np.linalg.norm(tc2.T[j[1],0:3] - tc3.T[j[1],0:3]) * 1000
+        error_all.append(dist_12)
+        error_all.append(dist_13)
+        error_all.append(dist_23)
+        if exp_file_name != "":
+            error_exp += tf.inter_prism_distance_error_experiment(exp_file_name, [T1, T2, T3], inter_prism_distance)
+        if static_file_name != "":
+            cp_1, cp_2, cp_3, _, _, _ = tu.read_marker_file(static_file_name, theodolite_reference_frame=1)
+            cp_1_t = T1 @ cp_1
+            cp_2_t = T2 @ cp_2
+            cp_3_t = T3 @ cp_3
+            compute_error_between_points(cp_1_t, cp_2_t, cp_3_t, error_cp)
+    return TF_1, TF_2, TF_3, error_all, error_cp, error_exp
