@@ -1,4 +1,5 @@
 import numpy as np
+import csv
 import random
 import math
 from numpy import linalg
@@ -2690,3 +2691,12 @@ def save_tf_list_to_file(TFs: list, file_name: str):
         file.write(str(i[2][2][3]))
         file.write("\n")
     file.close()
+    
+def read_error_list_file(error_file: str):
+    error_cp = []
+    error_exp = []
+    
+    error_cp = list(np.genfromtxt(error_file+'cp.csv', delimiter=','))
+    error_exp = list(np.genfromtxt(error_file+'experiment.csv', delimiter=","))
+                    
+    return error_cp, error_exp

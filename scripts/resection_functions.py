@@ -220,9 +220,9 @@ def static_control_points_error(static_file_path: str, exp_file_path: str = "", 
         TF_list.append([T1_static, T12_trained, T13_trained])
 
         for i, j, k in zip(prediction_1_static.T, prediction_2_static.T, prediction_3_static.T):
-            dist_12 = np.linalg.norm(i[0:3] - j[0:3]) * 1000 / np.linalg.norm(i[0:3])
-            dist_13 = np.linalg.norm(i[0:3] - k[0:3]) * 1000 / np.linalg.norm(i[0:3])
-            dist_23 = np.linalg.norm(j[0:3] - k[0:3]) * 1000 / np.linalg.norm(i[0:3])
+            dist_12 = np.linalg.norm(i[0:3] - j[0:3]) * 1000
+            dist_13 = np.linalg.norm(i[0:3] - k[0:3]) * 1000
+            dist_23 = np.linalg.norm(j[0:3] - k[0:3]) * 1000
             static_errors.append(dist_12)
             static_errors.append(dist_13)
             static_errors.append(dist_23)
@@ -297,9 +297,9 @@ def dynamic_control_points_error_comparison(dynamic_file_path: str, exp_file_pat
             cp2 = T12_dynamic @ ts2_static
             cp3 = T13_dynamic @ ts3_static
             for i,j,k in zip(cp1.T, cp2.T, cp3.T):
-                dist_12 = np.linalg.norm(i[0:3] - j[0:3]) * 1000 / np.linalg.norm(i[0:3])
-                dist_13 = np.linalg.norm(i[0:3] - k[0:3]) * 1000 / np.linalg.norm(i[0:3])
-                dist_23 = np.linalg.norm(j[0:3] - k[0:3]) * 1000 / np.linalg.norm(i[0:3])
+                dist_12 = np.linalg.norm(i[0:3] - j[0:3]) * 1000
+                dist_13 = np.linalg.norm(i[0:3] - k[0:3]) * 1000
+                dist_23 = np.linalg.norm(j[0:3] - k[0:3]) * 1000
                 cp_errors.append(dist_12)
                 cp_errors.append(dist_13)
                 cp_errors.append(dist_23)
