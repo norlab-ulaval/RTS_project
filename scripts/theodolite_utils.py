@@ -2700,3 +2700,27 @@ def read_error_list_file(error_file: str):
     error_exp = list(np.genfromtxt(error_file+'experiment.csv', delimiter=","))
                     
     return error_cp, error_exp
+
+def save_results_drop_outliers(file_name_path, param, results_arr):
+	file_name = file_name_path + str(param[0]) + "-" + str(param[1]) + "-" + str(param[2]) + "-" + str(
+			param[3]) + "-" + str(param[4]) + "-" + str(param[5]) + ".txt"
+	file = open(file_name, "w+")
+	file.write(str(results_arr[0]))
+	file.write(" ")
+	file.write(str(results_arr[1]))
+	file.write(" ")
+	file.write(str(results_arr[2]))
+	file.write(" ")
+	file.write(str(results_arr[3]))
+	file.write(" ")
+	file.write(str(results_arr[4]))
+	file.write(" ")
+	file.write(str(results_arr[5]))
+	file.write("\n")
+	file.close()
+
+def read_results_drop_outliers(file_name):
+	with open(file_name, "r") as file:
+		for line in file:
+			item = line.strip().split(" ")
+	return item
