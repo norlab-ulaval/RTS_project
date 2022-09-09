@@ -1021,7 +1021,7 @@ def geomatic_resection_errors_angle_based(file_name: str, list_pilier, exp_file_
         TF_1.append(T1)
         TF_2.append(T2)
         TF_3.append(T3)
-        
+
         # Calcul errors
         dist_12 = np.linalg.norm(tc1.T[j[0],0:3] - tc2.T[j[0],0:3]) * 1000
         dist_13 = np.linalg.norm(tc1.T[j[0],0:3] - tc3.T[j[0],0:3]) * 1000
