@@ -457,7 +457,7 @@ def one_inter_prism_resection(Inter_distance, file_name, file_name_marker, rate:
         error_basic = []
 
         if(len(index1)>6):
-
+            print("Selected points: ", len(index1))
             marker_1, marker_2, marker_3, T1_basic, T12_basic, T13_basic = tu.read_marker_file(file_name_marker, 1, threshold_marker)
             if(prior=="PTP"):
                 T12_init = tu.point_to_point_minimization(p2.T, p1.T)
@@ -475,7 +475,7 @@ def one_inter_prism_resection(Inter_distance, file_name, file_name_marker, rate:
             dist_23_t = Inter_distance[2]
 
             for num_it in range(0, number_iteration):
-                print(num_it)
+                #print("Iteration: ", num_it)
                 mask = tu.random_splitting_mask(p1, threshold_training)
                 p1_t = p1[mask]
                 p2_t = p2[mask]
@@ -540,6 +540,299 @@ def one_inter_prism_resection(Inter_distance, file_name, file_name_marker, rate:
                     T12 = T_z_so3(*res.x[:4])
                     T13 = T_z_so3(*res.x[4:])
 
+
+                T_1 = np.identity(4)
+                p1t = (T_1@p1_p.T).T
+                p2t = (T12@p2_p.T).T
+                p3t = (T13@p3_p.T).T
+
+                for i_n in range(len(p1t)):
+                    dp1 = abs(np.linalg.norm(p1t[i_n, 0:3] - p2t[i_n, 0:3]) - dist_12_t)*1000
+                    dp2 = abs(np.linalg.norm(p1t[i_n, 0:3] - p3t[i_n, 0:3]) - dist_13_t)*1000
+                    dp3 = abs(np.linalg.norm(p3t[i_n, 0:3] - p2t[i_n, 0:3]) - dist_23_t)*1000
+                    dist_prism_new.append(dp1)
+                    dist_prism_new.append(dp2)
+                    dist_prism_new.append(dp3)
+
+                    dp1 = abs(np.linalg.norm(p1_p[i_n, 0:3] - (T12_basic@p2_p[i_n, 0:4].T)[0:3]) - dist_12_t)*1000
+                    dp2 = abs(np.linalg.norm(p1_p[i_n, 0:3] - (T13_basic@p3_p[i_n, 0:4].T)[0:3]) - dist_13_t)*1000
+                    dp3 = abs(np.linalg.norm((T13_basic@p3_p[i_n, 0:4].T)[0:3] - (T12_basic@p2_p[i_n, 0:4].T)[0:3]) - dist_23_t)*1000
+                    dist_prism_basic.append(dp1)
+                    dist_prism_basic.append(dp2)
+                    dist_prism_basic.append(dp3)
+
+                m1_b = marker_1
+                m2_b = T12_basic@marker_2
+                m3_b = T13_basic@marker_3
+
+                m1_n = marker_1
+                m2_n = T12@marker_2
+                m3_n = T13@marker_3
+
+                compute_error_between_points(m1_b, m2_b, m3_b, error_basic)
+                compute_error_between_points(m1_n, m2_n, m3_n, error_new)
+                exp_errors += tf.inter_prism_distance_error_experiment(file_name, [T_1, T12, T13], Inter_distance)
+                TF_list.append([T_1, T12, T13])
+        dist_prism_new_all.append(dist_prism_new)
+        dist_prism_basic_all.append(dist_prism_basic)
+        error_prism_new_all.append(error_new)
+        error_prism_basic_all.append(error_basic)
+
+    else:
+        print("No data in file(s) " + k + "  !!")
+
+    print("Results done !")
+
+    return dist_prism_new_all[0], dist_prism_basic_all[0], error_prism_new_all[0], error_prism_basic_all[0], exp_errors, TF_list
+
+def one_inter_prism_resection_advanced(Inter_distance, file_name, file_name_marker, RF, robot, rate: float=10, prior: str="A", velocity_outlier: float = 1,
+                              threshold_training: float = 0.75, number_iteration: int = 5, threshold_marker: int = 1, min_6dof: bool=True):
+    dist_prism_new_all = []
+    dist_prism_basic_all = []
+    error_prism_new_all = []
+    error_prism_basic_all = []
+    exp_errors = []
+    TF_list = []
+
+    trimble_1 = tu.read_prediction_data_resection_csv_file(file_name + "1.csv")
+    trimble_2 = tu.read_prediction_data_resection_csv_file(file_name + "2.csv")
+    trimble_3 = tu.read_prediction_data_resection_csv_file(file_name + "3.csv")
+
+    if (len(np.array(trimble_1)) > 0 and len(np.array(trimble_2)) > 0 and len(np.array(trimble_3)) > 0):
+        speed_limit = velocity_outlier
+        index1 = tu.find_not_moving_points_GP(np.array(trimble_1), speed_limit, 1/rate)
+
+        p_iterim = np.array(trimble_1)[index1, 1:5]
+
+        former_point = [0, 0, 0]
+        index_keep = []
+        count = 0
+        for i in p_iterim:
+            if (np.linalg.norm(i[0:3] - former_point) > 0.01):
+                index_keep.append(count)
+                former_point = i[0:3]
+            count += 1
+
+        p1 = np.array(trimble_1)[index_keep, 1:5]
+        p2 = np.array(trimble_2)[index_keep, 1:5]
+        p3 = np.array(trimble_3)[index_keep, 1:5]
+
+        dist_prism_new = []
+        dist_prism_basic = []
+        error_new = []
+        error_basic = []
+
+        print("Selected points: ", len(index_keep))
+        if((len(index_keep)>=6 and min_6dof==False) or (len(index_keep)>=8 and min_6dof==True)):
+
+            marker_1, marker_2, marker_3, T1_basic, T12_basic, T13_basic = tu.read_marker_file(file_name_marker, 1, threshold_marker)
+            if(prior=="PTP" or (prior =="A" and RF[0]=='')):
+                T12_init = tu.point_to_point_minimization(p2.T, p1.T)
+                T13_init = tu.point_to_point_minimization(p3.T, p1.T)
+            else:
+                if(prior=="CP"):
+                    T12_init = T12_basic
+                    T13_init = T13_basic
+                else:
+                    if (prior == "A"):
+
+                        T12_init = RF[0]
+                        T13_init = RF[1]
+
+            T12_init_log = exp_inv_T(T12_init)
+            T13_init_log = exp_inv_T(T13_init)
+
+            dist_12_t = Inter_distance[0]
+            dist_13_t = Inter_distance[1]
+            dist_23_t = Inter_distance[2]
+
+            for num_it in range(0, number_iteration):
+                #print("Iteration: ", num_it)
+                mask = tu.random_splitting_mask(p1, threshold_training)
+                p1_t = p1[mask]
+                p2_t = p2[mask]
+                p3_t = p3[mask]
+                p1_p = p1[~mask]
+                p2_p = p2[~mask]
+                p3_p = p3[~mask]
+
+                if(min_6dof):
+                    x_init = [T12_init_log[2, 1], T12_init_log[0, 2], T12_init_log[1, 0], T12_init_log[0, 3],
+                              T12_init_log[1, 3], T12_init_log[2, 3],
+                              T13_init_log[2, 1], T13_init_log[0, 2], T13_init_log[1, 0], T13_init_log[0, 3],
+                              T13_init_log[1, 3], T13_init_log[2, 3]]
+                    start_time = time.time()
+                    res = scipy.optimize.least_squares(lambda x: cost_fun_ls(p1_t,
+                                                                             p2_t,
+                                                                             p3_t,
+                                                                             x[:6],
+                                                                             x[6:],
+                                                                             dist_12_t,
+                                                                             dist_13_t,
+                                                                             dist_23_t), x0=x_init, method='lm',
+                                                       ftol=1e-15, xtol=1e-15, x_scale=1.0, loss='linear',
+                                                       f_scale=1.0, diff_step=None, tr_solver=None, tr_options={},
+                                                       jac_sparsity=None, max_nfev=100000, verbose=1, args=(), kwargs={})
+                    stop_time = time.time()
+                    print("Time [s]: ", stop_time - start_time)
+                    xi_12 = res.x[:6]
+                    xi_13 = res.x[6:]
+                    T12 = exp_T(xi_12)
+                    T13 = exp_T(xi_13)
+
+                    T_1 = np.identity(4)
+                    p1test = (T_1@p1_p.T).T
+                    p2test = (T12@p2_p.T).T
+                    p3test = (T13@p3_p.T).T
+
+                    altitude_diff12 = []
+                    altitude_diff13 = []
+                    for alt in range(len(p1test)):
+                        z_1 = p1test[alt, 2]
+                        z_2 = p2test[alt, 2]
+                        z_3 = p3test[alt, 2]
+                        altitude_diff12.append(z_1 - z_2)
+                        altitude_diff13.append(z_1 - z_3)
+
+                    if (np.mean(altitude_diff12) < 0 and np.mean(altitude_diff13) < 0):
+                        print("Jump detected !")
+                        if (robot == "warthog"):
+                            z_2_correction = T12[2, 3] - (0.56 - 0.15)*2
+                            z_3_correction = T13[2, 3] - (0.56 - 0.2)*2
+                        if (robot == "marmotte"):
+                            z_2_correction = T12[2, 3] - (0.43 - 0.2)*2
+                            z_3_correction = T13[2, 3] - (0.43 - 0.2)*2
+
+                        x_init = [T12_init_log[2, 1], T12_init_log[0, 2], T12_init_log[1, 0], T12_init_log[0, 3],
+                                  T12_init_log[1, 3], z_2_correction,
+                                  T13_init_log[2, 1], T13_init_log[0, 2], T13_init_log[1, 0], T13_init_log[0, 3],
+                                  T13_init_log[1, 3], z_3_correction]
+
+                        bnds = (
+                        [-np.inf, -np.inf, -np.inf, -np.inf, -np.inf, z_2_correction - 0.15,
+                         -np.inf, -np.inf, -np.inf, -np.inf, -np.inf, z_3_correction - 0.15],
+                        [np.inf, np.inf, np.inf, np.inf, np.inf, z_2_correction + 0.15,
+                         np.inf, np.inf, np.inf, np.inf, np.inf, z_3_correction + 0.15])
+                        start_time = time.time()
+                        res = scipy.optimize.least_squares(lambda x: cost_fun_ls(p1_t,
+                                                                                 p2_t,
+                                                                                 p3_t,
+                                                                                 x[:6],
+                                                                                 x[6:],
+                                                                                 dist_12_t,
+                                                                                 dist_13_t,
+                                                                                 dist_23_t),
+                                                           x0=x_init,
+                                                           method='trf',
+                                                           bounds=bnds,
+                                                           ftol=1e-15,
+                                                           xtol=1e-15,
+                                                           x_scale=1.0,
+                                                           loss='linear',
+                                                           f_scale=1.0,
+                                                           diff_step=None,
+                                                           tr_solver=None,
+                                                           tr_options={},
+                                                           jac_sparsity=None,
+                                                           max_nfev=100000,
+                                                           verbose=0,
+                                                           args=(),
+                                                           kwargs={})
+                        stop_time = time.time()
+                        print("Time [s]: ", stop_time - start_time)
+                        xi_12 = res.x[:6]
+                        xi_13 = res.x[6:]
+                        T12 = exp_T(xi_12)
+                        T13 = exp_T(xi_13)
+
+                else:
+                    x_init = [T12_init_log[0, 3], T12_init_log[1, 3], T12_init_log[2, 3], T12_init_log[1, 0],
+                              T13_init_log[0, 3], T13_init_log[1, 3], T13_init_log[2, 3], T13_init_log[1, 0]]
+                    start_time = time.time()
+                    res = scipy.optimize.least_squares(lambda x: cost_fun_ls_4dof(p1_t,
+                                                                             p2_t,
+                                                                             p3_t,
+                                                                             x[:4],
+                                                                             x[4:],
+                                                                             dist_12_t,
+                                                                             dist_13_t,
+                                                                             dist_23_t),
+                                                       x0=x_init,
+                                                       method='lm',
+                                                       ftol=1e-15,
+                                                       xtol=1e-15,
+                                                       x_scale=1.0,
+                                                       loss='linear',
+                                                       f_scale=1.0,
+                                                       diff_step=None,
+                                                       tr_solver=None,
+                                                       tr_options={},
+                                                       jac_sparsity=None,
+                                                       max_nfev=100000,
+                                                       verbose=0,
+                                                       args=(),
+                                                       kwargs={})
+                    stop_time = time.time()
+                    print("Time [s]: ", stop_time - start_time)
+                    T12 = T_z_so3(*res.x[:4])
+                    T13 = T_z_so3(*res.x[4:])
+
+                    T_1 = np.identity(4)
+                    p1test = (T_1@p1_p.T).T
+                    p2test = (T12@p2_p.T).T
+                    p3test = (T13@p3_p.T).T
+
+                    altitude_diff12 = []
+                    altitude_diff13 = []
+                    for alt in range(len(p1test)):
+                        z_1 = p1test[alt, 2]
+                        z_2 = p2test[alt, 2]
+                        z_3 = p3test[alt, 2]
+                        altitude_diff12.append(z_1 - z_2)
+                        altitude_diff13.append(z_1 - z_3)
+
+                    if(np.mean(altitude_diff12)<0 and np.mean(altitude_diff13)<0):
+                        print("Jump detected !")
+                        if(robot == "warthog"):
+                            z_2_correction = T12[2,3] - (0.56-0.15)*2
+                            z_3_correction = T13[2,3] - (0.56-0.2)*2
+                        if (robot == "marmotte"):
+                            z_2_correction = T12[2, 3] - (0.43-0.2)*2
+                            z_3_correction = T13[2, 3] - (0.43-0.2)*2
+
+                        x_init = [T12_init_log[0, 3], T12_init_log[1, 3], z_2_correction, T12_init_log[1, 0],
+                                  T13_init_log[0, 3], T13_init_log[1, 3], z_3_correction, T13_init_log[1, 0]]
+                        bnds = ([-np.inf, -np.inf, z_2_correction-0.1, -np.inf, -np.inf, -np.inf, z_3_correction-0.1, -np.inf],
+                                [np.inf, np.inf, z_2_correction+0.1, np.inf, np.inf, np.inf, z_3_correction+0.1, np.inf])
+                        start_time = time.time()
+                        res = scipy.optimize.least_squares(lambda x: cost_fun_ls_4dof(p1_t,
+                                                                                      p2_t,
+                                                                                      p3_t,
+                                                                                      x[:4],
+                                                                                      x[4:],
+                                                                                      dist_12_t,
+                                                                                      dist_13_t,
+                                                                                      dist_23_t),
+                                                           x0=x_init,
+                                                           method='trf',
+                                                           bounds=bnds,
+                                                           ftol=1e-15,
+                                                           xtol=1e-15,
+                                                           x_scale=1.0,
+                                                           loss='linear',
+                                                           f_scale=1.0,
+                                                           diff_step=None,
+                                                           tr_solver=None,
+                                                           tr_options={},
+                                                           jac_sparsity=None,
+                                                           max_nfev=100000,
+                                                           verbose=0,
+                                                           args=(),
+                                                           kwargs={})
+                        stop_time = time.time()
+                        print("Time [s]: ", stop_time - start_time)
+                        T12 = T_z_so3(*res.x[:4])
+                        T13 = T_z_so3(*res.x[4:])
 
                 T_1 = np.identity(4)
                 p1t = (T_1@p1_p.T).T
