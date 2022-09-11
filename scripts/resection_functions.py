@@ -585,7 +585,7 @@ def one_inter_prism_resection(Inter_distance, file_name, file_name_marker, rate:
 
     return dist_prism_new_all[0], dist_prism_basic_all[0], error_prism_new_all[0], error_prism_basic_all[0], exp_errors, TF_list
 
-def one_inter_prism_resection_advanced(Inter_distance, file_name, file_name_marker, RF, rate: float=10, prior: str="A", velocity_outlier: float = 1,
+def one_inter_prism_resection_advanced(Inter_distance, file_name, file_name_marker, RF, robot, rate: float=10, prior: str="A", velocity_outlier: float = 1,
                               threshold_training: float = 0.75, number_iteration: int = 5, threshold_marker: int = 1, min_6dof: bool=True):
     dist_prism_new_all = []
     dist_prism_basic_all = []
@@ -593,7 +593,6 @@ def one_inter_prism_resection_advanced(Inter_distance, file_name, file_name_mark
     error_prism_basic_all = []
     exp_errors = []
     TF_list = []
-
 
     trimble_1 = tu.read_prediction_data_resection_csv_file(file_name + "1.csv")
     trimble_2 = tu.read_prediction_data_resection_csv_file(file_name + "2.csv")
@@ -603,20 +602,31 @@ def one_inter_prism_resection_advanced(Inter_distance, file_name, file_name_mark
         speed_limit = velocity_outlier
         index1 = tu.find_not_moving_points_GP(np.array(trimble_1), speed_limit, 1/rate)
 
-        p1 = np.array(trimble_1)[index1, 1:5]
-        p2 = np.array(trimble_2)[index1, 1:5]
-        p3 = np.array(trimble_3)[index1, 1:5]
+        p_iterim = np.array(trimble_1)[index1, 1:5]
+
+        former_point = [0, 0, 0]
+        index_keep = []
+        count = 0
+        for i in p_iterim:
+            if (np.linalg.norm(i[0:3] - former_point) > 0.01):
+                index_keep.append(count)
+                former_point = i[0:3]
+            count += 1
+
+        p1 = np.array(trimble_1)[index_keep, 1:5]
+        p2 = np.array(trimble_2)[index_keep, 1:5]
+        p3 = np.array(trimble_3)[index_keep, 1:5]
 
         dist_prism_new = []
         dist_prism_basic = []
         error_new = []
         error_basic = []
 
-        if(len(index1)>6):
-            print("Selected points: ", len(index1))
+        print("Selected points: ", len(index_keep))
+        if((len(index_keep)>=6 and min_6dof==False) or (len(index_keep)>=8 and min_6dof==True)):
 
             marker_1, marker_2, marker_3, T1_basic, T12_basic, T13_basic = tu.read_marker_file(file_name_marker, 1, threshold_marker)
-            if(prior=="PTP" or (prior =="A" and RF[1]=='')):
+            if(prior=="PTP" or (prior =="A" and RF[0]=='')):
                 T12_init = tu.point_to_point_minimization(p2.T, p1.T)
                 T13_init = tu.point_to_point_minimization(p3.T, p1.T)
             else:
@@ -625,8 +635,9 @@ def one_inter_prism_resection_advanced(Inter_distance, file_name, file_name_mark
                     T13_init = T13_basic
                 else:
                     if (prior == "A"):
-                        T12_init = RF[1]
-                        T13_init = RF[2]
+
+                        T12_init = RF[0]
+                        T13_init = RF[1]
 
             T12_init_log = exp_inv_T(T12_init)
             T13_init_log = exp_inv_T(T13_init)
@@ -661,13 +672,78 @@ def one_inter_prism_resection_advanced(Inter_distance, file_name, file_name_mark
                                                                              dist_23_t), x0=x_init, method='lm',
                                                        ftol=1e-15, xtol=1e-15, x_scale=1.0, loss='linear',
                                                        f_scale=1.0, diff_step=None, tr_solver=None, tr_options={},
-                                                       jac_sparsity=None, max_nfev=100000, verbose=2, args=(), kwargs={})
+                                                       jac_sparsity=None, max_nfev=100000, verbose=1, args=(), kwargs={})
                     stop_time = time.time()
                     print("Time [s]: ", stop_time - start_time)
                     xi_12 = res.x[:6]
                     xi_13 = res.x[6:]
                     T12 = exp_T(xi_12)
                     T13 = exp_T(xi_13)
+
+                    T_1 = np.identity(4)
+                    p1test = (T_1@p1_p.T).T
+                    p2test = (T12@p2_p.T).T
+                    p3test = (T13@p3_p.T).T
+
+                    altitude_diff12 = []
+                    altitude_diff13 = []
+                    for alt in range(len(p1test)):
+                        z_1 = p1test[alt, 2]
+                        z_2 = p2test[alt, 2]
+                        z_3 = p3test[alt, 2]
+                        altitude_diff12.append(z_1 - z_2)
+                        altitude_diff13.append(z_1 - z_3)
+
+                    if (np.mean(altitude_diff12) < 0 and np.mean(altitude_diff13) < 0):
+                        print("Jump detected !")
+                        if (robot == "warthog"):
+                            z_2_correction = T12[2, 3] - (0.56 - 0.15)*2
+                            z_3_correction = T13[2, 3] - (0.56 - 0.2)*2
+                        if (robot == "marmotte"):
+                            z_2_correction = T12[2, 3] - (0.43 - 0.2)*2
+                            z_3_correction = T13[2, 3] - (0.43 - 0.2)*2
+
+                        x_init = [T12_init_log[2, 1], T12_init_log[0, 2], T12_init_log[1, 0], T12_init_log[0, 3],
+                                  T12_init_log[1, 3], z_2_correction,
+                                  T13_init_log[2, 1], T13_init_log[0, 2], T13_init_log[1, 0], T13_init_log[0, 3],
+                                  T13_init_log[1, 3], z_3_correction]
+
+                        bnds = (
+                        [-np.inf, -np.inf, -np.inf, -np.inf, -np.inf, z_2_correction - 0.15,
+                         -np.inf, -np.inf, -np.inf, -np.inf, -np.inf, z_3_correction - 0.15],
+                        [np.inf, np.inf, np.inf, np.inf, np.inf, z_2_correction + 0.15,
+                         np.inf, np.inf, np.inf, np.inf, np.inf, z_3_correction + 0.15])
+                        start_time = time.time()
+                        res = scipy.optimize.least_squares(lambda x: cost_fun_ls(p1_t,
+                                                                                 p2_t,
+                                                                                 p3_t,
+                                                                                 x[:6],
+                                                                                 x[6:],
+                                                                                 dist_12_t,
+                                                                                 dist_13_t,
+                                                                                 dist_23_t),
+                                                           x0=x_init,
+                                                           method='trf',
+                                                           bounds=bnds,
+                                                           ftol=1e-15,
+                                                           xtol=1e-15,
+                                                           x_scale=1.0,
+                                                           loss='linear',
+                                                           f_scale=1.0,
+                                                           diff_step=None,
+                                                           tr_solver=None,
+                                                           tr_options={},
+                                                           jac_sparsity=None,
+                                                           max_nfev=100000,
+                                                           verbose=0,
+                                                           args=(),
+                                                           kwargs={})
+                        stop_time = time.time()
+                        print("Time [s]: ", stop_time - start_time)
+                        xi_12 = res.x[:6]
+                        xi_13 = res.x[6:]
+                        T12 = exp_T(xi_12)
+                        T13 = exp_T(xi_13)
 
                 else:
                     x_init = [T12_init_log[0, 3], T12_init_log[1, 3], T12_init_log[2, 3], T12_init_log[1, 0],
@@ -693,7 +769,7 @@ def one_inter_prism_resection_advanced(Inter_distance, file_name, file_name_mark
                                                        tr_options={},
                                                        jac_sparsity=None,
                                                        max_nfev=100000,
-                                                       verbose=2,
+                                                       verbose=0,
                                                        args=(),
                                                        kwargs={})
                     stop_time = time.time()
@@ -701,6 +777,62 @@ def one_inter_prism_resection_advanced(Inter_distance, file_name, file_name_mark
                     T12 = T_z_so3(*res.x[:4])
                     T13 = T_z_so3(*res.x[4:])
 
+                    T_1 = np.identity(4)
+                    p1test = (T_1@p1_p.T).T
+                    p2test = (T12@p2_p.T).T
+                    p3test = (T13@p3_p.T).T
+
+                    altitude_diff12 = []
+                    altitude_diff13 = []
+                    for alt in range(len(p1test)):
+                        z_1 = p1test[alt, 2]
+                        z_2 = p2test[alt, 2]
+                        z_3 = p3test[alt, 2]
+                        altitude_diff12.append(z_1 - z_2)
+                        altitude_diff13.append(z_1 - z_3)
+
+                    if(np.mean(altitude_diff12)<0 and np.mean(altitude_diff13)<0):
+                        print("Jump detected !")
+                        if(robot == "warthog"):
+                            z_2_correction = T12[2,3] - (0.56-0.15)*2
+                            z_3_correction = T13[2,3] - (0.56-0.2)*2
+                        if (robot == "marmotte"):
+                            z_2_correction = T12[2, 3] - (0.43-0.2)*2
+                            z_3_correction = T13[2, 3] - (0.43-0.2)*2
+
+                        x_init = [T12_init_log[0, 3], T12_init_log[1, 3], z_2_correction, T12_init_log[1, 0],
+                                  T13_init_log[0, 3], T13_init_log[1, 3], z_3_correction, T13_init_log[1, 0]]
+                        bnds = ([-np.inf, -np.inf, z_2_correction-0.1, -np.inf, -np.inf, -np.inf, z_3_correction-0.1, -np.inf],
+                                [np.inf, np.inf, z_2_correction+0.1, np.inf, np.inf, np.inf, z_3_correction+0.1, np.inf])
+                        start_time = time.time()
+                        res = scipy.optimize.least_squares(lambda x: cost_fun_ls_4dof(p1_t,
+                                                                                      p2_t,
+                                                                                      p3_t,
+                                                                                      x[:4],
+                                                                                      x[4:],
+                                                                                      dist_12_t,
+                                                                                      dist_13_t,
+                                                                                      dist_23_t),
+                                                           x0=x_init,
+                                                           method='trf',
+                                                           bounds=bnds,
+                                                           ftol=1e-15,
+                                                           xtol=1e-15,
+                                                           x_scale=1.0,
+                                                           loss='linear',
+                                                           f_scale=1.0,
+                                                           diff_step=None,
+                                                           tr_solver=None,
+                                                           tr_options={},
+                                                           jac_sparsity=None,
+                                                           max_nfev=100000,
+                                                           verbose=0,
+                                                           args=(),
+                                                           kwargs={})
+                        stop_time = time.time()
+                        print("Time [s]: ", stop_time - start_time)
+                        T12 = T_z_so3(*res.x[:4])
+                        T13 = T_z_so3(*res.x[4:])
 
                 T_1 = np.identity(4)
                 p1t = (T_1@p1_p.T).T
