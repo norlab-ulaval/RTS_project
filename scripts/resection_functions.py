@@ -623,7 +623,7 @@ def one_inter_prism_resection_advanced(Inter_distance, file_name, file_name_mark
         error_basic = []
 
         print("Selected points: ", len(index_keep))
-        if((len(index_keep)>=6 and min_6dof==False) or (len(index_keep)>=8 and min_6dof==True)):
+        if((len(index_keep)>=8 and min_6dof==False) or (len(index_keep)>=8 and min_6dof==True)):
 
             marker_1, marker_2, marker_3, T1_basic, T12_basic, T13_basic = tu.read_marker_file(file_name_marker, 1, threshold_marker)
             if(prior=="PTP" or (prior =="A" and RF[0]=='')):
