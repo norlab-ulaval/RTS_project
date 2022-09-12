@@ -2691,15 +2691,21 @@ def save_tf_list_to_file(TFs: list, file_name: str):
         file.write(str(i[2][2][3]))
         file.write("\n")
     file.close()
-    
+
 def read_error_list_file(error_file: str):
     error_cp = []
     error_exp = []
-    
+
     error_cp = list(np.genfromtxt(error_file+'cp.csv', delimiter=','))
     error_exp = list(np.genfromtxt(error_file+'experiment.csv', delimiter=","))
-                    
+
     return error_cp, error_exp
+
+
+def read_error_list_file_alone(error_file: str):
+	error_list = []
+	error_list = list(np.genfromtxt(error_file, delimiter=','))
+	return error_list
 
 def save_results_drop_outliers(file_name_path, param, results_arr):
 	file_name = file_name_path + str(param[0]) + "-" + str(param[1]) + "-" + str(param[2]) + "-" + str(
