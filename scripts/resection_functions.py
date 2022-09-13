@@ -59,9 +59,9 @@ def cost_fun_ls(p1s_l, p2s_l, p3s_l, xi_12, xi_13, d_truth12, d_truth13, d_truth
 
     N = len(p1s_l)
     c = np.zeros((N*3))
-    c[:N] = [(dist(p1, T12@p2) - d_truth12) for p1, p2 in zip(p1s_l, p2s_l)]
-    c[N:2*N] = [(dist(p1, T13@p3) - d_truth13) for p1, p3 in zip(p1s_l, p3s_l)]
-    c[2*N:] = [(dist(T12@p2, T13@p3) - d_truth23) for p2, p3 in zip(p2s_l, p3s_l)]
+    c[:N] = [(dist(p1, T12@p2) - d_truth12)**2 for p1, p2 in zip(p1s_l, p2s_l)]
+    c[N:2*N] = [(dist(p1, T13@p3) - d_truth13)**2 for p1, p3 in zip(p1s_l, p3s_l)]
+    c[2*N:] = [(dist(T12@p2, T13@p3) - d_truth23)**2 for p2, p3 in zip(p2s_l, p3s_l)]
     return c/(3*N)
 
 def cost_fun_ls_4dof(p1s_l, p2s_l, p3s_l, xi_12, xi_13, d_truth12, d_truth13, d_truth23):
@@ -72,9 +72,9 @@ def cost_fun_ls_4dof(p1s_l, p2s_l, p3s_l, xi_12, xi_13, d_truth12, d_truth13, d_
 
     N = len(p1s_l)
     c = np.zeros((N*3))
-    c[:N] = [(dist(p1, T12@p2) - d_truth12) for p1, p2 in zip(p1s_l, p2s_l)]
-    c[N:2*N] = [(dist(p1, T13@p3) - d_truth13) for p1, p3 in zip(p1s_l, p3s_l)]
-    c[2*N:] = [(dist(T12@p2, T13@p3) - d_truth23) for p2, p3 in zip(p2s_l, p3s_l)]
+    c[:N] = [(dist(p1, T12@p2) - d_truth12)**2 for p1, p2 in zip(p1s_l, p2s_l)]
+    c[N:2*N] = [(dist(p1, T13@p3) - d_truth13)**2 for p1, p3 in zip(p1s_l, p3s_l)]
+    c[2*N:] = [(dist(T12@p2, T13@p3) - d_truth23)**2 for p2, p3 in zip(p2s_l, p3s_l)]
     return c/(3*N)
 
 def vee(xi):  ## TODO: use LibLie wedge
