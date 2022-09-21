@@ -2,6 +2,9 @@ import numpy as np
 import math
 from rosbags.rosbag1 import Reader
 from rosbags.serde import deserialize_cdr, ros1_to_cdr
+from pathlib import Path
+from rosbags.typesys import get_types_from_msg, register_types
+
 # import rosbag
 # import csv
 # import random
@@ -42,6 +45,24 @@ class TheodoliteTimeCorrection:
 # ###################################################################################################
 #
 # Read/write data from files
+
+def guess_msgtype(path: Path) -> str:
+    """Guess message type name from path."""
+    name = path.relative_to(path.parents[2]).with_suffix('')
+    if 'msg' not in name.parts:
+        name = name.parent / 'msg' / name.name
+    return str(name)
+
+def read_custom_messages():
+	add_types = {}
+	for pathstr in [
+		'/home/maxime/workspace/src/theodolite_node_msgs/msg/TheodoliteCoordsStamped.msg',
+	]:
+		msgpath = Path(pathstr)
+		msgdef = msgpath.read_text(encoding='utf-8')
+		add_types.update(get_types_from_msg(msgdef, guess_msgtype(msgpath)))
+	register_types(add_types)
+
 def read_marker_file(file_name: str, theodolite_reference_frame: int, threshold: float = 1.0) -> tuple:
 	"""
 	Function to read a text file which contains the marker data for the calibration. The result given
@@ -141,7 +162,7 @@ def read_marker_file(file_name: str, theodolite_reference_frame: int, threshold:
 			T_31 = point_to_point_minimization(points_theodolite_1, points_theodolite_3)
 			T_32 = point_to_point_minimization(points_theodolite_2, points_theodolite_3)
 			return points_theodolite_1, points_theodolite_2, points_theodolite_3, T_31, T_32, T_I
-#
+
 # def read_marker_file_raw_data(file_name: str):
 #     """
 #     Function to read a text file which contains the marker data for the calibration. The result given
@@ -239,17 +260,7 @@ def read_marker_file(file_name: str, theodolite_reference_frame: int, threshold:
 # - time_trimble_2: list of timestamp for each points for the theodolite 2, timestamp in double
 # - time_trimble_3: list of timestamp for each points for the theodolite 3, timestamp in double
 def read_rosbag_theodolite_with_tf(file, Tf):
-
-	# with Reader(file) as bag:
-
-	#         #Read topic of trimble
-	#         for connection, timestamp, rawdata in bag.messages():
-	#             if connection.topic == '/theodolite_master/theodolite_data':
-	#                 # print(connection)
-	#                 # print(timestamp)
-	#                 # print(rawdata)
-	#                 msg = deserialize_cdr(ros1_to_cdr(rawdata, connection.msgtype), connection.msgtype)
-	#                 marker = TheodoliteCoordsStamped(msg.header, msg.theodolite_time, msg.theodolite_id, msg.status, msg.azimuth, msg.elevation, msg.distance)
+	read_custom_messages()
 	with Reader(file) as bag:
 		trajectory_trimble_1=[]
 		trajectory_trimble_2=[]
@@ -267,28 +278,28 @@ def read_rosbag_theodolite_with_tf(file, Tf):
 			if connection.topic == '/theodolite_master/theodolite_data':
 				msg = deserialize_cdr(ros1_to_cdr(rawdata, connection.msgtype), connection.msgtype)
 				marker = TheodoliteCoordsStamped(msg.header, msg.theodolite_time, msg.theodolite_id, msg.status, msg.azimuth, msg.elevation, msg.distance)
-				if(marker.status == 0): # If theodolite can see the prism, or no mistake in the measurement
+				if(marker.status == 0 and marker.distance<=1000): # If theodolite can see the prism, or no mistake in the measurement
 					# Find number of theodolite
 					if(marker.theodolite_id==1):
-						if(check_double_1!=second_nsecond(marker.header.stamp.secs, marker.header.stamp.nsecs)):
+						if(check_double_1!=second_nsecond(marker.header.stamp.sec, marker.header.stamp.nanosec)):
 							add_point_in_frame(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_1, Tf[0], 2)
-							time_trimble_1.append(second_nsecond(marker.header.stamp.secs, marker.header.stamp.nsecs))
+							time_trimble_1.append(second_nsecond(marker.header.stamp.sec, marker.header.stamp.nanosec))
 							it[0]+=1
-							check_double_1 = second_nsecond(marker.header.stamp.secs, marker.header.stamp.nsecs)
+							check_double_1 = second_nsecond(marker.header.stamp.sec, marker.header.stamp.nanosec)
 					if(marker.theodolite_id==2):
-						if (check_double_2 != second_nsecond(marker.header.stamp.secs, marker.header.stamp.nsecs)):
+						if (check_double_2 != second_nsecond(marker.header.stamp.sec, marker.header.stamp.nanosec)):
 							add_point_in_frame(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_2, Tf[1], 2)
-							time_trimble_2.append(second_nsecond(marker.header.stamp.secs, marker.header.stamp.nsecs))
+							time_trimble_2.append(second_nsecond(marker.header.stamp.sec, marker.header.stamp.nanosec))
 							it[1]+=1
-							check_double_2 = second_nsecond(marker.header.stamp.secs, marker.header.stamp.nsecs)
+							check_double_2 = second_nsecond(marker.header.stamp.sec, marker.header.stamp.nanosec)
 					if(marker.theodolite_id==3):
-						if (check_double_3 != second_nsecond(marker.header.stamp.secs, marker.header.stamp.nsecs)):
+						if (check_double_3 != second_nsecond(marker.header.stamp.sec, marker.header.stamp.nanosec)):
 							add_point_in_frame(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_3, Tf[2], 2)
-							time_trimble_3.append(second_nsecond(marker.header.stamp.secs, marker.header.stamp.nsecs))
+							time_trimble_3.append(second_nsecond(marker.header.stamp.sec, marker.header.stamp.nanosec))
 							it[2]+=1
-							check_double_3 = second_nsecond(marker.header.stamp.secs, marker.header.stamp.nsecs)
+							check_double_3 = second_nsecond(marker.header.stamp.sec, marker.header.stamp.nanosec)
 				# Count mistakes
-				if(marker.status != 0):
+				else:
 					bad_measures+=1
 	# Print number of data for each theodolite and the total number of mistakes
 	print("Number of data for theodolites:", it)
@@ -306,7 +317,6 @@ def read_rosbag_theodolite_with_tf(file, Tf):
 	tt3 = np.array(time_trimble_3)[sort_index3]
 
 	return traj1, traj2, traj3, tt1, tt2, tt3
-
 
 # # def read_rosbag_theodolite_with_tf_more(file, Tf):
 # # 	bag = rosbag.Bag(file)
@@ -1064,45 +1074,44 @@ def read_rosbag_theodolite_with_tf(file, Tf):
 # # 			gps_position_z = odom.pose.pose.position.z
 # # 			gps_back.append(np.array([time, gps_position_x, gps_position_y, gps_position_z]))
 # # 		return gps_front, gps_back
-#
-# # Function which read the raw GPS file data and return the data read
-# # Print also the number of satellite seeing (mean, std, min, max)
-# # Input:
-# # - name_file: name of the rosbag to open
-# # - limit_compteur: number of line to skip to read at the begining of the file
-# # Output:
-# # - GPS_front_raw_data: list of 1x4 array, [0]: timestamp, [1]: latitude (deg), [2]: longitude(deg), [3]: height (m)
-# def read_gps_file(name_file, limit_compteur):
-# 	fichier = open(name_file, "r")
-# 	compteur = 0
-# 	GPS_front_raw_data = []
-# 	satellite = []
-# 	for line in fichier:
-# 		if(compteur>limit_compteur):
-# 			array_split = line.split(" ")
-# 			while("" in array_split):
-# 				array_split.remove("")
-# 			time = array_split[1]
-# 			lat = array_split[2]
-# 			long_i = array_split[3]
-# 			height = array_split[4]
-# 			time_split = time.split(":")
-# 			time_sec = float(time_split[0].strip())*3600 + float(time_split[1].strip())*60 + float(time_split[2].strip())
-# 			GPS_front_raw_data.append(np.array([time_sec, float(lat.strip()), float(long_i.strip()), float(height.strip())]))
-# 			temporary_list=[]
-# 			for i in line.split(" "):
-# 				if(i!=''):
-# 					temporary_list.append(i)
-# 			#print(temporary_list)
-# 			#if(float(temporary_list[6])==2):
-# 				#print(compteur)
-# 			satellite.append(float(temporary_list[6].strip()))
-# 		compteur = compteur + 1
-# 	fichier.close()
-# 	print("Average satellite number:", round(np.mean(satellite),1), ", Std: ", round(np.std(satellite),1), ", Min :",  np.min(satellite),", Max :", np.max(satellite))
-# 	return GPS_front_raw_data
-#
-#
+
+# Function which read the raw GPS file data and return the data read
+# Print also the number of satellite seeing (mean, std, min, max)
+# Input:
+# - name_file: name of the rosbag to open
+# - limit_compteur: number of line to skip to read at the begining of the file
+# Output:
+# - GPS_front_raw_data: list of 1x4 array, [0]: timestamp, [1]: latitude (deg), [2]: longitude(deg), [3]: height (m)
+def read_gps_file(name_file, limit_compteur):
+	fichier = open(name_file, "r")
+	compteur = 0
+	GPS_front_raw_data = []
+	satellite = []
+	for line in fichier:
+		if(compteur>limit_compteur):
+			array_split = line.split(" ")
+			while("" in array_split):
+				array_split.remove("")
+			time = array_split[1]
+			lat = array_split[2]
+			long_i = array_split[3]
+			height = array_split[4]
+			time_split = time.split(":")
+			time_sec = float(time_split[0].strip())*3600 + float(time_split[1].strip())*60 + float(time_split[2].strip())
+			GPS_front_raw_data.append(np.array([time_sec, float(lat.strip()), float(long_i.strip()), float(height.strip())]))
+			temporary_list=[]
+			for i in line.split(" "):
+				if(i!=''):
+					temporary_list.append(i)
+			#print(temporary_list)
+			#if(float(temporary_list[6])==2):
+				#print(compteur)
+			satellite.append(float(temporary_list[6].strip()))
+		compteur = compteur + 1
+	fichier.close()
+	print("Average satellite number:", round(np.mean(satellite),1), ", Std: ", round(np.std(satellite),1), ", Min :",  np.min(satellite),", Max :", np.max(satellite))
+	return GPS_front_raw_data
+
 # def read_gps_point_processed(name_file):
 # 	fichier = open(name_file, "r")
 # 	GPS_data = []
@@ -1165,7 +1174,13 @@ def read_rosbag_theodolite_with_tf(file, Tf):
 # 		for line in file:
 # 			item = line.strip().split(" ")
 # 	return item
-#
+
+def read_extrinsic_calibration_results_file(path_file):
+	list_values = []
+	list_values = list(np.genfromtxt(path_file, delimiter=' '))
+	return list_values
+
+
 # # Function which convert interpolated data pose into a specific format to use evo library
 # # Input:
 # # - interpolated_time: list of timestamp of the pose
@@ -1308,41 +1323,41 @@ def read_rosbag_theodolite_with_tf(file, Tf):
 # 		iterator_lidar = iterator_lidar+1
 # 	icp_file.close()
 # 	print("Conversion done !")
-#
-# def save_tf(tf1, tf2, tf3, output):
-# 	file = open(output,"w+")
-# 	tf = []
-# 	tf.append(tf1)
-# 	tf.append(tf2)
-# 	tf.append(tf3)
-# 	for i in tf:
-# 		file.write(str(i[0, 0]))
-# 		file.write(" ")
-# 		file.write(str(i[0, 1]))
-# 		file.write(" ")
-# 		file.write(str(i[0, 2]))
-# 		file.write(" ")
-# 		file.write(str(i[0, 3]))
-# 		file.write(" ")
-# 		file.write(str(i[1, 0]))
-# 		file.write(" ")
-# 		file.write(str(i[1, 1]))
-# 		file.write(" ")
-# 		file.write(str(i[1, 2]))
-# 		file.write(" ")
-# 		file.write(str(i[1, 3]))
-# 		file.write(" ")
-# 		file.write(str(i[2, 0]))
-# 		file.write(" ")
-# 		file.write(str(i[2, 1]))
-# 		file.write(" ")
-# 		file.write(str(i[2, 2]))
-# 		file.write(" ")
-# 		file.write(str(i[2, 3]))
-# 		file.write("\n")
-# 	file.close()
-# 	print("Conversion done !")
-#
+
+def save_tf(tf1, tf2, tf3, output):
+	file = open(output,"w+")
+	tf = []
+	tf.append(tf1)
+	tf.append(tf2)
+	tf.append(tf3)
+	for i in tf:
+		file.write(str(i[0, 0]))
+		file.write(" ")
+		file.write(str(i[0, 1]))
+		file.write(" ")
+		file.write(str(i[0, 2]))
+		file.write(" ")
+		file.write(str(i[0, 3]))
+		file.write(" ")
+		file.write(str(i[1, 0]))
+		file.write(" ")
+		file.write(str(i[1, 1]))
+		file.write(" ")
+		file.write(str(i[1, 2]))
+		file.write(" ")
+		file.write(str(i[1, 3]))
+		file.write(" ")
+		file.write(str(i[2, 0]))
+		file.write(" ")
+		file.write(str(i[2, 1]))
+		file.write(" ")
+		file.write(str(i[2, 2]))
+		file.write(" ")
+		file.write(str(i[2, 3]))
+		file.write("\n")
+	file.close()
+	print("Conversion done !")
+
 # # def convert_rosbag_topics_to_csv(rosbag_file_path: str, topics: list) -> None:
 # # 	"""
 # # 	Convert a list of ROS topics from a rosbag to csv file.
@@ -1372,24 +1387,38 @@ def read_rosbag_theodolite_with_tf(file, Tf):
 #
 # # 	print(f'Conversion done!')
 #
-# # Function which convert the raw data to a csv file
-# # Input:
-# # - time_data: array 1xN of time for the data (in seconds)
-# # - point_data: array of 3xN of the trajectory to save
-# # - file_name: string for the path and file name of the csv file
-# def Convert_datap_to_csv(time_data, point_data, file_name):
-# 	csv_file = open(file_name, "w+")
-# 	for i,j in zip(time_data, point_data):
-# 		csv_file.write(str(i))
-# 		csv_file.write(" ")
-# 		csv_file.write(str(j[0]))
-# 		csv_file.write(" ")
-# 		csv_file.write(str(j[1]))
-# 		csv_file.write(" ")
-# 		csv_file.write(str(j[2]))
-# 		csv_file.write("\n")
-# 	csv_file.close()
-# 	print("Conversion done !")
+# Function which convert the raw data to a csv file
+# Input:
+# - time_data: array 1xN of time for the data (in seconds)
+# - point_data: array of 3xN of the trajectory to save
+# - file_name: string for the path and file name of the csv file
+def Convert_raw_data_TS_with_GCP_calibration_to_csv(time_data, point_data, file_name):
+	csv_file = open(file_name, "w+")
+	for i,j in zip(time_data, point_data):
+		csv_file.write(str(i))
+		csv_file.write(" ")
+		csv_file.write(str(j[0]))
+		csv_file.write(" ")
+		csv_file.write(str(j[1]))
+		csv_file.write(" ")
+		csv_file.write(str(j[2]))
+		csv_file.write("\n")
+	csv_file.close()
+	print("Conversion done !")
+
+def Convert_raw_data_GNSS_to_csv(time_data, point_data, file_name):
+	csv_file = open(file_name, "w+")
+	for i, j in zip(time_data, point_data):
+		csv_file.write(str(i))
+		csv_file.write(" ")
+		csv_file.write(str(j[0]))
+		csv_file.write(" ")
+		csv_file.write(str(j[1]))
+		csv_file.write(" ")
+		csv_file.write(str(j[2]))
+		csv_file.write("\n")
+	csv_file.close()
+	print("Conversion done !")
 #
 # def Convert_datane_to_csv(e_noise, filename_e):
 # 	csv_file = open(filename_e, "w+")
@@ -1483,23 +1512,23 @@ def read_rosbag_theodolite_with_tf(file, Tf):
 # 		csv_file.write("\n")
 # 	csv_file.close()
 # 	print("Conversion done !")
-#
-# # Function which convert the inter-GPS distance to a csv file
-# # Input:
-# # - time_data: array 1xN of time for the data (in seconds)
-# # - distance: array of 1xN of the inter-GPS distance (m)
-# # - file_name: string for the path and file name of the csv file
-# def Convert_inter_distance_to_csv(time_data, distance, file_name):
-# 	csv_file = open(file_name, "w+")
-# 	for i,j in zip(time_data, distance):
-# 		csv_file.write(str(i))
-# 		csv_file.write(" ")
-# 		csv_file.write(str(j))
-# 		csv_file.write("\n")
-# 	csv_file.close()
-# 	print("Conversion done !")
-#
-#
+
+# Function which convert the inter-GPS distance to a csv file
+# Input:
+# - time_data: array 1xN of time for the data (in seconds)
+# - distance: array of 1xN of the inter-GPS distance (m)
+# - file_name: string for the path and file name of the csv file
+def Convert_inter_distance_GNSS_to_csv(time_data, distance, file_name):
+	csv_file = open(file_name, "w+")
+	for i,j in zip(time_data, distance):
+		csv_file.write(str(i))
+		csv_file.write(" ")
+		csv_file.write(str(j))
+		csv_file.write("\n")
+	csv_file.close()
+	print("Conversion done !")
+
+
 # def Convert_gps_ape_error(gps_data, gps_ape, file_name):
 # 	csv_file = open(file_name, "w+")
 # 	for i,j,k in zip(gps_data.positions_xyz,gps_data.timestamps, gps_ape):
@@ -1516,89 +1545,89 @@ def read_rosbag_theodolite_with_tf(file, Tf):
 # 	csv_file.close()
 # 	print("Conversion done !")
 #
-# # Function which convert the raw GPS data latitude and longitude to x,y in UTM frame
-# # Input:
-# # - Lat: latitude in deg
-# # - Long: longitude in deg
-# # Output:
-# # - UTMEasting: corrected y position in UTM frame (m)
-# # - UTMNorthing: corrected x position in UTM frame (m)
-# def LLtoUTM(Lat, Long):
-# 	RADIANS_PER_DEGREE = math.pi/180.0
-# 	DEGREES_PER_RADIAN = 180.0/math.pi
-# 	# WGS84 Parameters
-# 	WGS84_A = 6378137.0;
-# 	WGS84_B = 6356752.31424518
-# 	WGS84_F = 0.0033528107
-# 	WGS84_E = 0.0818191908
-# 	WGS84_EP = 0.0820944379
-# 	# UTM Parameters
-# 	UTM_K0 = 0.9996
-# 	UTM_FE = 500000.0
-# 	UTM_FN_N = 0.0
-# 	UTM_FN_S = 10000000.0
-# 	UTM_E2 = (WGS84_E*WGS84_E)
-# 	UTM_E4 = (UTM_E2*UTM_E2)
-# 	UTM_E6 = (UTM_E4*UTM_E2)
-# 	UTM_EP2 = (UTM_E2/(1-UTM_E2))
-# 	a = WGS84_A
-# 	eccSquared = UTM_E2
-# 	k0 = UTM_K0
-# 	# Make sure the longitude is between -180.00 .. 179.9
-# 	LongTemp = (Long+180)-int((Long+180)/360)*360-180
-# 	LatRad = Lat*RADIANS_PER_DEGREE
-# 	LongRad = LongTemp*RADIANS_PER_DEGREE
-# 	ZoneNumber = int((LongTemp + 180)/6) + 1
-# 	if( Lat >= 56.0 and Lat < 64.0 and LongTemp >= 3.0 and LongTemp < 12.0 ):
-# 		ZoneNumber = 32
-# 	# Special zones for Svalbard
-# 	if( Lat >= 72.0 and Lat < 84.0 ):
-# 		if(LongTemp >= 0.0  and LongTemp <  9.0 ):
-# 			ZoneNumber = 31
-# 		elif(LongTemp >= 9.0  and LongTemp < 21.0):
-# 			ZoneNumber = 33
-# 		elif(LongTemp >= 21.0 and LongTemp < 33.0):
-# 			ZoneNumber = 35
-# 		elif(LongTemp >= 33.0 and LongTemp < 42.0):
-# 			ZoneNumber = 37
-# 	# +3 puts origin in middle of zone
-# 	LongOrigin = (ZoneNumber - 1)*6 - 180 + 3
-# 	LongOriginRad = LongOrigin * RADIANS_PER_DEGREE
-# 	# compute the UTM Zone from the latitude and longitude
-# 	#snprintf(UTMZone, 4, "%d%c", ZoneNumber, UTMLetterDesignator(Lat))
-# 	eccPrimeSquared = (eccSquared)/(1-eccSquared)
-# 	N = a/math.sqrt(1-eccSquared * math.sin(LatRad) * math.sin(LatRad))
-# 	T = math.tan(LatRad) * math.tan(LatRad)
-# 	C = eccPrimeSquared * math.cos(LatRad) * math.cos(LatRad)
-# 	A = math.cos(LatRad) * (LongRad-LongOriginRad)
-# 	M = a*((1- eccSquared/4 - 3* eccSquared*eccSquared/64 - 5*eccSquared*eccSquared*eccSquared/256)*LatRad- (3*eccSquared/8	+ 3*eccSquared*eccSquared/32	+ 45*eccSquared*eccSquared*eccSquared/1024)*math.sin(2*LatRad)+ (15*eccSquared*eccSquared/256 + 45*eccSquared*eccSquared*eccSquared/1024)*math.sin(4*LatRad)- (35*eccSquared*eccSquared*eccSquared/3072)*math.sin(6*LatRad))
-# 	UTMEasting = (k0*N*(A+(1-T+C)*A*A*A/6+ (5-18*T+T*T+72*C-58*eccPrimeSquared)*A*A*A*A*A/120)+ 500000.0)
-# 	UTMNorthing = (k0*(M+N*math.tan(LatRad)*(A*A/2+(5-T+9*C+4*C*C)*A*A*A*A/24+ (61-58*T+T*T+600*C-330*eccPrimeSquared)*A*A*A*A*A*A/720)))
-# 	if(Lat < 0):
-# 		#10000000 meter offset for southern hemisphere
-# 		UTMNorthing = UTMNorthing + 10000000.0
-# 	return UTMEasting, UTMNorthing
-#
-# # Function which convert the raw GPS data to UTM frame for each data read
-# # Input:
-# # - GPS_front_raw_data: list of 1x4 array raw data of the GPS, [0]: timestamp, [1]: latitude (deg), [2]: longitude(deg), [3]: height (m)
-# # - limit_data: array of 1x2 to specifiy which data to read and convert ([0]: index of begining [1]: index of end)
-# # - time_origin: boolean to set the time origin to zero (True) or to let it compute with the hour, minute and second ot the day (False)
-# # Output:
-# # - GPS_front_utm_data: list of 1x4 GPS data in UTM frame, [0]: timestamp, [1]: x(m), [2]: y(m), [3]: z(m)
-# def utm_gps_data(GPS_front_raw_data, limit_data, time_origin):
-# 	GPS_front_utm_data = []
-# 	compteur = 0
-# 	origin_time = 0
-# 	for i in GPS_front_raw_data:
-# 		if(compteur == 0 and time_origin == True):
-# 			origin_time = i[0]
-# 		if(compteur >=limit_data[0] and compteur <= limit_data[1]):
-# 			UTMEasting, UTMNorthing = LLtoUTM(i[1], i[2])
-# 			GPS_front_utm_data.append(np.array([i[0] - origin_time + limit_data[2], UTMNorthing, UTMEasting, i[3]]))
-# 		compteur = compteur + 1
-# 	return GPS_front_utm_data
-#
+# Function which convert the raw GPS data latitude and longitude to x,y in UTM frame
+# Input:
+# - Lat: latitude in deg
+# - Long: longitude in deg
+# Output:
+# - UTMEasting: corrected y position in UTM frame (m)
+# - UTMNorthing: corrected x position in UTM frame (m)
+def LLtoUTM(Lat, Long):
+	RADIANS_PER_DEGREE = math.pi/180.0
+	DEGREES_PER_RADIAN = 180.0/math.pi
+	# WGS84 Parameters
+	WGS84_A = 6378137.0;
+	WGS84_B = 6356752.31424518
+	WGS84_F = 0.0033528107
+	WGS84_E = 0.0818191908
+	WGS84_EP = 0.0820944379
+	# UTM Parameters
+	UTM_K0 = 0.9996
+	UTM_FE = 500000.0
+	UTM_FN_N = 0.0
+	UTM_FN_S = 10000000.0
+	UTM_E2 = (WGS84_E*WGS84_E)
+	UTM_E4 = (UTM_E2*UTM_E2)
+	UTM_E6 = (UTM_E4*UTM_E2)
+	UTM_EP2 = (UTM_E2/(1-UTM_E2))
+	a = WGS84_A
+	eccSquared = UTM_E2
+	k0 = UTM_K0
+	# Make sure the longitude is between -180.00 .. 179.9
+	LongTemp = (Long+180)-int((Long+180)/360)*360-180
+	LatRad = Lat*RADIANS_PER_DEGREE
+	LongRad = LongTemp*RADIANS_PER_DEGREE
+	ZoneNumber = int((LongTemp + 180)/6) + 1
+	if( Lat >= 56.0 and Lat < 64.0 and LongTemp >= 3.0 and LongTemp < 12.0 ):
+		ZoneNumber = 32
+	# Special zones for Svalbard
+	if( Lat >= 72.0 and Lat < 84.0 ):
+		if(LongTemp >= 0.0  and LongTemp <  9.0 ):
+			ZoneNumber = 31
+		elif(LongTemp >= 9.0  and LongTemp < 21.0):
+			ZoneNumber = 33
+		elif(LongTemp >= 21.0 and LongTemp < 33.0):
+			ZoneNumber = 35
+		elif(LongTemp >= 33.0 and LongTemp < 42.0):
+			ZoneNumber = 37
+	# +3 puts origin in middle of zone
+	LongOrigin = (ZoneNumber - 1)*6 - 180 + 3
+	LongOriginRad = LongOrigin * RADIANS_PER_DEGREE
+	# compute the UTM Zone from the latitude and longitude
+	#snprintf(UTMZone, 4, "%d%c", ZoneNumber, UTMLetterDesignator(Lat))
+	eccPrimeSquared = (eccSquared)/(1-eccSquared)
+	N = a/math.sqrt(1-eccSquared * math.sin(LatRad) * math.sin(LatRad))
+	T = math.tan(LatRad) * math.tan(LatRad)
+	C = eccPrimeSquared * math.cos(LatRad) * math.cos(LatRad)
+	A = math.cos(LatRad) * (LongRad-LongOriginRad)
+	M = a*((1- eccSquared/4 - 3* eccSquared*eccSquared/64 - 5*eccSquared*eccSquared*eccSquared/256)*LatRad- (3*eccSquared/8	+ 3*eccSquared*eccSquared/32	+ 45*eccSquared*eccSquared*eccSquared/1024)*math.sin(2*LatRad)+ (15*eccSquared*eccSquared/256 + 45*eccSquared*eccSquared*eccSquared/1024)*math.sin(4*LatRad)- (35*eccSquared*eccSquared*eccSquared/3072)*math.sin(6*LatRad))
+	UTMEasting = (k0*N*(A+(1-T+C)*A*A*A/6+ (5-18*T+T*T+72*C-58*eccPrimeSquared)*A*A*A*A*A/120)+ 500000.0)
+	UTMNorthing = (k0*(M+N*math.tan(LatRad)*(A*A/2+(5-T+9*C+4*C*C)*A*A*A*A/24+ (61-58*T+T*T+600*C-330*eccPrimeSquared)*A*A*A*A*A*A/720)))
+	if(Lat < 0):
+		#10000000 meter offset for southern hemisphere
+		UTMNorthing = UTMNorthing + 10000000.0
+	return UTMEasting, UTMNorthing
+
+# Function which convert the raw GPS data to UTM frame for each data read
+# Input:
+# - GPS_front_raw_data: list of 1x4 array raw data of the GPS, [0]: timestamp, [1]: latitude (deg), [2]: longitude(deg), [3]: height (m)
+# - limit_data: array of 1x2 to specifiy which data to read and convert ([0]: index of begining [1]: index of end)
+# - time_origin: boolean to set the time origin to zero (True) or to let it compute with the hour, minute and second ot the day (False)
+# Output:
+# - GPS_front_utm_data: list of 1x4 GPS data in UTM frame, [0]: timestamp, [1]: x(m), [2]: y(m), [3]: z(m)
+def utm_gps_data(GPS_front_raw_data, limit_data, time_origin):
+	GPS_front_utm_data = []
+	compteur = 0
+	origin_time = 0
+	for i in GPS_front_raw_data:
+		if(compteur == 0 and time_origin == True):
+			origin_time = i[0]
+		if(compteur >=limit_data[0] and compteur <= limit_data[1]):
+			UTMEasting, UTMNorthing = LLtoUTM(i[1], i[2])
+			GPS_front_utm_data.append(np.array([i[0] - origin_time + limit_data[2], UTMNorthing, UTMEasting, i[3]]))
+		compteur = compteur + 1
+	return GPS_front_utm_data
+
 # # Function which reads data coming from a calibration file and put them in another file
 # # Input:
 # # - file_name: string for the path and file name of the csv file
@@ -1894,14 +1923,13 @@ def read_rosbag_theodolite_with_tf(file, Tf):
 # ###################################################################################################
 # # Process raw data from files
 #
-# # Function to convert rosTime in seconds
-# # Input:
-# # - secs: Time seconds value
-# # - nsecs: Time nanoseconds value
-# # Output: seconds in double
-# def second_nsecond(secs, nsecs):
-# 	#if(nsecs < )
-# 	return secs+nsecs*10**(-9)
+# Function to convert rosTime in seconds
+# Input:
+# - secs: Time seconds value
+# - nsecs: Time nanoseconds value
+# Output: seconds in double
+def second_nsecond(secs, nsecs):
+	return secs+nsecs*10**(-9)
 
 # Function to return a point according to the data of the theodolite as array
 # Input:
@@ -1968,19 +1996,19 @@ def give_points(d, ha, va, param):
 #         z=d*math.cos(va)
 #     return np.array([x, y, z, 1],dtype=np.float64)
 #
-# # Function to convert a point according to the data of the theodolite into a frame according to a pose T,
-# # and put this point into a list of array
-# # Input:
-# # - d: distance in meter
-# # - ha: horizontale angle
-# # - va: verticale angle
-# # - points: list of points modified by the pose given
-# # - T: 4x4 pose matrix between the Frame of the point to the frame desired
-# # - param: 1 use angle in degrees, param: 2 use angle in radians
-# def add_point_in_frame(d, ha, va, points, T, param):
-# 	vec = give_points(d, ha, va, param)
-# 	vec_result = T@vec
-# 	points.append(np.array([vec_result[0],vec_result[1],vec_result[2], 1],dtype=np.float64))
+# Function to convert a point according to the data of the theodolite into a frame according to a pose T,
+# and put this point into a list of array
+# Input:
+# - d: distance in meter
+# - ha: horizontale angle
+# - va: verticale angle
+# - points: list of points modified by the pose given
+# - T: 4x4 pose matrix between the Frame of the point to the frame desired
+# - param: 1 use angle in degrees, param: 2 use angle in radians
+def add_point_in_frame(d, ha, va, points, T, param):
+	vec = give_points(d, ha, va, param)
+	vec_result = T@vec
+	points.append(np.array([vec_result[0],vec_result[1],vec_result[2], 1],dtype=np.float64))
 #
 # Function to add a point in a list of array according to the data of the theodolite
 # Input:
