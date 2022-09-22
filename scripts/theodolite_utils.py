@@ -405,9 +405,6 @@ def read_rosbag_theodolite_without_tf_raw_data_pre_filtered(file):
 		#Read topic of trimble
 		for connection, timestamp, rawdata in bag.messages():
 			if connection.topic == '/theodolite_master/theodolite_data':
-				# print(connection)
-				# print(timestamp)
-				# print(rawdata)
 				msg = deserialize_cdr(ros1_to_cdr(rawdata, connection.msgtype), connection.msgtype)
 				marker = TheodoliteCoordsStamped(msg.header, msg.theodolite_time, msg.theodolite_id, msg.status, msg.azimuth, msg.elevation, msg.distance)
 				timestamp = second_nsecond(marker.header.stamp.sec, marker.header.stamp.nanosec)
@@ -1406,7 +1403,7 @@ def Convert_raw_data_TS_with_GCP_calibration_to_csv(time_data, point_data, file_
 	csv_file.close()
 	print("Conversion done !")
 
-def Convert_raw_data_predicted_to_csv(time_data, point_data, file_name):
+def Convert_raw_data_point_to_csv(time_data, point_data, file_name):
 	csv_file = open(file_name, "w+")
 	for i,j in zip(time_data, point_data):
 		csv_file.write(str(i))
