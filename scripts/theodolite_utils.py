@@ -5,6 +5,7 @@ from rosbags.serde import deserialize_cdr, ros1_to_cdr
 from pathlib import Path
 from rosbags.typesys import get_types_from_msg, register_types
 from tqdm import tqdm
+from scipy.spatial.transform import Rotation as R_scipy
 
 # import rosbag
 # import csv
@@ -18,8 +19,6 @@ from tqdm import tqdm
 # from std_msgs.msg import Float64MultiArray
 # from scipy.interpolate import interp1d
 # from matplotlib.patches import Ellipse
-# from scipy.spatial.transform import Rotation as R_scipy
-# from scipy.spatial.transform import Rotation as R
 # from scipy import interpolate
 # #from theodolite_node_msgs.msg import *
 # #from theodolite_node_msgs.msg import TheodoliteCoordsStamped
@@ -908,29 +907,46 @@ def read_point_data_csv_file(file_name):
 # 	#data.append(Pz)
 # 	#data.append(P1)
 # 	return Time, data_arr
-#
-# def read_prediction_data_csv_file(file_name):
-# 	data = []
-# 	# Read text file
-# 	file = open(file_name, "r")
-# 	line = file.readline()
-# 	while line:
-# 		#line = line.replace("]","")
-# 		item = line.replace("]","").replace("[","").split(" ")
-# 		Time = float(item[0])
-# 		Px = float(item[1])
-# 		Py = float(item[2])
-# 		Pz = float(item[3])
-# 		C1 = float(item[4])
-# 		C2 = float(item[5])
-# 		C3 = float(item[6])
-# 		array_point = np.array([Time, Px, Py, Pz, C1, C2, C3])
-# 		data.append(array_point)
-# 		line = file.readline()
-# 	file.close()
-# 	return data
-#
-#
+
+def read_prediction_data_GP_csv_file(file_name):
+	data = []
+	# Read text file
+	file = open(file_name, "r")
+	line = file.readline()
+	while line:
+		#line = line.replace("]","")
+		item = line.replace("]","").replace("[","").split(" ")
+		Time = float(item[0])
+		Px = float(item[1])
+		Py = float(item[2])
+		Pz = float(item[3])
+		C1 = float(item[4])
+		C2 = float(item[5])
+		C3 = float(item[6])
+		array_point = np.array([Time, Px, Py, Pz, C1, C2, C3])
+		data.append(array_point)
+		line = file.readline()
+	file.close()
+	return data
+
+def read_prediction_data_Linear_csv_file(file_name):
+	data = []
+	# Read text file
+	file = open(file_name, "r")
+	line = file.readline()
+	while line:
+		#line = line.replace("]","")
+		item = line.replace("]","").replace("[","").split(" ")
+		Time = float(item[0])
+		Px = float(item[1])
+		Py = float(item[2])
+		Pz = float(item[3])
+		array_point = np.array([Time, Px, Py, Pz])
+		data.append(array_point)
+		line = file.readline()
+	file.close()
+	return data
+
 # def read_prediction_data_resection_csv_file(file_name: str, threshold: float = 1.0):
 # 	data = []
 #
@@ -1139,22 +1155,7 @@ def read_gps_file(name_file, limit_compteur):
 # 		GPS_data.append(np.array([float(time.strip()), float(dist.strip())]))
 # 	fichier.close()
 # 	return GPS_data
-#
-# def read_rosbag_topics_to_convert(topics_file_path: str) -> list:
-# 	"""
-# 	Read a text file containing a list of ROS topics and put them into a list. Each topic must be on its own line.
-#
-# 	Parameters
-# 	----------
-# 	topics_file_path (str): A full-qualified or relative path to the ROS topics text file
-#
-# 	Returns
-# 	-------
-# 	A list of ROS topics to be converted
-# 	"""
-# 	with open(topics_file_path) as topics_file:
-# 		return [topic.strip() for topic in topics_file.readlines()]
-#
+
 # def read_error_list_file(error_file: str):
 #     error_cp = []
 #     error_exp = []
@@ -1214,35 +1215,35 @@ def read_extrinsic_calibration_results_file(path_file):
 # 			iterator_lidar = iterator_lidar+1
 # 	groundtruth_file.close()
 # 	print("Conversion done !")
-#
-# def grountruth_GP_convert_for_eval(interpolated_time, Pose_lidar, output):
-# 	groundtruth_file = open(output,"w+")
-# 	iterator_lidar = 0
-# 	for j in interpolated_time:
-# 		T = Pose_lidar[iterator_lidar]
-# 		Rot = R_scipy.from_matrix(T[0:3,0:3])
-# 		quat = Rot.as_quat()
-# 		result = np.array([j, T[0,3], T[1,3], T[2,3], quat[0], quat[1], quat[2], quat[3]])
-# 		groundtruth_file.write(str(result[0]))
-# 		groundtruth_file.write(" ")
-# 		groundtruth_file.write(str(result[1]))
-# 		groundtruth_file.write(" ")
-# 		groundtruth_file.write(str(result[2]))
-# 		groundtruth_file.write(" ")
-# 		groundtruth_file.write(str(result[3]))
-# 		groundtruth_file.write(" ")
-# 		groundtruth_file.write(str(result[4]))
-# 		groundtruth_file.write(" ")
-# 		groundtruth_file.write(str(result[5]))
-# 		groundtruth_file.write(" ")
-# 		groundtruth_file.write(str(result[6]))
-# 		groundtruth_file.write(" ")
-# 		groundtruth_file.write(str(result[7]))
-# 		groundtruth_file.write("\n")
-# 		iterator_lidar = iterator_lidar+1
-# 	groundtruth_file.close()
-# 	print("Conversion done !")
-#
+
+def grountruth_GP_convert_for_eval(interpolated_time, Pose_lidar, output):
+	groundtruth_file = open(output,"w+")
+	iterator_lidar = 0
+	for j in interpolated_time:
+		T = Pose_lidar[iterator_lidar]
+		Rot = R_scipy.from_matrix(T[0:3,0:3])
+		quat = Rot.as_quat()
+		result = np.array([j, T[0,3], T[1,3], T[2,3], quat[0], quat[1], quat[2], quat[3]])
+		groundtruth_file.write(str(result[0]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(result[1]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(result[2]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(result[3]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(result[4]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(result[5]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(result[6]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(result[7]))
+		groundtruth_file.write("\n")
+		iterator_lidar = iterator_lidar+1
+	groundtruth_file.close()
+	print("Conversion done !")
+
 # def grountruth_GP_gps_convert_for_eval(interpolated_time, Pose_gps, output):
 # 	groundtruth_file = open(output,"w+")
 # 	iterator_lidar = 0
@@ -1358,35 +1359,6 @@ def save_tf(tf1, tf2, tf3, output):
 	file.close()
 	print("Conversion done !")
 
-# # def convert_rosbag_topics_to_csv(rosbag_file_path: str, topics: list) -> None:
-# # 	"""
-# # 	Convert a list of ROS topics from a rosbag to csv file.
-#
-# # 	Each topic will be converted into its own csv file.
-# # 	The name of the csv file will be the same as the topic name with '/' replaced by '-'.
-#
-# # 	Parameters
-# # 	----------
-# # 	rosbag_file_path (str): A full-qualified or relative path to the rosbag file
-# # 	topics (list): A list of the topics to be converted
-# # 	"""
-# # 	rosbag_file_name = PurePath(rosbag_file_path).name
-#
-# # 	print(f'Opening "{rosbag_file_name}" file...')
-# # 	bag = bagreader(rosbag_file_path)
-# # 	print("Opening done!\n")
-#
-# # 	print(f'Converted topics will be put into the "{bag.datafolder}" directory\n')
-# # 	for topic in topics:
-# # 		if topic in bag.topics:
-# # 			print(f'Converting "{topic}" topic...')
-# # 			topic_csv_file_name = PurePath(bag.message_by_topic(topic)).name
-# # 			print(f'Topic converted to the "{topic_csv_file_name}" file.\n')
-# # 		else:
-# # 			print(f'Topic "{topic}" not found. Skipping...')
-#
-# # 	print(f'Conversion done!')
-#
 # Function which convert the raw data to a csv file
 # Input:
 # - time_data: array 1xN of time for the data (in seconds)
