@@ -14,7 +14,6 @@ from stheno import GP, EQ
 # import math
 # import GPy
 
-
 # def init_GP(kernel, alpha_noise, restarts_optimizer):
 # 	# Instantiate a Gaussian Process model
 # 	kernel_model = [ConstantKernel(1.0, (1e-3, 1e3)) * RBF(length_scale=19, length_scale_bounds=(1e-2, 1e2)),   #1.0,1e-3,1e3,10,1e-2,1e2

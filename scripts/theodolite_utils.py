@@ -1244,32 +1244,32 @@ def grountruth_GP_convert_for_eval(interpolated_time, Pose_lidar, output):
 	groundtruth_file.close()
 	print("Conversion done !")
 
-# def grountruth_GP_gps_convert_for_eval(interpolated_time, Pose_gps, output):
-# 	groundtruth_file = open(output,"w+")
-# 	iterator_lidar = 0
-# 	for j in interpolated_time:
-# 		T = Pose_gps[iterator_lidar]
-# 		result = np.array([j, T[0], T[1], T[2]])
-# 		groundtruth_file.write(str(result[0]))
-# 		groundtruth_file.write(" ")
-# 		groundtruth_file.write(str(result[1]))
-# 		groundtruth_file.write(" ")
-# 		groundtruth_file.write(str(result[2]))
-# 		groundtruth_file.write(" ")
-# 		groundtruth_file.write(str(result[3]))
-# 		groundtruth_file.write(" ")
-# 		groundtruth_file.write(str(0))
-# 		groundtruth_file.write(" ")
-# 		groundtruth_file.write(str(0))
-# 		groundtruth_file.write(" ")
-# 		groundtruth_file.write(str(0))
-# 		groundtruth_file.write(" ")
-# 		groundtruth_file.write(str(1))
-# 		groundtruth_file.write("\n")
-# 		iterator_lidar = iterator_lidar+1
-# 	groundtruth_file.close()
-# 	print("Conversion done !")
-#
+def grountruth_GP_gps_convert_for_eval(interpolated_time, Pose_gps, output):
+	groundtruth_file = open(output,"w+")
+	iterator_lidar = 0
+	for j in interpolated_time:
+		T = Pose_gps[iterator_lidar]
+		result = np.array([j, T[0], T[1], T[2]])
+		groundtruth_file.write(str(result[0]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(result[1]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(result[2]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(result[3]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(0))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(0))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(0))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(1))
+		groundtruth_file.write("\n")
+		iterator_lidar = iterator_lidar+1
+	groundtruth_file.close()
+	print("Conversion done !")
+
 # def grountruth_GP_gps_convert_for_eval2(Pose_gps, output):
 # 	groundtruth_file = open(output,"w+")
 # 	for j in Pose_gps:
