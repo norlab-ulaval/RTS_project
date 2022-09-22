@@ -376,183 +376,185 @@ def read_rosbag_theodolite_with_tf(file, Tf):
 # # 	d3 = np.array(distance_3)[sort_index3]
 #
 # # 	return traj1, traj2, traj3, tt1, tt2, tt3, d1, d2, d3
-#
-# def read_rosbag_theodolite_without_tf_raw_data_pre_filtered(file):
-#     with Reader(file) as bag:
-#         time_trimble_1 = []
-#         time_trimble_2 = []
-#         time_trimble_3 = []
-#         distance_1 = []
-#         distance_2 = []
-#         distance_3 = []
-#         azimuth_1 = []
-#         azimuth_2 = []
-#         azimuth_3 = []
-#         elevation_1 = []
-#         elevation_2 = []
-#         elevation_3 = []
-#         trajectory_trimble_1 = []
-#         trajectory_trimble_2 = []
-#         trajectory_trimble_3 = []
-#         check_double_1 = 0
-#         check_double_2 = 0
-#         check_double_3 = 0
-#         # Variable for counting number of data and number of mistakes
-#         it = np.array([0,0,0])
-#         bad_measures = 0
-#         #Read topic of trimble
-#         for connection, timestamp, rawdata in bag.messages():
-#             if connection.topic == '/theodolite_master/theodolite_data':
-#                 # print(connection)
-#                 # print(timestamp)
-#                 # print(rawdata)
-#                 msg = deserialize_cdr(ros1_to_cdr(rawdata, connection.msgtype), connection.msgtype)
-#                 marker = TheodoliteCoordsStamped(msg.header, msg.theodolite_time, msg.theodolite_id, msg.status, msg.azimuth, msg.elevation, msg.distance)
-#                 timestamp = second_nsecond(marker.header.stamp.sec, marker.header.stamp.nanosec)
-#                 if(marker.status == 0): # If theodolite can see the prism, or no mistake in the measurement
-#                     # Find number of theodolite
-#                     if(marker.theodolite_id==1):
-#                         if (check_double_1 != timestamp):
-#                             add_point(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_1, 2)
-#                             time_trimble_1.append(timestamp)
-#                             distance_1.append(marker.distance)
-#                             azimuth_1.append(marker.azimuth)
-#                             elevation_1.append(marker.elevation)
-#                             it[0]+=1
-#                             check_double_1 = timestamp
-#                     if(marker.theodolite_id==2):
-#                         if (check_double_2 != timestamp):
-#                             add_point(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_2, 2)
-#                             time_trimble_2.append(timestamp)
-#                             distance_2.append(marker.distance)
-#                             azimuth_2.append(marker.azimuth)
-#                             elevation_2.append(marker.elevation)
-#                             it[1]+=1
-#                             check_double_2 = timestamp
-#                     if(marker.theodolite_id==3):
-#                         if (check_double_3 != timestamp):
-#                             add_point(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_3, 2)
-#                             time_trimble_3.append(timestamp)
-#                             distance_3.append(marker.distance)
-#                             azimuth_3.append(marker.azimuth)
-#                             elevation_3.append(marker.elevation)
-#                             it[2]+=1
-#                             check_double_3 = timestamp
-#                 # Count mistakes
-#                 if(marker.status != 0):
-#                     bad_measures+=1
-#     # Print number of data for each theodolite and the total number of mistakes
-#     print("Number of data for theodolites:", it)
-#     print("Bad measures:", bad_measures)
-#
-#     sort_index1 = np.argsort(time_trimble_1)
-#     sort_index2 = np.argsort(time_trimble_2)
-#     sort_index3 = np.argsort(time_trimble_3)
-#
-#     t1 = np.array(time_trimble_1)[sort_index1]
-#     t2 = np.array(time_trimble_2)[sort_index2]
-#     t3 = np.array(time_trimble_3)[sort_index3]
-#     tp1 = np.array(trajectory_trimble_1)[sort_index1]
-#     tp2 = np.array(trajectory_trimble_2)[sort_index2]
-#     tp3 = np.array(trajectory_trimble_3)[sort_index3]
-#     d1 = np.array(distance_1)[sort_index1]
-#     d2 = np.array(distance_2)[sort_index2]
-#     d3 = np.array(distance_3)[sort_index3]
-#     a1 = np.array(azimuth_1)[sort_index1]
-#     a2 = np.array(azimuth_2)[sort_index2]
-#     a3 = np.array(azimuth_3)[sort_index3]
-#     e1 = np.array(elevation_1)[sort_index1]
-#     e2 = np.array(elevation_2)[sort_index2]
-#     e3 = np.array(elevation_3)[sort_index3]
-#
-#     return t1, t2, t3, tp1, tp2, tp3, d1, d2, d3, a1, a2, a3, e1, e2, e3
-#
-# def read_rosbag_theodolite_without_tf_raw_data(file):
-#     with Reader(file) as bag:
-#         time_trimble_1 = []
-#         time_trimble_2 = []
-#         time_trimble_3 = []
-#         distance_1 = []
-#         distance_2 = []
-#         distance_3 = []
-#         azimuth_1 = []
-#         azimuth_2 = []
-#         azimuth_3 = []
-#         elevation_1 = []
-#         elevation_2 = []
-#         elevation_3 = []
-#         trajectory_trimble_1 = []
-#         trajectory_trimble_2 = []
-#         trajectory_trimble_3 = []
-#         check_double_1 = 0
-#         check_double_2 = 0
-#         check_double_3 = 0
-#         # Variable for counting number of data and number of mistakes
-#         it = np.array([0,0,0])
-#         bad_measures = 0
-#         #Read topic of trimble
-#         for connection, timestamp, rawdata in bag.messages():
-#             if connection.topic == '/theodolite_master/theodolite_data':
-#                 # print(connection)
-#                 # print(timestamp)
-#                 # print(rawdata)
-#                 msg = deserialize_cdr(ros1_to_cdr(rawdata, connection.msgtype), connection.msgtype)
-#                 marker = TheodoliteCoordsStamped(msg.header, msg.theodolite_time, msg.theodolite_id, msg.status, msg.azimuth, msg.elevation, msg.distance)
-#                 timestamp = second_nsecond(marker.header.stamp.sec, marker.header.stamp.nanosec)
-#                 if(marker.status == 0): # If theodolite can see the prism, or no mistake in the measurement
-#                     # Find number of theodolite
-#                     if(marker.theodolite_id==1):
-#                         if (check_double_1 != timestamp):
-#                             add_point(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_1, 2)
-#                             time_trimble_1.append(timestamp)
-#                             distance_1.append(marker.distance)
-#                             azimuth_1.append(marker.azimuth)
-#                             elevation_1.append(marker.elevation)
-#                             it[0]+=1
-#                             check_double_1 = timestamp
-#                     if(marker.theodolite_id==2):
-#                         if (check_double_2 != timestamp):
-#                             add_point(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_2, 2)
-#                             time_trimble_2.append(timestamp)
-#                             distance_2.append(marker.distance)
-#                             azimuth_2.append(marker.azimuth)
-#                             elevation_2.append(marker.elevation)
-#                             it[1]+=1
-#                             check_double_2 = timestamp
-#                     if(marker.theodolite_id==3):
-#                         if (check_double_3 != timestamp):
-#                             add_point(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_3, 2)
-#                             time_trimble_3.append(timestamp)
-#                             distance_3.append(marker.distance)
-#                             azimuth_3.append(marker.azimuth)
-#                             elevation_3.append(marker.elevation)
-#                             it[2]+=1
-#                             check_double_3 = timestamp
-#                 # Count mistakes
-#                 if(marker.status != 0):
-#                     bad_measures+=1
-#     # Print number of data for each theodolite and the total number of mistakes
-#     print("Number of data for theodolites:", it)
-#     print("Bad measures:", bad_measures)
-#
-#     time_trimble_1 = np.array(time_trimble_1)
-#     time_trimble_2 = np.array(time_trimble_2)
-#     time_trimble_3 = np.array(time_trimble_3)
-#     trajectory_trimble_1 = np.array(trajectory_trimble_1).T
-#     trajectory_trimble_2 = np.array(trajectory_trimble_2).T
-#     trajectory_trimble_3 = np.array(trajectory_trimble_3).T
-#     distance_1 = np.array(distance_1)
-#     distance_2 = np.array(distance_2)
-#     distance_3 = np.array(distance_3)
-#     azimuth_1 = np.array(azimuth_1)
-#     azimuth_2 = np.array(azimuth_2)
-#     azimuth_3 = np.array(azimuth_3)
-#     elevation_1 = np.array(elevation_1)
-#     elevation_2 = np.array(elevation_2)
-#     elevation_3 = np.array(elevation_3)
-#
-#     return time_trimble_1, time_trimble_2, time_trimble_3, trajectory_trimble_1, trajectory_trimble_2, trajectory_trimble_3, distance_1, distance_2, distance_3, azimuth_1, azimuth_2, azimuth_3, elevation_1, elevation_2, elevation_3
-#
+
+def read_rosbag_theodolite_without_tf_raw_data_pre_filtered(file):
+	read_custom_messages()
+	with Reader(file) as bag:
+		time_trimble_1 = []
+		time_trimble_2 = []
+		time_trimble_3 = []
+		distance_1 = []
+		distance_2 = []
+		distance_3 = []
+		azimuth_1 = []
+		azimuth_2 = []
+		azimuth_3 = []
+		elevation_1 = []
+		elevation_2 = []
+		elevation_3 = []
+		trajectory_trimble_1 = []
+		trajectory_trimble_2 = []
+		trajectory_trimble_3 = []
+		check_double_1 = 0
+		check_double_2 = 0
+		check_double_3 = 0
+		# Variable for counting number of data and number of mistakes
+		it = np.array([0,0,0])
+		bad_measures = 0
+		#Read topic of trimble
+		for connection, timestamp, rawdata in bag.messages():
+			if connection.topic == '/theodolite_master/theodolite_data':
+				# print(connection)
+				# print(timestamp)
+				# print(rawdata)
+				msg = deserialize_cdr(ros1_to_cdr(rawdata, connection.msgtype), connection.msgtype)
+				marker = TheodoliteCoordsStamped(msg.header, msg.theodolite_time, msg.theodolite_id, msg.status, msg.azimuth, msg.elevation, msg.distance)
+				timestamp = second_nsecond(marker.header.stamp.sec, marker.header.stamp.nanosec)
+				if(marker.status == 0): # If theodolite can see the prism, or no mistake in the measurement
+					# Find number of theodolite
+					if(marker.theodolite_id==1):
+						if (check_double_1 != timestamp):
+							add_point(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_1, 2)
+							time_trimble_1.append(timestamp)
+							distance_1.append(marker.distance)
+							azimuth_1.append(marker.azimuth)
+							elevation_1.append(marker.elevation)
+							it[0]+=1
+							check_double_1 = timestamp
+					if(marker.theodolite_id==2):
+						if (check_double_2 != timestamp):
+							add_point(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_2, 2)
+							time_trimble_2.append(timestamp)
+							distance_2.append(marker.distance)
+							azimuth_2.append(marker.azimuth)
+							elevation_2.append(marker.elevation)
+							it[1]+=1
+							check_double_2 = timestamp
+					if(marker.theodolite_id==3):
+						if (check_double_3 != timestamp):
+							add_point(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_3, 2)
+							time_trimble_3.append(timestamp)
+							distance_3.append(marker.distance)
+							azimuth_3.append(marker.azimuth)
+							elevation_3.append(marker.elevation)
+							it[2]+=1
+							check_double_3 = timestamp
+				# Count mistakes
+				if(marker.status != 0):
+					bad_measures+=1
+	# Print number of data for each theodolite and the total number of mistakes
+	print("Number of data for theodolites:", it)
+	print("Bad measures:", bad_measures)
+
+	sort_index1 = np.argsort(time_trimble_1)
+	sort_index2 = np.argsort(time_trimble_2)
+	sort_index3 = np.argsort(time_trimble_3)
+
+	t1 = np.array(time_trimble_1)[sort_index1]
+	t2 = np.array(time_trimble_2)[sort_index2]
+	t3 = np.array(time_trimble_3)[sort_index3]
+	tp1 = np.array(trajectory_trimble_1)[sort_index1]
+	tp2 = np.array(trajectory_trimble_2)[sort_index2]
+	tp3 = np.array(trajectory_trimble_3)[sort_index3]
+	d1 = np.array(distance_1)[sort_index1]
+	d2 = np.array(distance_2)[sort_index2]
+	d3 = np.array(distance_3)[sort_index3]
+	a1 = np.array(azimuth_1)[sort_index1]
+	a2 = np.array(azimuth_2)[sort_index2]
+	a3 = np.array(azimuth_3)[sort_index3]
+	e1 = np.array(elevation_1)[sort_index1]
+	e2 = np.array(elevation_2)[sort_index2]
+	e3 = np.array(elevation_3)[sort_index3]
+
+	return t1, t2, t3, tp1, tp2, tp3, d1, d2, d3, a1, a2, a3, e1, e2, e3
+
+def read_rosbag_theodolite_without_tf_raw_data(file):
+	read_custom_messages()
+	with Reader(file) as bag:
+		time_trimble_1 = []
+		time_trimble_2 = []
+		time_trimble_3 = []
+		distance_1 = []
+		distance_2 = []
+		distance_3 = []
+		azimuth_1 = []
+		azimuth_2 = []
+		azimuth_3 = []
+		elevation_1 = []
+		elevation_2 = []
+		elevation_3 = []
+		trajectory_trimble_1 = []
+		trajectory_trimble_2 = []
+		trajectory_trimble_3 = []
+		check_double_1 = 0
+		check_double_2 = 0
+		check_double_3 = 0
+		# Variable for counting number of data and number of mistakes
+		it = np.array([0,0,0])
+		bad_measures = 0
+		#Read topic of trimble
+		for connection, timestamp, rawdata in bag.messages():
+			if connection.topic == '/theodolite_master/theodolite_data':
+				# print(connection)
+				# print(timestamp)
+				# print(rawdata)
+				msg = deserialize_cdr(ros1_to_cdr(rawdata, connection.msgtype), connection.msgtype)
+				marker = TheodoliteCoordsStamped(msg.header, msg.theodolite_time, msg.theodolite_id, msg.status, msg.azimuth, msg.elevation, msg.distance)
+				timestamp = second_nsecond(marker.header.stamp.sec, marker.header.stamp.nanosec)
+				if(marker.status == 0): # If theodolite can see the prism, or no mistake in the measurement
+					# Find number of theodolite
+					if(marker.theodolite_id==1):
+						if (check_double_1 != timestamp):
+							add_point(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_1, 2)
+							time_trimble_1.append(timestamp)
+							distance_1.append(marker.distance)
+							azimuth_1.append(marker.azimuth)
+							elevation_1.append(marker.elevation)
+							it[0]+=1
+							check_double_1 = timestamp
+					if(marker.theodolite_id==2):
+						if (check_double_2 != timestamp):
+							add_point(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_2, 2)
+							time_trimble_2.append(timestamp)
+							distance_2.append(marker.distance)
+							azimuth_2.append(marker.azimuth)
+							elevation_2.append(marker.elevation)
+							it[1]+=1
+							check_double_2 = timestamp
+					if(marker.theodolite_id==3):
+						if (check_double_3 != timestamp):
+							add_point(marker.distance, marker.azimuth, marker.elevation, trajectory_trimble_3, 2)
+							time_trimble_3.append(timestamp)
+							distance_3.append(marker.distance)
+							azimuth_3.append(marker.azimuth)
+							elevation_3.append(marker.elevation)
+							it[2]+=1
+							check_double_3 = timestamp
+				# Count mistakes
+				if(marker.status != 0):
+					bad_measures+=1
+	# Print number of data for each theodolite and the total number of mistakes
+	print("Number of data for theodolites:", it)
+	print("Bad measures:", bad_measures)
+
+	time_trimble_1 = np.array(time_trimble_1)
+	time_trimble_2 = np.array(time_trimble_2)
+	time_trimble_3 = np.array(time_trimble_3)
+	trajectory_trimble_1 = np.array(trajectory_trimble_1).T
+	trajectory_trimble_2 = np.array(trajectory_trimble_2).T
+	trajectory_trimble_3 = np.array(trajectory_trimble_3).T
+	distance_1 = np.array(distance_1)
+	distance_2 = np.array(distance_2)
+	distance_3 = np.array(distance_3)
+	azimuth_1 = np.array(azimuth_1)
+	azimuth_2 = np.array(azimuth_2)
+	azimuth_3 = np.array(azimuth_3)
+	elevation_1 = np.array(elevation_1)
+	elevation_2 = np.array(elevation_2)
+	elevation_3 = np.array(elevation_3)
+
+	return time_trimble_1, time_trimble_2, time_trimble_3, trajectory_trimble_1, trajectory_trimble_2, trajectory_trimble_3, distance_1, distance_2, distance_3, azimuth_1, azimuth_2, azimuth_3, elevation_1, elevation_2, elevation_3
+
 # # def read_rosbag_theodolite_without_tf_raw_data_all(file):
 # # 	bag = rosbag.Bag(file)
 # # 	time_trimble_1 = []
@@ -1406,6 +1408,20 @@ def Convert_raw_data_TS_with_GCP_calibration_to_csv(time_data, point_data, file_
 	csv_file.close()
 	print("Conversion done !")
 
+def Convert_raw_data_predicted_to_csv(time_data, point_data, file_name):
+	csv_file = open(file_name, "w+")
+	for i,j in zip(time_data, point_data):
+		csv_file.write(str(i))
+		csv_file.write(" ")
+		csv_file.write(str(j[0]))
+		csv_file.write(" ")
+		csv_file.write(str(j[1]))
+		csv_file.write(" ")
+		csv_file.write(str(j[2]))
+		csv_file.write("\n")
+	csv_file.close()
+	print("Conversion done !")
+
 def Convert_raw_data_GNSS_to_csv(time_data, point_data, file_name):
 	csv_file = open(file_name, "w+")
 	for i, j in zip(time_data, point_data):
@@ -1419,7 +1435,7 @@ def Convert_raw_data_GNSS_to_csv(time_data, point_data, file_name):
 		csv_file.write("\n")
 	csv_file.close()
 	print("Conversion done !")
-#
+
 # def Convert_datane_to_csv(e_noise, filename_e):
 # 	csv_file = open(filename_e, "w+")
 # 	once = False
@@ -2159,67 +2175,67 @@ def point_to_point_minimization(P, Q):
 # 			tuple_not_moving.append(np.array(list_temporary))
 # 			list_temporary = []
 # 	return tuple_not_moving
-#
-# # Function to split a time array into several interval according to a limit between two timestamp
-# # Input:
-# # - time_trimble: list of time (s)
-# # - limit_time_interval: threshold which is used to split the time interval in two if the timestamp difference is too high
-# # Output:
-# # - list_time_interval: list of 1x2 array of the different index which defined each of the intervals, [0]: begin and [1]: end
-# def split_time_interval(time_trimble, limit_time_interval):
-# 	list_time_interval = []
-# 	begin = 0
-# 	min_number_points = 6
-# 	max_number_points = 500
-#
-# 	for i in range(1,len(time_trimble)):
-# 		if abs(time_trimble[i] - time_trimble[i-1]) > limit_time_interval or i == len(time_trimble)-1:
-# 			number_points = i-begin
-#
-# 			if (min_number_points < number_points <= max_number_points) or (number_points > max_number_points and number_points / max_number_points <= 1.5):
-# 				last = i if i== len(time_trimble)-1 else i-1
-# 				interval = np.array([begin, last])
-# 				begin = i
-# 				list_time_interval.append(interval)
-# 			elif number_points > max_number_points and number_points / max_number_points > 1.5:
-# 				number_subintervals = math.ceil(number_points / max_number_points)
-# 				subinterval_number_points = number_points // number_subintervals
-# 				last_subinterval_number_points = number_points - subinterval_number_points*(number_subintervals-1)
-#
-# 				for j in range(number_subintervals-1):
-# 					subinterval = np.array([begin, begin+subinterval_number_points-1])
-# 					list_time_interval.append(subinterval)
-# 					begin += subinterval_number_points
-#
-# 				last = last_subinterval_number_points if i == len(time_trimble)-1 else last_subinterval_number_points-1
-# 				last_subinterval = np.array([begin, begin+last])
-# 				list_time_interval.append(last_subinterval)
-# 				begin = i
-# 			else:
-# 				begin = i
-#
-# 	return list_time_interval
-#
-# # Function to find the closest index according to a timestamp in an simple list
-# # Input:
-# # - time_trimble: list of time (s)
-# # - time_interval: timestamp to find in the list (s)
-# # - limit_search: threshold of the time difference to use for the research (s)
-# # Output:
-# # - index: return the closest index found in the list, or -1 if there is not close index
-# def research_index_for_time(time_trimble, time_interval, limit_search):
-# 	diff = limit_search
-# 	index = 0
-# 	found_one = 0
-# 	for i in range(0,len(time_trimble)):
-# 		if(abs(time_interval-time_trimble[i])< limit_search and diff > abs(time_interval-time_trimble[i])):
-# 			diff = abs(time_interval - time_trimble[i])
-# 			index = i
-# 			found_one = 1
-# 	if(found_one == 0):
-# 		index = -1
-# 	return index
-#
+
+# Function to split a time array into several interval according to a limit between two timestamp
+# Input:
+# - time_trimble: list of time (s)
+# - limit_time_interval: threshold which is used to split the time interval in two if the timestamp difference is too high
+# Output:
+# - list_time_interval: list of 1x2 array of the different index which defined each of the intervals, [0]: begin and [1]: end
+def split_time_interval(time_trimble, limit_time_interval):
+	list_time_interval = []
+	begin = 0
+	min_number_points = 6
+	max_number_points = 500
+
+	for i in range(1,len(time_trimble)):
+		if abs(time_trimble[i] - time_trimble[i-1]) > limit_time_interval or i == len(time_trimble)-1:
+			number_points = i-begin
+
+			if (min_number_points < number_points <= max_number_points) or (number_points > max_number_points and number_points / max_number_points <= 1.5):
+				last = i if i== len(time_trimble)-1 else i-1
+				interval = np.array([begin, last])
+				begin = i
+				list_time_interval.append(interval)
+			elif number_points > max_number_points and number_points / max_number_points > 1.5:
+				number_subintervals = math.ceil(number_points / max_number_points)
+				subinterval_number_points = number_points // number_subintervals
+				last_subinterval_number_points = number_points - subinterval_number_points*(number_subintervals-1)
+
+				for j in range(number_subintervals-1):
+					subinterval = np.array([begin, begin+subinterval_number_points-1])
+					list_time_interval.append(subinterval)
+					begin += subinterval_number_points
+
+				last = last_subinterval_number_points if i == len(time_trimble)-1 else last_subinterval_number_points-1
+				last_subinterval = np.array([begin, begin+last])
+				list_time_interval.append(last_subinterval)
+				begin = i
+			else:
+				begin = i
+
+	return list_time_interval
+
+# Function to find the closest index according to a timestamp in an simple list
+# Input:
+# - time_trimble: list of time (s)
+# - time_interval: timestamp to find in the list (s)
+# - limit_search: threshold of the time difference to use for the research (s)
+# Output:
+# - index: return the closest index found in the list, or -1 if there is not close index
+def research_index_for_time(time_trimble, time_interval, limit_search):
+	diff = limit_search
+	index = 0
+	found_one = 0
+	for i in range(0,len(time_trimble)):
+		if(abs(time_interval-time_trimble[i])< limit_search and diff > abs(time_interval-time_trimble[i])):
+			diff = abs(time_interval - time_trimble[i])
+			index = i
+			found_one = 1
+	if(found_one == 0):
+		index = -1
+	return index
+
 # # Function to find the closest index according to a timestamp in a list of 1x2 array
 # # Input:
 # # - speed: list of data, [0] timestamp
@@ -2643,37 +2659,36 @@ def point_to_point_minimization(P, Q):
 # 				P3_wnoise_sub.append(p3_ref)
 #
 # 	return P1_ref, P2_ref ,P3_ref, P1_noise, P2_noise, P3_noise, P1_noise_sub, P2_noise_sub , P3_noise_sub, t_sub_1, t_sub_2, t_sub_3, e_noise, t_noise_1, t_noise_2, t_noise_3, t_ref_1, t_ref_2, t_ref_3, P1_wnoise_sub, P2_wnoise_sub, P3_wnoise_sub, d1, d2, d3
-#
-#
-# def thresold_raw_data(time, distance, azimuth, elevation, e_distance, e_azimuth, e_elevation, time_limit):
-# 	begin_t = 0
-# 	index_time = []
-# 	for i in range(0, len(time) - 1):
-# 		if (abs(time[i + 1] - time[i]) > time_limit):
-# 			if (abs((i - 1) - begin_t >= 2)):
-# 				index_time.append([begin_t, i - 1])
-# 				begin_t = i
-# 		if ((abs(time[i + 1] - time[i]) <= time_limit) and (
-# 				i + 1 == len(time) - 1)):
-# 			index_time.append([begin_t, i + 1])
-#
-# 	index_final = []
-# 	for i in index_time:
-# 		for j in range(i[0], i[1] - 1):
-# 			if (time[j + 1] != time[j]):
-# 				deltad = abs(distance[j + 1] - distance[j])
-# 				deltae = abs(elevation[j + 1] - elevation[j])
-# 				deltaa = abs(azimuth[j + 1] - azimuth[j])
-# 				if (deltaa > 6):
-# 					deltaa = abs(deltaa - 2*math.pi)
-#
-# 				if (deltad/abs(time[j + 1] - time[j]) < e_distance and
-# 						deltae/abs(time[j + 1] - time[j]) < e_elevation and
-# 						deltaa/abs(time[j + 1] - time[j]) < e_azimuth):
-# 					index_final.append(j)
-# 	return index_final
-#
-#
+
+def thresold_raw_data(time, distance, azimuth, elevation, e_distance, e_azimuth, e_elevation, time_limit):
+	begin_t = 0
+	index_time = []
+	for i in range(0, len(time) - 1):
+		if (abs(time[i + 1] - time[i]) > time_limit):
+			if (abs((i - 1) - begin_t >= 2)):
+				index_time.append([begin_t, i - 1])
+				begin_t = i
+		if ((abs(time[i + 1] - time[i]) <= time_limit) and (
+				i + 1 == len(time) - 1)):
+			index_time.append([begin_t, i + 1])
+
+	index_final = []
+	for i in index_time:
+		for j in range(i[0], i[1] - 1):
+			if (time[j + 1] != time[j]):
+				deltad = abs(distance[j + 1] - distance[j])
+				deltae = abs(elevation[j + 1] - elevation[j])
+				deltaa = abs(azimuth[j + 1] - azimuth[j])
+				if (deltaa > 6):
+					deltaa = abs(deltaa - 2*math.pi)
+
+				if (deltad/abs(time[j + 1] - time[j]) < e_distance and
+						deltae/abs(time[j + 1] - time[j]) < e_elevation and
+						deltaa/abs(time[j + 1] - time[j]) < e_azimuth):
+					index_final.append(j)
+	return index_final
+
+
 # def random_splitting(data: np.ndarray, threshold: float = 0.8):
 # 	"""
 # 	Randomly split a numpy array in two using a uniform distribution.
