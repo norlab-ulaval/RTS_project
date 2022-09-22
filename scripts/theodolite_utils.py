@@ -1642,9 +1642,9 @@ def utm_gps_data(GPS_front_raw_data, limit_data, time_origin):
 		compteur = compteur + 1
 	return GPS_front_utm_data
 
-# # Function which reads data coming from a calibration file and put them in another file
-# # Input:
-# # - file_name: string for the path and file name of the csv file
+# Function which reads data coming from a calibration file and put them in another file
+# Input:
+# - file_name: string for the path and file name of the csv file
 # def read_calibration_gps_prism(file_name, file_name_output):
 # 	file = open(file_name, "r")
 # 	line = file.readline()
@@ -1654,10 +1654,7 @@ def utm_gps_data(GPS_front_raw_data, limit_data, time_origin):
 # 		item = line.split(" ")
 # 		ha = float(item[0])+float(item[1])*1/60+float(item[2])*1/3600
 # 		va = float(item[6]) + float(item[7]) * 1 / 60 + float(item[8]) * 1 / 3600
-# 		if number>=3 :
-# 			d = float(item[12])
-# 		else:
-# 			d = float(item[12]) + 0.01    # Add 10mm because prisms
+# 		d = float(item[12])
 # 		number = number + 1
 # 		points.append(give_points_calibration(d, ha, va, 1))
 # 		line = file.readline()
@@ -1670,8 +1667,8 @@ def utm_gps_data(GPS_front_raw_data, limit_data, time_origin):
 # 	dg13 = np.linalg.norm(points[3] - points[5], axis=0)
 # 	dg23 = np.linalg.norm(points[4] - points[5], axis=0)
 #
-# 	print("Distance inter-prism: ", dp12, dp13, dp23)
-# 	print("Distance inter-GPS: ", dg12, dg13, dg23)
+# 	print("Distance inter-prism [m]: ", dp12, dp13, dp23)
+# 	print("Distance inter-GPS [m]: ", dg12, dg13, dg23)
 #
 # 	csv_file = open(file_name_output, "w+")
 # 	csv_file.write(str(dp12))
@@ -1689,150 +1686,179 @@ def utm_gps_data(GPS_front_raw_data, limit_data, time_origin):
 # 	csv_file.close()
 #
 # 	print("Conversion done !")
-#
-# 	return points[0], points[1], points[2], points[3], points[4], points[5]
-#
-#
-# def read_calibration_gps_prism_lidar(file_name, file_name_output):
-# 	file = open(file_name, "r")
-# 	line = file.readline()
-# 	points = []
-# 	distance_lidar_top_to_lidar_origin = 0.063  # In meter, for RS32 on warthog
-# 	number = 0
-# 	while line:
-# 		item = line.split(" ")
-# 		ha = float(item[0]) + float(item[1])*1/60 + float(item[2])*1/3600
-# 		va = float(item[6]) + float(item[7])*1/60 + float(item[8])*1/3600
-# 		if number >= 3:
-# 			d = float(item[12])
-# 		else:
-# 			d = float(item[12]) + 0.01  # Add 10mm because prisms
-# 		number = number + 1
-# 		points.append(give_points_calibration(d, ha, va, 1))
-# 		line = file.readline()
-# 	file.close()
-#
-# 	dp12 = np.linalg.norm(points[0] - points[1], axis=0)
-# 	dp13 = np.linalg.norm(points[0] - points[2], axis=0)
-# 	dp23 = np.linalg.norm(points[1] - points[2], axis=0)
-# 	dg12 = np.linalg.norm(points[3] - points[4], axis=0)
-# 	dg13 = np.linalg.norm(points[3] - points[5], axis=0)
-# 	dg23 = np.linalg.norm(points[4] - points[5], axis=0)
-#
-# 	l1 = points[6]
-# 	l23 = points[7] - points[8]
-# 	l4 = l1 - l23  # Vecteur directionnel lidar altitude
-# 	l4n = 1 / np.linalg.norm(l4, axis=0)
-# 	l = l1 - distance_lidar_top_to_lidar_origin * l4n
-#
-# 	print("Distance inter-prism: ", dp12, dp13, dp23)
-# 	print("Distance inter-GPS: ", dg12, dg13, dg23)
-#
-# 	csv_file = open(file_name_output, "w+")
-# 	csv_file.write(str(dp12))
-# 	csv_file.write(" ")
-# 	csv_file.write(str(dp13))
-# 	csv_file.write(" ")
-# 	csv_file.write(str(dp23))
-# 	csv_file.write(" ")
-# 	csv_file.write(str(dg12))
-# 	csv_file.write(" ")
-# 	csv_file.write(str(dg13))
-# 	csv_file.write(" ")
-# 	csv_file.write(str(dg23))
-# 	csv_file.write("\n")
-# 	csv_file.close()
-#
-# 	print("Conversion done !")
-#
-# 	return points[0], points[1], points[2], points[3], points[4], points[5], l
-#
-# def read_calibration_prism_lidar_marmotte(file_name, file_name_output):
-# 	file = open(file_name, "r")
-# 	line = file.readline()
-# 	points = []
-# 	distance_lidar_top_to_lidar_origin = 0.0714  # In meter, for Velodyne on Marmotte
-# 	distance_lidar_origin_to_lidar_middle = 0.0378  # In meter, for Velodyne on Marmotte
-# 	number = 0
-# 	while line:
-# 		item = line.split(" ")
-# 		ha = float(item[0]) + float(item[1])*1/60 + float(item[2])*1/3600
-# 		va = float(item[6]) + float(item[7])*1/60 + float(item[8])*1/3600
-# 		if number >= 3:
-# 			d = float(item[12])
-# 		else:
-# 			d = float(item[12]) + 0.01  # Add 10mm because prisms
-# 		number = number + 1
-# 		points.append(give_points_calibration(d, ha, va, 1))
-# 		line = file.readline()
-# 	file.close()
-#
-# 	dp12 = np.linalg.norm(points[0] - points[1], axis=0)
-# 	dp13 = np.linalg.norm(points[0] - points[2], axis=0)
-# 	dp23 = np.linalg.norm(points[1] - points[2], axis=0)
-#
-# 	v1 = points[3][0:3]
-# 	v2 = points[4][0:3]
-# 	v3 = points[5][0:3]
-# 	v4 = points[6][0:3]
-# 	diff_23 = v2-v3
-# 	diff_34 = v4-v3
-# 	ns = np.cross(diff_23, diff_34)
-# 	middle_plate = 0.5*(v2-v4)+v4
-#
-# 	origin_lidar = distance_lidar_origin_to_lidar_middle*1/(np.linalg.norm(v1-middle_plate))*(v1-middle_plate)+middle_plate
-# 	lidar_x = 1/np.linalg.norm(-diff_23)*(-diff_23)
-# 	lidar_z = 1/np.linalg.norm(ns)*(ns)
-# 	lidar_y = np.cross(lidar_z,lidar_x)
-#
-# 	R = np.array([[lidar_x[0],lidar_y[0],lidar_z[0],origin_lidar[0]],
-# 				  [lidar_x[1],lidar_y[1],lidar_z[1],origin_lidar[1]],
-# 				  [lidar_x[2],lidar_y[2],lidar_z[2],origin_lidar[2]],
-# 				  [0,0,0,1]])
-# 	Rt = np.linalg.inv(R)
-#
-# 	p1 = Rt@points[0]
-# 	p2 = Rt@points[1]
-# 	p3 = Rt@points[2]
-# 	print(Rt)
-#
-# 	print(p1)
-# 	print(p2)
-# 	print(p3)
-#
-# 	print("Distance inter-prism: ", dp12, dp13, dp23)
-#
-# 	csv_file = open(file_name_output, "w+")
-# 	csv_file.write(str(dp12))
-# 	csv_file.write(" ")
-# 	csv_file.write(str(dp13))
-# 	csv_file.write(" ")
-# 	csv_file.write(str(dp23))
-# 	csv_file.write("\n")
-# 	csv_file.write(str(p1[0]))
-# 	csv_file.write(" ")
-# 	csv_file.write(str(p1[1]))
-# 	csv_file.write(" ")
-# 	csv_file.write(str(p1[2]))
-# 	csv_file.write("\n")
-# 	csv_file.write(str(p2[0]))
-# 	csv_file.write(" ")
-# 	csv_file.write(str(p2[1]))
-# 	csv_file.write(" ")
-# 	csv_file.write(str(p2[2]))
-# 	csv_file.write("\n")
-# 	csv_file.write(str(p3[0]))
-# 	csv_file.write(" ")
-# 	csv_file.write(str(p3[1]))
-# 	csv_file.write(" ")
-# 	csv_file.write(str(p3[2]))
-# 	csv_file.write("\n")
-# 	csv_file.close()
-#
-# 	print("Conversion done !")
-#
-# 	return v1, v2, v3, v4, middle_plate, origin_lidar, lidar_x, lidar_y, lidar_z, p1, p2, p3
-#
+
+def read_calibration_gps_prism_lidar(file_name, file_name_output, name_lidar):
+	file = open(file_name, "r")
+	line = file.readline()
+	points = []
+	number = 0
+	while line:
+		item = line.split(" ")
+		ha = float(item[0]) + float(item[1])*1/60 + float(item[2])*1/3600
+		va = float(item[6]) + float(item[7])*1/60 + float(item[8])*1/3600
+		d = float(item[12])
+		number = number + 1
+		points.append(give_points_calibration(d, ha, va, 1))
+		line = file.readline()
+	file.close()
+
+	dp12 = np.linalg.norm(points[0] - points[1], axis=0)
+	dp13 = np.linalg.norm(points[0] - points[2], axis=0)
+	dp23 = np.linalg.norm(points[1] - points[2], axis=0)
+	print("Distance inter-prism [m]: ", dp12, dp13, dp23)
+
+	if(number>3):
+
+		dg12 = np.linalg.norm(points[3] - points[4], axis=0)
+		dg13 = np.linalg.norm(points[3] - points[5], axis=0)
+		dg23 = np.linalg.norm(points[4] - points[5], axis=0)
+		print("Distance inter-GPS [m]: ", dg12, dg13, dg23)
+
+		if(number>6):
+
+			if (name_lidar == "Robosense_32"):
+				distance_lidar_top_to_lidar_origin = 0.063  # In meter, for RS32 on warthog
+
+			l1 = points[6]
+			l23 = points[7] - points[8]
+			l4 = l1 - l23  # Vecteur directionnel lidar altitude
+			l4n = 1 / np.linalg.norm(l4, axis=0)
+			l = l1 - distance_lidar_top_to_lidar_origin * l4n
+
+			csv_file = open(file_name_output, "w+")
+			csv_file.write(str(dp12))
+			csv_file.write(" ")
+			csv_file.write(str(dp13))
+			csv_file.write(" ")
+			csv_file.write(str(dp23))
+			csv_file.write(" ")
+			csv_file.write(str(dg12))
+			csv_file.write(" ")
+			csv_file.write(str(dg13))
+			csv_file.write(" ")
+			csv_file.write(str(dg23))
+			csv_file.write("\n")
+			csv_file.close()
+
+		else:
+
+			csv_file = open(file_name_output, "w+")
+			csv_file.write(str(dp12))
+			csv_file.write(" ")
+			csv_file.write(str(dp13))
+			csv_file.write(" ")
+			csv_file.write(str(dp23))
+			csv_file.write(" ")
+			csv_file.write(str(dg12))
+			csv_file.write(" ")
+			csv_file.write(str(dg13))
+			csv_file.write(" ")
+			csv_file.write(str(dg23))
+			csv_file.write("\n")
+			csv_file.close()
+
+	else:
+
+		csv_file = open(file_name_output, "w+")
+		csv_file.write(str(dp12))
+		csv_file.write(" ")
+		csv_file.write(str(dp13))
+		csv_file.write(" ")
+		csv_file.write(str(dp23))
+		csv_file.write("\n")
+		csv_file.close()
+
+	print("Conversion done !")
+
+def read_calibration_prism_lidar_marmotte(file_name, file_name_output, name_lidar):
+	file = open(file_name, "r")
+	line = file.readline()
+	points = []
+
+	number = 0
+	while line:
+		item = line.split(" ")
+		ha = float(item[0]) + float(item[1])*1/60 + float(item[2])*1/3600
+		va = float(item[6]) + float(item[7])*1/60 + float(item[8])*1/3600
+		d = float(item[12])  # check that for distance !
+		number = number + 1
+		points.append(give_points_calibration(d, ha, va, 1))
+		line = file.readline()
+	file.close()
+
+	dp12 = np.linalg.norm(points[0] - points[1], axis=0)
+	dp13 = np.linalg.norm(points[0] - points[2], axis=0)
+	dp23 = np.linalg.norm(points[1] - points[2], axis=0)
+
+	print("Distance inter-prism [m]: ", dp12, dp13, dp23)
+
+	if(number>3):
+
+		if (name_lidar == "Velodyne"):
+			distance_lidar_origin_to_lidar_middle = 0.0378  # In meter, for Velodyne on Marmotte
+
+		v1 = points[3][0:3]
+		v2 = points[4][0:3]
+		v3 = points[5][0:3]
+		v4 = points[6][0:3]
+		diff_23 = v2-v3
+		diff_34 = v4-v3
+		ns = np.cross(diff_23, diff_34)
+		middle_plate = 0.5*(v2-v4)+v4
+
+		origin_lidar = distance_lidar_origin_to_lidar_middle*1/(np.linalg.norm(v1-middle_plate))*(v1-middle_plate)+middle_plate
+		lidar_x = 1/np.linalg.norm(-diff_23)*(-diff_23)
+		lidar_z = 1/np.linalg.norm(ns)*(ns)
+		lidar_y = np.cross(lidar_z,lidar_x)
+
+		R = np.array([[lidar_x[0],lidar_y[0],lidar_z[0],origin_lidar[0]],
+					  [lidar_x[1],lidar_y[1],lidar_z[1],origin_lidar[1]],
+					  [lidar_x[2],lidar_y[2],lidar_z[2],origin_lidar[2]],
+					  [0,0,0,1]])
+		Rt = np.linalg.inv(R)
+		p1 = Rt@points[0]
+		p2 = Rt@points[1]
+		p3 = Rt@points[2]
+
+		csv_file = open(file_name_output, "w+")
+		csv_file.write(str(dp12))
+		csv_file.write(" ")
+		csv_file.write(str(dp13))
+		csv_file.write(" ")
+		csv_file.write(str(dp23))
+		csv_file.write("\n")
+		csv_file.write(str(p1[0]))
+		csv_file.write(" ")
+		csv_file.write(str(p1[1]))
+		csv_file.write(" ")
+		csv_file.write(str(p1[2]))
+		csv_file.write("\n")
+		csv_file.write(str(p2[0]))
+		csv_file.write(" ")
+		csv_file.write(str(p2[1]))
+		csv_file.write(" ")
+		csv_file.write(str(p2[2]))
+		csv_file.write("\n")
+		csv_file.write(str(p3[0]))
+		csv_file.write(" ")
+		csv_file.write(str(p3[1]))
+		csv_file.write(" ")
+		csv_file.write(str(p3[2]))
+		csv_file.write("\n")
+		csv_file.close()
+
+	else:
+		csv_file = open(file_name_output, "w+")
+		csv_file.write(str(dp12))
+		csv_file.write(" ")
+		csv_file.write(str(dp13))
+		csv_file.write(" ")
+		csv_file.write(str(dp23))
+		csv_file.write("\n")
+		csv_file.close()
+
+	print("Conversion done !")
+
 # def save_error_list_to_file(errors: list, file_name: str):
 #     errors = np.array(errors)
 #     np.savetxt("./data/error_lists/"+file_name+".csv", errors, delimiter=" ")
@@ -1987,18 +2013,19 @@ def give_points(d, ha, va, param):
 # 		y=d*math.sin(-ha)*math.cos(np.pi/2-va)
 # 		z=d*math.sin(np.pi/2-va)
 # 	return np.array([x, y, z, 1],dtype=np.float64)
-#
-# def give_points_calibration(d, ha, va, param):
-# 	if(param ==1):
-# 		x=d*math.cos((-ha)*np.pi/180)*math.cos((90-va)*np.pi/180)
-# 		y=d*math.sin((-ha)*np.pi/180)*math.cos((90-va)*np.pi/180)
-# 		z=d*math.sin((90-va)*np.pi/180)
-# 	if(param ==2):
-# 		x=d*math.cos(-ha)*math.cos(np.pi/2-va)
-# 		y=d*math.sin(-ha)*math.cos(np.pi/2-va)
-# 		z=d*math.sin(np.pi/2-va)
-# 	return np.array([x, y, z, 1],dtype=np.float64)
-#
+
+# 10 mm are taken into account during the measurements
+def give_points_calibration(d, ha, va, param):
+	if(param ==1):
+		x=d*math.cos((-ha)*np.pi/180)*math.cos((90-va)*np.pi/180)
+		y=d*math.sin((-ha)*np.pi/180)*math.cos((90-va)*np.pi/180)
+		z=d*math.sin((90-va)*np.pi/180)
+	if(param ==2):
+		x=d*math.cos(-ha)*math.cos(np.pi/2-va)
+		y=d*math.sin(-ha)*math.cos(np.pi/2-va)
+		z=d*math.sin(np.pi/2-va)
+	return np.array([x, y, z, 1],dtype=np.float64)
+
 # def give_points_simulation(d, ha, va, param):
 #     if(param ==1):
 #         x=d*math.cos(ha*np.pi/180)*math.sin(va*np.pi/180)
@@ -2009,7 +2036,7 @@ def give_points(d, ha, va, param):
 #         y=d*math.sin(ha)*math.sin(va)
 #         z=d*math.cos(va)
 #     return np.array([x, y, z, 1],dtype=np.float64)
-#
+
 # Function to convert a point according to the data of the theodolite into a frame according to a pose T,
 # and put this point into a list of array
 # Input:
