@@ -4,6 +4,7 @@ from rosbags.rosbag1 import Reader
 from rosbags.serde import deserialize_cdr, ros1_to_cdr
 from pathlib import Path
 from rosbags.typesys import get_types_from_msg, register_types
+from tqdm import tqdm
 
 # import rosbag
 # import csv
@@ -850,40 +851,37 @@ def read_rosbag_theodolite_without_tf_raw_data(file):
 # # 		time_icp.append(time)
 #
 # # 	return pose, time_icp
-#
-# # Function which read a csv file of points data with their timestamps
-# # Input:
-# # - file: name of the csv file to open
-# # Output:
-# # - Time: list of timestamp
-# # - data: list of array of axis value for points
-# def read_point_data_csv_file(file_name):
-# 	Px = []
-# 	Py = []
-# 	Pz = []
-# 	P1 = []
-# 	Time = []
-# 	data = []
-# 	# Read text file
-# 	file = open(file_name, "r")
-# 	line = file.readline()
-# 	while line:
-# 		item = line.split(" ")
-# 		Time.append(float(item[0]))
-# 		Px.append(float(item[1]))
-# 		Py.append(float(item[2]))
-# 		Pz.append(float(item[3]))
-# 		P1.append(1)
-# 		array_point = np.array([float(item[1]), float(item[2]), float(item[3]), P1])
-# 		data.append(array_point)
-# 		line = file.readline()
-# 	file.close()
-# 	data_arr = np.array(data).T
-# 	#data.append(Py)
-# 	#data.append(Pz)
-# 	#data.append(P1)
-# 	return Time, data_arr
-#
+
+# Function which read a csv file of points data with their timestamps
+# Input:
+# - file: name of the csv file to open
+# Output:
+# - Time: list of timestamp
+# - data: list of array of axis value for points
+def read_point_data_csv_file(file_name):
+	Px = []
+	Py = []
+	Pz = []
+	P1 = []
+	Time = []
+	data = []
+	# Read text file
+	file = open(file_name, "r")
+	line = file.readline()
+	while line:
+		item = line.split(" ")
+		Time.append(float(item[0]))
+		Px.append(float(item[1]))
+		Py.append(float(item[2]))
+		Pz.append(float(item[3]))
+		P1.append(1)
+		array_point = np.array([float(item[1]), float(item[2]), float(item[3]), P1])
+		data.append(array_point)
+		line = file.readline()
+	file.close()
+	data_arr = np.array(data).T
+	return Time, data_arr
+
 # def read_point_data_csv_file_2(file_name):
 # 	Px = []
 # 	Py = []
@@ -2792,3 +2790,29 @@ def thresold_raw_data(time, distance, azimuth, elevation, e_distance, e_azimuth,
 # 	mask = uniform_dist <= threshold
 #
 # 	return mask
+
+def distance_time_trajectory(list_trajectories_split,trimble_1,time_trimble_1):
+    distance = []
+    time_travel = []
+
+    for i in tqdm(list_trajectories_split):
+
+        index_1 = np.array([i[0,0],i[1,0]])
+
+        traj_1_x = np.atleast_2d(trimble_1[0, index_1[0]:index_1[1]+1]).T
+        traj_1_y = np.atleast_2d(trimble_1[1, index_1[0]:index_1[1]+1]).T
+        traj_1_z = np.atleast_2d(trimble_1[2, index_1[0]:index_1[1]+1]).T
+
+        time_1 = time_trimble_1[index_1[0]:index_1[1]+1]
+
+        dist = 0
+        for j in range(0,len(traj_1_x)-1):
+            point_before = np.array([traj_1_x[j],traj_1_y[j],traj_1_z[j]])
+            point_after = np.array([traj_1_x[j+1],traj_1_y[j+1],traj_1_z[j+1]])
+            diff = point_before - point_after
+            norm = np.linalg.norm(diff)
+            dist = dist + norm
+
+        distance.append(dist)
+        time_travel.append(abs(time_1[-1]-time_1[0]))
+    return sum(distance), sum(time_travel)
