@@ -42,6 +42,7 @@ class TheodoliteTimeCorrection:
 		self.header = header
 		self.theodolite_id = theodolite_id
 		self.estimated_time_offset = estimated_time_offset
+
 # ###################################################################################################
 # ###################################################################################################
 #
@@ -58,6 +59,7 @@ def read_custom_messages():
 	add_types = {}
 	for pathstr in [
 		'/home/maxime/workspace/src/theodolite_node_msgs/msg/TheodoliteCoordsStamped.msg',
+		'/home/maxime/workspace/src/theodolite_node_msgs/msg/TheodoliteTimeCorrection.msg'
 	]:
 		msgpath = Path(pathstr)
 		msgdef = msgpath.read_text(encoding='utf-8')
@@ -223,32 +225,33 @@ def read_marker_file(file_name: str, theodolite_reference_frame: int, threshold:
 #     T_13 = point_to_point_minimization(points_theodolite_3, points_theodolite_1)
 #
 #     return raw_data_theodolite_1, raw_data_theodolite_2, raw_data_theodolite_3, points_theodolite_1, points_theodolite_2, points_theodolite_3, T_I, T_12, T_13
-#
-# # def read_rosbag_time_correction_theodolite(file):
-# # 	bag = rosbag.Bag(file)
-# # 	timestamp_1=[]
-# # 	timeCorrection_1=[]
-# # 	timestamp_2 = []
-# # 	timeCorrection_2 = []
-# # 	timestamp_3 = []
-# # 	timeCorrection_3 = []
-# # 	#Read topic of trimble
-# # 	for _, msg, t in bag.read_messages(topics=['/theodolite_master/theodolite_correction_timestamp']):
-# # 		marker = TheodoliteTimeCorrection(msg.header, msg.theodolite_id, msg.estimated_time_offset)
-# # 		if(marker.theodolite_id==1):
-# # 			timestamp_1.append(second_nsecond(marker.header.stamp.secs, marker.header.stamp.nsecs))
-# # 			timeCorrection_1.append(second_nsecond(marker.estimated_time_offset.secs,marker.estimated_time_offset.nsecs))
-# # 		if (marker.theodolite_id == 2):
-# # 			timestamp_2.append(second_nsecond(marker.header.stamp.secs, marker.header.stamp.nsecs))
-# # 			timeCorrection_2.append(second_nsecond(marker.estimated_time_offset.secs,
-# # 												   marker.estimated_time_offset.nsecs))
-# # 		if (marker.theodolite_id == 3):
-# # 			timestamp_3.append(second_nsecond(marker.header.stamp.secs, marker.header.stamp.nsecs))
-# # 			timeCorrection_3.append(second_nsecond(marker.estimated_time_offset.secs,
-# # 												   marker.estimated_time_offset.nsecs))
-#
-# # 	return timestamp_1, timestamp_2, timestamp_3, timeCorrection_1, timeCorrection_2, timeCorrection_3
-#
+
+def read_rosbag_time_correction_theodolite(file):
+	read_custom_messages()
+	with Reader(file) as bag:
+		timestamp_1 = []
+		timeCorrection_1 = []
+		timestamp_2 = []
+		timeCorrection_2 = []
+		timestamp_3 = []
+		timeCorrection_3 = []
+		# Read topic of trimble
+		for connection, timestamp, rawdata in bag.messages():
+			if connection.topic == '/theodolite_master/theodolite_correction_timestamp':
+				msg = deserialize_cdr(ros1_to_cdr(rawdata, connection.msgtype), connection.msgtype)
+				marker = TheodoliteTimeCorrection(msg.header, msg.theodolite_id, msg.estimated_time_offset)
+				if(marker.theodolite_id==1):
+					timestamp_1.append(second_nsecond(marker.header.stamp.sec, marker.header.stamp.nanosec))
+					timeCorrection_1.append(second_nsecond(marker.estimated_time_offset.sec,marker.estimated_time_offset.nanosec))
+				if (marker.theodolite_id == 2):
+					timestamp_2.append(second_nsecond(marker.header.stamp.sec, marker.header.stamp.nanosec))
+					timeCorrection_2.append(second_nsecond(marker.estimated_time_offset.sec,marker.estimated_time_offset.nanosec))
+				if (marker.theodolite_id == 3):
+					timestamp_3.append(second_nsecond(marker.header.stamp.sec, marker.header.stamp.nanosec))
+					timeCorrection_3.append(second_nsecond(marker.estimated_time_offset.sec,marker.estimated_time_offset.nanosec))
+
+	return timestamp_1, timestamp_2, timestamp_3, timeCorrection_1, timeCorrection_2, timeCorrection_3
+
 # Function which read a rosbag of theodolite data and return the trajectories found by each theodolite, and the timestamp of each point as a list
 # Input:
 # - file: name of the rosbag to open
