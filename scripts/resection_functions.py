@@ -894,16 +894,16 @@ def exp_inv_T(A):  ## TODO: use LibLie
 #     error_13 = np.linalg.norm(point_1[:3] - point_3[:3])
 #     error_23 = np.linalg.norm(point_2[:3] - point_3[:3])
 #     return [error_12, error_13, error_23]
-#
-# def compute_error_between_points(m1_n, m2_n, m3_n, error):
-#     for i, j, k in zip(m1_n.T, m2_n.T, m3_n.T):
-#         dist_12 = np.linalg.norm(i[0:3] - j[0:3]) * 1000
-#         dist_13 = np.linalg.norm(i[0:3] - k[0:3]) * 1000
-#         dist_23 = np.linalg.norm(j[0:3] - k[0:3]) * 1000
-#         error.append(dist_12)
-#         error.append(dist_13)
-#         error.append(dist_23)
-#
+
+def compute_error_between_points(m1_n, m2_n, m3_n, error):
+    for i, j, k in zip(m1_n.T, m2_n.T, m3_n.T):
+        dist_12 = np.linalg.norm(i[0:3] - j[0:3]) * 1000
+        dist_13 = np.linalg.norm(i[0:3] - k[0:3]) * 1000
+        dist_23 = np.linalg.norm(j[0:3] - k[0:3]) * 1000
+        error.append(dist_12)
+        error.append(dist_13)
+        error.append(dist_23)
+
 # def compute_error_between_points_normalized(m1_n, m2_n, m3_n, error):
 #     for i, j, k in zip(m1_n.T, m2_n.T, m3_n.T):
 #         dist_12 = np.linalg.norm(i[0:3] - j[0:3]) * 1000 / np.linalg.norm(i[0:3])
@@ -912,134 +912,119 @@ def exp_inv_T(A):  ## TODO: use LibLie
 #         error.append(dist_12)
 #         error.append(dist_13)
 #         error.append(dist_23)
-#
-# @dispatch(np.ndarray, np.ndarray, np.ndarray, np.ndarray, str, list, str)
-# def geomatic_resection_optimization_on_pose(trimble_1: NDArray, trimble_2: NDArray, trimble_3: NDArray, pillars_ref: NDArray, exp_file_name: str = "", inter_prism_dist: list = [], static_file_name: str="") -> \
-#         Tuple[NDArray, NDArray, NDArray, NDArray, NDArray, NDArray, List[float], List[float], List[float], List[float], List[float]]:
-#     TF1 = tu.point_to_point_minimization(trimble_1, pillars_ref)
-#     R1 = TF1[0:3, 0:3]
-#     roll_pitch_yaw_1 = R.from_matrix(R1).as_euler('xyz')
-#     x1 = [0, 0, 0, roll_pitch_yaw_1[2]]
-#
-#     TF2 = tu.point_to_point_minimization(trimble_2, pillars_ref)
-#     R2 = TF2[0:3, 0:3]
-#     roll_pitch_yaw_2 = R.from_matrix(R2).as_euler('xyz')
-#     x2 = [0, 0, 0, roll_pitch_yaw_2[2]]
-#
-#     TF3 = tu.point_to_point_minimization(trimble_3, pillars_ref)
-#     R3 = TF3[0:3, 0:3]
-#     roll_pitch_yaw_3 = R.from_matrix(R3).as_euler('xyz')
-#     x3 = [0, 0, 0, roll_pitch_yaw_3[2]]
-#
-#     subsets = [[1, 1, 0, 0],
-#                [1, 0, 1, 0],
-#                [1, 0, 0, 1],
-#                [0, 1, 1, 0],
-#                [0, 1, 0, 1],
-#                [0, 0, 1, 1]]
-#     method = 'TNC'
-#     tol = 1e-10
-#     options = {'maxfun': 500}
-#
-#     error_exp = []
-#     error_all = []
-#     error_cp = []
-#     errors1 = []
-#     errors2 = []
-#     errors3 = []
-#     for subset in subsets:
-#         mask = np.array(subset, dtype=bool)
-#         pillars_t = pillars_ref[:, mask]
-#         pillars_c = pillars_ref[:, ~mask]
-#         ps1 = trimble_1[:, mask]
-#         ps2 = trimble_2[:, mask]
-#         ps3 = trimble_3[:, mask]
-#         ps1_c = trimble_1[:, ~mask]
-#         ps2_c = trimble_2[:, ~mask]
-#         ps3_c = trimble_3[:, ~mask]
-#
-#         with mp.Pool(processes=3) as p:
-#             res1 = p.apply(scipy.optimize.minimize,
-#                            kwds={
-#                                    "fun": cost_fun_one_pose,
-#                                    "x0": x1,
-#                                    "args": (pillars_t, ps1),
-#                                    "method": method,
-#                                    "tol": tol,
-#                                    "options": options})
-#             res2 = p.apply(scipy.optimize.minimize,
-#                            kwds={
-#                                    "fun": cost_fun_one_pose,
-#                                    "x0": x2,
-#                                    "args": (pillars_t, ps2),
-#                                    "method": method,
-#                                    "tol": tol,
-#                                    "options": options})
-#             res3 = p.apply(scipy.optimize.minimize,
-#                            kwds={
-#                                    "fun": cost_fun_one_pose,
-#                                    "x0": x3,
-#                                    "args": (pillars_t, ps3),
-#                                    "method": method,
-#                                    "tol": tol,
-#                                    "options": options})
-#
-#         TW1 = T_z_so3(*res1.x)
-#         TW2 = T_z_so3(*res2.x)
-#         TW3 = T_z_so3(*res3.x)
-#
-#         # ============================================================
-#         # eval solution
-#         trimble_1_w = TW1@ps1_c
-#         trimble_2_w = TW2@ps2_c
-#         trimble_3_w = TW3@ps3_c
-#         # trimble_1_w = TW1@ps1
-#         # trimble_2_w = TW2@ps2
-#         # trimble_3_w = TW3@ps3
-#         compute_error_between_points(trimble_1_w, trimble_2_w, trimble_3_w, error_all)
-#
-#         verrors1 = pillars_c - trimble_1_w
-#         for i in range(verrors1.shape[1]):
-#             errors1 += [np.linalg.norm(verrors1[:, i])*1000]
-#
-#         verrors2 = pillars_c - trimble_2_w
-#         for i in range(verrors2.shape[1]):
-#             errors2 += [np.linalg.norm(verrors2[:, i])*1000]
-#
-#         verrors3 = pillars_c - trimble_3_w
-#         for i in range(verrors3.shape[1]):
-#             errors3 += [np.linalg.norm(verrors3[:, i])*1000]
-#
-#         if exp_file_name != "":
-#             error_exp += tf.inter_prism_distance_error_experiment(exp_file_name, [TW1, TW2, TW3], inter_prism_dist)
-#
-#         if static_file_name != "":
-#             cp_1, cp_2, cp_3, _, _, _ = tu.read_marker_file(static_file_name, theodolite_reference_frame=1)
-#             cp_1_t = TW1 @ cp_1
-#             cp_2_t = TW2 @ cp_2
-#             cp_3_t = TW3 @ cp_3
-#             compute_error_between_points(cp_1_t, cp_2_t, cp_3_t, error_cp)
-#         # verrors1 = pillars_t - trimble_1_w
-#         # for i in range(verrors1.shape[1]):
-#         #     errors1 += [np.linalg.norm(verrors1[:, i])*1000]
-#         #
-#         # verrors2 = pillars_t - trimble_2_w
-#         # for i in range(verrors2.shape[1]):
-#         #     errors2 += [np.linalg.norm(verrors2[:, i])*1000]
-#         #
-#         # verrors3 = pillars_t - trimble_3_w
-#         # for i in range(verrors3.shape[1]):
-#         #     errors3 += [np.linalg.norm(verrors3[:, i])*1000]
-#
-#     return TW1, TW2, TW3, TW1@trimble_1, TW2@trimble_2, TW3@trimble_3, error_all, errors1, errors2, errors3, error_exp, error_cp
-#
-#
-# @dispatch(str, np.ndarray, str, list, str)
-# def geomatic_resection_optimization_on_pose(file_name: str, pillars_ref: NDArray, exp_file_name: str = "", inter_prism_dist: list = [], static_file_name: str=""):
-#     trimble_1, trimble_2, trimble_3, _, _, _ = tu.read_marker_file(file_name, theodolite_reference_frame=1)
-#     return geomatic_resection_optimization_on_pose(trimble_1, trimble_2, trimble_3, pillars_ref, exp_file_name, inter_prism_dist, static_file_name)
-#
-#
+
+@dispatch(np.ndarray, np.ndarray, np.ndarray, np.ndarray, str, list, str)
+def geomatic_resection_optimization_on_pose(trimble_1: NDArray, trimble_2: NDArray, trimble_3: NDArray, pillars_ref: NDArray, exp_file_name: str = "", inter_prism_dist: list = [], static_file_name: str="") -> \
+        Tuple[NDArray, NDArray, NDArray, NDArray, NDArray, NDArray, List[float], List[float], List[float], List[float], List[float]]:
+    TF1 = tu.point_to_point_minimization(trimble_1, pillars_ref)
+    R1 = TF1[0:3, 0:3]
+    roll_pitch_yaw_1 = R.from_matrix(R1).as_euler('xyz')
+    x1 = [0, 0, 0, roll_pitch_yaw_1[2]]
+
+    TF2 = tu.point_to_point_minimization(trimble_2, pillars_ref)
+    R2 = TF2[0:3, 0:3]
+    roll_pitch_yaw_2 = R.from_matrix(R2).as_euler('xyz')
+    x2 = [0, 0, 0, roll_pitch_yaw_2[2]]
+
+    TF3 = tu.point_to_point_minimization(trimble_3, pillars_ref)
+    R3 = TF3[0:3, 0:3]
+    roll_pitch_yaw_3 = R.from_matrix(R3).as_euler('xyz')
+    x3 = [0, 0, 0, roll_pitch_yaw_3[2]]
+
+    subsets = [[1, 1, 0, 0],
+               [1, 0, 1, 0],
+               [1, 0, 0, 1],
+               [0, 1, 1, 0],
+               [0, 1, 0, 1],
+               [0, 0, 1, 1]]
+    method = 'TNC'
+    tol = 1e-10
+    options = {'maxfun': 500}
+
+    error_exp = []
+    error_all = []
+    error_cp = []
+    errors1 = []
+    errors2 = []
+    errors3 = []
+    for subset in subsets:
+        mask = np.array(subset, dtype=bool)
+        pillars_t = pillars_ref[:, mask]
+        pillars_c = pillars_ref[:, ~mask]
+        ps1 = trimble_1[:, mask]
+        ps2 = trimble_2[:, mask]
+        ps3 = trimble_3[:, mask]
+        ps1_c = trimble_1[:, ~mask]
+        ps2_c = trimble_2[:, ~mask]
+        ps3_c = trimble_3[:, ~mask]
+
+        with mp.Pool(processes=3) as p:
+            res1 = p.apply(scipy.optimize.minimize,
+                           kwds={
+                                   "fun": cost_fun_one_pose,
+                                   "x0": x1,
+                                   "args": (pillars_t, ps1),
+                                   "method": method,
+                                   "tol": tol,
+                                   "options": options})
+            res2 = p.apply(scipy.optimize.minimize,
+                           kwds={
+                                   "fun": cost_fun_one_pose,
+                                   "x0": x2,
+                                   "args": (pillars_t, ps2),
+                                   "method": method,
+                                   "tol": tol,
+                                   "options": options})
+            res3 = p.apply(scipy.optimize.minimize,
+                           kwds={
+                                   "fun": cost_fun_one_pose,
+                                   "x0": x3,
+                                   "args": (pillars_t, ps3),
+                                   "method": method,
+                                   "tol": tol,
+                                   "options": options})
+
+        TW1 = T_z_so3(*res1.x)
+        TW2 = T_z_so3(*res2.x)
+        TW3 = T_z_so3(*res3.x)
+
+        # ============================================================
+        # eval solution
+        trimble_1_w = TW1@ps1_c
+        trimble_2_w = TW2@ps2_c
+        trimble_3_w = TW3@ps3_c
+        compute_error_between_points(trimble_1_w, trimble_2_w, trimble_3_w, error_all)
+
+        verrors1 = pillars_c - trimble_1_w
+        for i in range(verrors1.shape[1]):
+            errors1 += [np.linalg.norm(verrors1[:, i])*1000]
+
+        verrors2 = pillars_c - trimble_2_w
+        for i in range(verrors2.shape[1]):
+            errors2 += [np.linalg.norm(verrors2[:, i])*1000]
+
+        verrors3 = pillars_c - trimble_3_w
+        for i in range(verrors3.shape[1]):
+            errors3 += [np.linalg.norm(verrors3[:, i])*1000]
+
+        if exp_file_name != "":
+            error_exp += tf.inter_prism_distance_error_experiment(exp_file_name, [TW1, TW2, TW3], inter_prism_dist)
+
+        if static_file_name != "":
+            cp_1, cp_2, cp_3, _, _, _ = tu.read_marker_file(static_file_name, theodolite_reference_frame=1)
+            cp_1_t = TW1 @ cp_1
+            cp_2_t = TW2 @ cp_2
+            cp_3_t = TW3 @ cp_3
+            compute_error_between_points(cp_1_t, cp_2_t, cp_3_t, error_cp)
+
+    return TW1, TW2, TW3, TW1@trimble_1, TW2@trimble_2, TW3@trimble_3, error_all, errors1, errors2, errors3, error_exp, error_cp
+
+@dispatch(str, np.ndarray, str, list, str)
+def geomatic_resection_optimization_on_pose(file_name: str, pillars_ref: NDArray, exp_file_name: str = "", inter_prism_dist: list = [], static_file_name: str=""):
+    trimble_1, trimble_2, trimble_3, _, _, _ = tu.read_marker_file(file_name, theodolite_reference_frame=1)
+    return geomatic_resection_optimization_on_pose(trimble_1, trimble_2, trimble_3, pillars_ref, exp_file_name, inter_prism_dist, static_file_name)
+
+
 # def cartesian_2_spherical_coords(x: float, y: float, z: float) -> NDArray:
 #     """
 #     Convert a point's cartesian coordinates to spherical coordinates.
@@ -1069,8 +1054,8 @@ def exp_inv_T(A):  ## TODO: use LibLie
 #         horizontal_angle = np.pi/2. - np.arctan2(y, x)
 #
 #     return np.array([distance, vertical_angle, horizontal_angle])
-#
-#
+
+
 # def spherical_2_cartesian_coords(distance: float, vertical_angle: float, horizontal_angle: float) -> NDArray:
 #     """
 #     Convert a point's spherical coordinates to cartesian coordinates.
