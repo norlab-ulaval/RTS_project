@@ -2,7 +2,7 @@ import numpy as np
 import random
 import math
 from numpy import linalg
-from scripts.theodolite_utils import *
+from scripts import theodolite_utils as tu
 from scripts.theodolite_values import *
 from scripts.theodolite_plot_function import *
 
@@ -880,23 +880,26 @@ def distance_between_not_moving_gps(not_moving_gps_front, not_moving_gps_back, g
 # Output:
 # experiment error: list containing the inter prism distance error throughout the experiment
 def inter_prism_distance_error_experiment(file_name, TF_list, Inter_prism_dist_list):
-    trimble_1 = read_prediction_data_experiment_csv_file(file_name + "1.csv")
-    trimble_2 = read_prediction_data_experiment_csv_file(file_name + "2.csv")
-    trimble_3 = read_prediction_data_experiment_csv_file(file_name + "3.csv")
+	if(len(Inter_prism_dist_list)!=0):
+		trimble_1 = tu.read_prediction_data_experiment_csv_file(file_name + "1.csv")
+		trimble_2 = tu.read_prediction_data_experiment_csv_file(file_name + "2.csv")
+		trimble_3 = tu.read_prediction_data_experiment_csv_file(file_name + "3.csv")
 
-    trimble_1 = TF_list[0]@trimble_1.T
-    trimble_2 = TF_list[1]@trimble_2.T
-    trimble_3 = TF_list[2]@trimble_3.T
+		trimble_1 = TF_list[0]@trimble_1.T
+		trimble_2 = TF_list[1]@trimble_2.T
+		trimble_3 = TF_list[2]@trimble_3.T
 
-    dist_12_t = Inter_prism_dist_list[0]
-    dist_13_t = Inter_prism_dist_list[1]
-    dist_23_t = Inter_prism_dist_list[2]
+		dist_12_t = Inter_prism_dist_list[0]
+		dist_13_t = Inter_prism_dist_list[1]
+		dist_23_t = Inter_prism_dist_list[2]
 
-    error_inter_prism_dist = []
+		error_inter_prism_dist = []
 
-    for i, j, k in zip(trimble_1.T, trimble_2.T, trimble_3.T):
-        error_inter_prism_dist.append(abs(np.linalg.norm(i[0:3] - j[0:3])-dist_12_t) * 1000)
-        error_inter_prism_dist.append(abs(np.linalg.norm(i[0:3] - k[0:3])-dist_13_t) * 1000)
-        error_inter_prism_dist.append(abs(np.linalg.norm(j[0:3] - k[0:3])-dist_23_t) * 1000)
+		for i, j, k in zip(trimble_1.T, trimble_2.T, trimble_3.T):
+			error_inter_prism_dist.append(abs(np.linalg.norm(i[0:3] - j[0:3])-dist_12_t) * 1000)
+			error_inter_prism_dist.append(abs(np.linalg.norm(i[0:3] - k[0:3])-dist_13_t) * 1000)
+			error_inter_prism_dist.append(abs(np.linalg.norm(j[0:3] - k[0:3])-dist_23_t) * 1000)
 
-    return error_inter_prism_dist
+		return error_inter_prism_dist
+	else:
+		return []

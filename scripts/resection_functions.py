@@ -168,146 +168,147 @@ def exp_inv_T(A):  ## TODO: use LibLie
 #             static_errors.append(dist_23)
 #     print(ts1_static, '\n', ts2_static, '\n', ts3_static, '\n', T1_static, '\n', T12_static, '\n', T13_static, '\n', T12_dynamic, '\n', T13_dynamic)
 #     return [dynamic_errors, static_errors]
-#
-# def static_control_points_error(static_file_path: str, exp_file_path: str = "", inter_prism_dist: list = [], training_threshold: float = 0.75, nb_iterations: int = 20) -> list:
-#     """
-#     Compute the errors between dynamic and static control points.
-#
-#     Parameters
-#     ----------
-#     static_file_path : str
-#         The path to the file containing the static control points. e.g. theodolite_reference_prisms.txt
-#     training_threshold : float
-#         The threshold used to split the dynamic control points into the training and prediction dataset. Default = 0.75
-#     nb_iterations : int
-#         The number of iterations. Default = 20
-#
-#     Returns
-#     -------
-#     errors : list
-#         Returns a list containing all the errors, for the static control points.
-#         The list holds the errors for the static control points.
-#     """
-#     ts1_static, ts2_static, ts3_static, T1_static, T12_static, T13_static = tu.read_marker_file(
-#         file_name=static_file_path, theodolite_reference_frame=1)
-#
-#     nb_points = ts1_static.shape[1]
-#     static_errors = []
-#     exp_errors = []
-#     TF_list = []
-#
-#     for it in range(nb_iterations):
-#         mask = tu.uniform_random_mask(nb_points, threshold=training_threshold)
-#
-#         training_1 = ts1_static[:, mask]
-#         training_2 = ts2_static[:, mask]
-#         training_3 = ts3_static[:, mask]
-#
-#         prediction_1 = ts1_static[:, ~mask]
-#         prediction_2 = ts2_static[:, ~mask]
-#         prediction_3 = ts3_static[:, ~mask]
-#
-#         T12_trained = tu.point_to_point_minimization(training_2, training_1)
-#         T13_trained = tu.point_to_point_minimization(training_3, training_1)
-#
-#         prediction_1_static = ts1_static
-#         prediction_2_static = T12_trained @ ts2_static
-#         prediction_3_static = T13_trained @ ts3_static
-#
-#         TF_list.append([T1_static, T12_trained, T13_trained])
-#
-#         for i, j, k in zip(prediction_1_static.T, prediction_2_static.T, prediction_3_static.T):
-#             dist_12 = np.linalg.norm(i[0:3] - j[0:3]) * 1000
-#             dist_13 = np.linalg.norm(i[0:3] - k[0:3]) * 1000
-#             dist_23 = np.linalg.norm(j[0:3] - k[0:3]) * 1000
-#             static_errors.append(dist_12)
-#             static_errors.append(dist_13)
-#             static_errors.append(dist_23)
-#         if exp_file_path != "":
-#             exp_errors += tf.inter_prism_distance_error_experiment(exp_file_path, [T1_static, T12_trained, T13_trained], inter_prism_dist)
-#     return static_errors,exp_errors,TF_list
-#
-# def dynamic_control_points_error_comparison(dynamic_file_path: str, exp_file_path: str = "", marker_file_path: str="", inter_prism_dist: list = [], training_threshold: float = 0.75, nb_iterations: int = 20, rate: float = 10, velocity_outlier: float = 2):
-#     """
-#     Compute the errors between dynamic and static control points.
-#
-#     Parameters
-#     ----------
-#     dynamic_file_path : str
-#         The path to the file containing the dynamic control points.
-#     training_threshold : float
-#         The threshold used to split the dynamic control points into the training and prediction dataset. Default = 0.75
-#     nb_iterations : int
-#         The number of iterations. Default = 20
-#
-#     Returns
-#     -------
-#     errors : list
-#         Returns a list containing all the errors, for the dynamic control points.
-#         The list holds the errors for the dynamic control points.
-#     """
-#     ts1_dynamic = tu.read_prediction_data_resection_csv_file(dynamic_file_path + "_1.csv")[:, 1:]
-#     ts2_dynamic = tu.read_prediction_data_resection_csv_file(dynamic_file_path + "_2.csv")[:, 1:]
-#     ts3_dynamic = tu.read_prediction_data_resection_csv_file(dynamic_file_path + "_3.csv")[:, 1:]
-#
-#     ts1_static, ts2_static, ts3_static, T1_static, T12_static, T13_static = tu.read_marker_file(file_name=marker_file_path, theodolite_reference_frame=1)
-#
-#     if (ts1_dynamic.shape[1] > 0 and ts2_dynamic.shape[1] > 0 and ts3_dynamic.shape[1] > 0):
-#         speed_limit = velocity_outlier
-#         index = tu.find_not_moving_points_GP(ts1_dynamic, speed_limit, 1/rate)
-#
-#         p1 = ts1_dynamic[index, :]
-#         p2 = ts2_dynamic[index, :]
-#         p3 = ts3_dynamic[index, :]
-#
-#         nb_points = p1.T.shape[1]
-#         dynamic_errors = []
-#         errors_exp = []
-#         cp_errors = []
-#         TF_list = []
-#
-#         for it in range(nb_iterations):
-#             mask = tu.uniform_random_mask(nb_points, threshold=training_threshold)
-#
-#             training_1 = p1.T[:, mask]
-#             training_2 = p2.T[:, mask]
-#             training_3 = p3.T[:, mask]
-#
-#             prediction_1 = p1.T[:, ~mask]
-#             prediction_2 = p2.T[:, ~mask]
-#             prediction_3 = p3.T[:, ~mask]
-#
-#             T12_dynamic = tu.point_to_point_minimization(training_2, training_1)
-#             T13_dynamic = tu.point_to_point_minimization(training_3, training_1)
-#
-#             prediction_2_dynamic = T12_dynamic @ prediction_2
-#             prediction_3_dynamic = T13_dynamic @ prediction_3
-#
-#             for i, j, k in zip(prediction_1.T, prediction_2_dynamic.T, prediction_3_dynamic.T):
-#                 dist_12 = np.linalg.norm(i[0:3] - j[0:3]) * 1000
-#                 dist_13 = np.linalg.norm(i[0:3] - k[0:3]) * 1000
-#                 dist_23 = np.linalg.norm(j[0:3] - k[0:3]) * 1000
-#                 dynamic_errors.append(dist_12)
-#                 dynamic_errors.append(dist_13)
-#                 dynamic_errors.append(dist_23)
-#             cp1 = ts1_static
-#             cp2 = T12_dynamic @ ts2_static
-#             cp3 = T13_dynamic @ ts3_static
-#             for i,j,k in zip(cp1.T, cp2.T, cp3.T):
-#                 dist_12 = np.linalg.norm(i[0:3] - j[0:3]) * 1000
-#                 dist_13 = np.linalg.norm(i[0:3] - k[0:3]) * 1000
-#                 dist_23 = np.linalg.norm(j[0:3] - k[0:3]) * 1000
-#                 cp_errors.append(dist_12)
-#                 cp_errors.append(dist_13)
-#                 cp_errors.append(dist_23)
-#             T1 = np.identity(4)
-#
-#             TF_list.append([T1, T12_dynamic, T13_dynamic])
-#             if exp_file_path != "":
-#                 errors_exp += tf.inter_prism_distance_error_experiment(exp_file_path, [T1, T12_dynamic, T13_dynamic], inter_prism_dist)
-#     return dynamic_errors, cp_errors, errors_exp, TF_list
-#
-#
+
+def static_control_points_error(static_file_path: str, exp_file_path: str = "", inter_prism_dist: list = [], training_threshold: float = 0.75, nb_iterations: int = 20) -> list:
+    """
+    Compute the errors between dynamic and static control points.
+
+    Parameters
+    ----------
+    static_file_path : str
+        The path to the file containing the static control points. e.g. theodolite_reference_prisms.txt
+    training_threshold : float
+        The threshold used to split the dynamic control points into the training and prediction dataset. Default = 0.75
+    nb_iterations : int
+        The number of iterations. Default = 20
+
+    Returns
+    -------
+    errors : list
+        Returns a list containing all the errors, for the static control points.
+        The list holds the errors for the static control points.
+    """
+    ts1_static, ts2_static, ts3_static, T1_static, T12_static, T13_static = tu.read_marker_file(
+        file_name=static_file_path, theodolite_reference_frame=1)
+
+    nb_points = ts1_static.shape[1]
+    static_errors = []
+    exp_errors = []
+    TF_list = []
+
+    for it in range(nb_iterations):
+        mask = tu.uniform_random_mask(nb_points, threshold=training_threshold)
+
+        training_1 = ts1_static[:, mask]
+        training_2 = ts2_static[:, mask]
+        training_3 = ts3_static[:, mask]
+
+        prediction_1 = ts1_static[:, ~mask]
+        prediction_2 = ts2_static[:, ~mask]
+        prediction_3 = ts3_static[:, ~mask]
+
+        T12_trained = tu.point_to_point_minimization(training_2, training_1)
+        T13_trained = tu.point_to_point_minimization(training_3, training_1)
+
+        prediction_1_static = ts1_static
+        prediction_2_static = T12_trained @ ts2_static
+        prediction_3_static = T13_trained @ ts3_static
+
+        TF_list.append([T1_static, T12_trained, T13_trained])
+
+        for i, j, k in zip(prediction_1_static.T, prediction_2_static.T, prediction_3_static.T):
+            dist_12 = np.linalg.norm(i[0:3] - j[0:3]) * 1000
+            dist_13 = np.linalg.norm(i[0:3] - k[0:3]) * 1000
+            dist_23 = np.linalg.norm(j[0:3] - k[0:3]) * 1000
+            static_errors.append(dist_12)
+            static_errors.append(dist_13)
+            static_errors.append(dist_23)
+        if exp_file_path != "":
+            exp_errors += tf.inter_prism_distance_error_experiment(exp_file_path, [T1_static, T12_trained, T13_trained], inter_prism_dist)
+    return static_errors,exp_errors,TF_list
+
+def dynamic_control_points_error_comparison(dynamic_file_path: str, exp_file_path: str = "", marker_file_path: str="", inter_prism_dist: list = [], training_threshold: float = 0.75, nb_iterations: int = 20, rate: float = 10, velocity_outlier: float = 2):
+    """
+    Compute the errors between dynamic and static control points.
+
+    Parameters
+    ----------
+    dynamic_file_path : str
+        The path to the file containing the dynamic control points.
+    training_threshold : float
+        The threshold used to split the dynamic control points into the training and prediction dataset. Default = 0.75
+    nb_iterations : int
+        The number of iterations. Default = 20
+
+    Returns
+    -------
+    errors : list
+        Returns a list containing all the errors, for the dynamic control points.
+        The list holds the errors for the dynamic control points.
+    """
+    ts1_dynamic = tu.read_prediction_data_resection_csv_file(dynamic_file_path + "1.csv")[:, 1:]
+    ts2_dynamic = tu.read_prediction_data_resection_csv_file(dynamic_file_path + "2.csv")[:, 1:]
+    ts3_dynamic = tu.read_prediction_data_resection_csv_file(dynamic_file_path + "3.csv")[:, 1:]
+
+    ts1_static, ts2_static, ts3_static, T1_static, T12_static, T13_static = tu.read_marker_file(file_name=marker_file_path, theodolite_reference_frame=1)
+
+    if (ts1_dynamic.shape[1] > 0 and ts2_dynamic.shape[1] > 0 and ts3_dynamic.shape[1] > 0):
+        speed_limit = velocity_outlier
+        index = tu.find_not_moving_points_GP(ts1_dynamic, speed_limit, 1/rate)
+
+        p1 = ts1_dynamic[index, :]
+        p2 = ts2_dynamic[index, :]
+        p3 = ts3_dynamic[index, :]
+
+        nb_points = p1.T.shape[1]
+        dynamic_errors = []
+        errors_exp = []
+        cp_errors = []
+        TF_list = []
+
+        for it in range(nb_iterations):
+            mask = tu.uniform_random_mask(nb_points, threshold=training_threshold)
+
+            training_1 = p1.T[:, mask]
+            training_2 = p2.T[:, mask]
+            training_3 = p3.T[:, mask]
+
+            prediction_1 = p1.T[:, ~mask]
+            prediction_2 = p2.T[:, ~mask]
+            prediction_3 = p3.T[:, ~mask]
+
+            T12_dynamic = tu.point_to_point_minimization(training_2, training_1)
+            T13_dynamic = tu.point_to_point_minimization(training_3, training_1)
+
+            prediction_2_dynamic = T12_dynamic @ prediction_2
+            prediction_3_dynamic = T13_dynamic @ prediction_3
+
+            for i, j, k in zip(prediction_1.T, prediction_2_dynamic.T, prediction_3_dynamic.T):
+                dist_12 = np.linalg.norm(i[0:3] - j[0:3]) * 1000
+                dist_13 = np.linalg.norm(i[0:3] - k[0:3]) * 1000
+                dist_23 = np.linalg.norm(j[0:3] - k[0:3]) * 1000
+                dynamic_errors.append(dist_12)
+                dynamic_errors.append(dist_13)
+                dynamic_errors.append(dist_23)
+            cp1 = ts1_static
+            cp2 = T12_dynamic @ ts2_static
+            cp3 = T13_dynamic @ ts3_static
+            for i,j,k in zip(cp1.T, cp2.T, cp3.T):
+                dist_12 = np.linalg.norm(i[0:3] - j[0:3]) * 1000
+                dist_13 = np.linalg.norm(i[0:3] - k[0:3]) * 1000
+                dist_23 = np.linalg.norm(j[0:3] - k[0:3]) * 1000
+                cp_errors.append(dist_12)
+                cp_errors.append(dist_13)
+                cp_errors.append(dist_23)
+            T1 = np.identity(4)
+
+            TF_list.append([T1, T12_dynamic, T13_dynamic])
+            if exp_file_path != "" and len(inter_prism_dist)!=0:
+                errors_exp += tf.inter_prism_distance_error_experiment(exp_file_path, [T1, T12_dynamic, T13_dynamic], inter_prism_dist)
+            else:
+                errors_exp = []
+    return dynamic_errors, cp_errors, errors_exp, TF_list
+
 # def inter_prism_resection(Inter_distance, file_name_path, path_type, path_file_type, file_name_marker, rate,
 #                           prior, velocity_outlier, threshold_training, number_iteration):
 #     dist_prism_new_all = []
@@ -1179,143 +1180,142 @@ def geomatic_resection_optimization_on_pose(file_name: str, pillars_ref: NDArray
 #     TF2 = TF2@R2
 #
 #     return TF1, TF2
-#
-#
-# def geomatic_resection_angle_based(P1, P2, Field_data1, Field_data2):
-#     # B coordinates
-#     X1 = P1[0]
-#     Y1 = P1[1]
-#     Z1 = P1[2]
-#     # A coordinates
-#     X2 = P2[0]
-#     Y2 = P2[1]
-#     Z2 = P2[2]
-#     # Substract both coordinates
-#     x = X2 - X1
-#     y = Y2 - Y1
-#     c_ = np.sqrt(x**2 + y**2)
-#
-#     if (X1 == X2 and Y1 > Y2):
-#         A1 = np.pi
-#     if (X1 == X2 and Y1 < Y2):
-#         A1 = 0
-#     if (X1 < X2):
-#         A1 = np.pi/2 - np.arctan(y/x)
-#     if (X1 > X2):
-#         A1 = 3*np.pi/2 - np.arctan(y/x)
-#
-#     # Z coordinate
-#     Z_final = np.mean([Z1 - Field_data1[0]*np.cos(Field_data1[1]), Z2 - Field_data2[0]*np.cos(Field_data2[1])])
-#
-#     # Field data
-#     a = Field_data1[0]*np.sin(Field_data1[1])
-#     b = Field_data2[0]*np.sin(Field_data2[1])
-#     A_ = Field_data1[2]
-#     B_ = Field_data2[2]
-#     C = abs(B_ - A_)
-#     Correction_azimuth = 0
-#     if (C > np.pi):
-#         C = 2*np.pi - C
-#         Correction_azimuth = np.pi
-#
-#     # Solve for internal angles A and B, and azimuths A2 and A3
-#     # Length c_ with field data and with Al-Kashi
-#     c = np.sqrt(a**2 + b**2 - 2*a*b*np.cos(C))
-#     A = np.arccos((a**2 - b**2 - c**2)/(-2*b*c))
-#     B = np.arccos((b**2 - a**2 - c**2)/(-2*a*c))
-#     # print("Error distance known points: ", abs(round(c-c_,3)))
-#     # print("Check angle triangle: ", (A+B+C)*180/np.pi) # should be 180 deg
-#     A2 = A1 - B
-#     A3 = A1 - np.pi + A
-#
-#     # Coordinates of setup point calculated from B
-#     X3 = X1 + np.sin(A2)*a
-#     Y3 = Y1 + np.cos(A2)*a
-#
-#     # Coordinates of setup point calculated from A
-#     X4 = X2 + np.sin(A3)*b
-#     Y4 = Y2 + np.cos(A3)*b
-#
-#     # Final coordinates
-#     X5 = (X4 + X3)/2
-#     Y5 = (Y4 + Y3)/2
-#     # Azimuth
-#     Delta_A = A_ - np.pi/2 - A
-#     Delta_B = B_ - np.pi - np.pi/2 + B
-#     Delta = (Delta_A + Delta_B)/2
-#
-#     # In correct frame
-#     X_final = X5
-#     Y_final = Y5
-#     Azimuth_final = Delta + np.pi/2 + Correction_azimuth
-#
-#     # print("North-East coordinates: ", round(X5,3), round(Y5,3), round(Z_final,3), round(Delta*180/np.pi,3))
-#     # print("North-West coordinates: ", round(X_final,3), round(Y_final,3), round(Z_final,3), round(Azimuth_final*180/np.pi,3))
-#     return X_final, Y_final, Z_final, Azimuth_final
-#
-# def geomatic_resection_errors_angle_based(file_name: str, list_pilier, exp_file_name: str, inter_prism_distance, static_file_name: str):
-#     raw_1, raw_2, raw_3, trimble_1, trimble_2, trimble_3, T_1_grand, T_2_grand, T_3_grand = tu.read_marker_file_raw_data(file_name)
-#
-#     selection = [[0,1],
-#                 [0,2],
-#                 [0,3],
-#                 [1,2],
-#                 [1,3],
-#                 [2,3]]
-#
-#     error_calcul = [[2,3],
-#                 [1,3],
-#                 [1,2],
-#                 [0,3],
-#                 [0,2],
-#                 [0,1]]
-#     error_cp = []
-#     error_exp = []
-#     error_all = []
-#     TF_1 = []
-#     TF_2 = []
-#     TF_3 = []
-#     for i,j in zip(selection,error_calcul):
-#         Field_data11 = [raw_1[i[0]][2], raw_1[i[0]][0], raw_1[i[0]][1]]
-#         Field_data12 = [raw_1[i[1]][2], raw_1[i[1]][0], raw_1[i[1]][1]]
-#         Field_data21 = [raw_2[i[0]][2], raw_2[i[0]][0], raw_2[i[0]][1]]
-#         Field_data22 = [raw_2[i[1]][2], raw_2[i[1]][0], raw_2[i[1]][1]]
-#         Field_data31 = [raw_3[i[0]][2], raw_3[i[0]][0], raw_3[i[0]][1]]
-#         Field_data32 = [raw_3[i[1]][2], raw_3[i[1]][0], raw_3[i[1]][1]]
-#         X1,Y1,Z1,A1 = geomatic_resection_angle_based(list_pilier[i[0]], list_pilier[i[1]], Field_data11, Field_data12)
-#         X2,Y2,Z2,A2 = geomatic_resection_angle_based(list_pilier[i[0]], list_pilier[i[1]], Field_data21, Field_data22)
-#         X3,Y3,Z3,A3 = geomatic_resection_angle_based(list_pilier[i[0]], list_pilier[i[1]], Field_data31, Field_data32)
-#
-#         T1 = T_z(A1, [X1,Y1,Z1])
-#         T2 = T_z(A2, [X2,Y2,Z2])
-#         T3 = T_z(A3, [X3,Y3,Z3])
-#         tc1 = T1@np.array(trimble_1)
-#         tc2 = T2@np.array(trimble_2)
-#         tc3 = T3@np.array(trimble_3)
-#
-#         TF_1.append(T1)
-#         TF_2.append(T2)
-#         TF_3.append(T3)
-#
-#         # Calcul errors
-#         dist_12 = np.linalg.norm(tc1.T[j[0],0:3] - tc2.T[j[0],0:3]) * 1000
-#         dist_13 = np.linalg.norm(tc1.T[j[0],0:3] - tc3.T[j[0],0:3]) * 1000
-#         dist_23 = np.linalg.norm(tc2.T[j[0],0:3] - tc3.T[j[0],0:3]) * 1000
-#         error_all.append(dist_12)
-#         error_all.append(dist_13)
-#         error_all.append(dist_23)
-#         dist_12 = np.linalg.norm(tc1.T[j[1],0:3] - tc2.T[j[1],0:3]) * 1000
-#         dist_13 = np.linalg.norm(tc1.T[j[1],0:3] - tc3.T[j[1],0:3]) * 1000
-#         dist_23 = np.linalg.norm(tc2.T[j[1],0:3] - tc3.T[j[1],0:3]) * 1000
-#         error_all.append(dist_12)
-#         error_all.append(dist_13)
-#         error_all.append(dist_23)
-#         if exp_file_name != "":
-#             error_exp += tf.inter_prism_distance_error_experiment(exp_file_name, [T1, T2, T3], inter_prism_distance)
-#         if static_file_name != "":
-#             cp_1, cp_2, cp_3, _, _, _ = tu.read_marker_file(static_file_name, theodolite_reference_frame=1)
-#             cp_1_t = T1 @ cp_1
-#             cp_2_t = T2 @ cp_2
-#             cp_3_t = T3 @ cp_3
-#             compute_error_between_points(cp_1_t, cp_2_t, cp_3_t, error_cp)
-#     return TF_1, TF_2, TF_3, error_all, error_cp, error_exp
+
+def geomatic_resection_angle_based(P1, P2, Field_data1, Field_data2):
+    # B coordinates
+    X1 = P1[0]
+    Y1 = P1[1]
+    Z1 = P1[2]
+    # A coordinates
+    X2 = P2[0]
+    Y2 = P2[1]
+    Z2 = P2[2]
+    # Substract both coordinates
+    x = X2 - X1
+    y = Y2 - Y1
+    c_ = np.sqrt(x**2 + y**2)
+
+    if (X1 == X2 and Y1 > Y2):
+        A1 = np.pi
+    if (X1 == X2 and Y1 < Y2):
+        A1 = 0
+    if (X1 < X2):
+        A1 = np.pi/2 - np.arctan(y/x)
+    if (X1 > X2):
+        A1 = 3*np.pi/2 - np.arctan(y/x)
+
+    # Z coordinate
+    Z_final = np.mean([Z1 - Field_data1[0]*np.cos(Field_data1[1]), Z2 - Field_data2[0]*np.cos(Field_data2[1])])
+
+    # Field data
+    a = Field_data1[0]*np.sin(Field_data1[1])
+    b = Field_data2[0]*np.sin(Field_data2[1])
+    A_ = Field_data1[2]
+    B_ = Field_data2[2]
+    C = abs(B_ - A_)
+    Correction_azimuth = 0
+    if (C > np.pi):
+        C = 2*np.pi - C
+        Correction_azimuth = np.pi
+
+    # Solve for internal angles A and B, and azimuths A2 and A3
+    # Length c_ with field data and with Al-Kashi
+    c = np.sqrt(a**2 + b**2 - 2*a*b*np.cos(C))
+    A = np.arccos((a**2 - b**2 - c**2)/(-2*b*c))
+    B = np.arccos((b**2 - a**2 - c**2)/(-2*a*c))
+    # print("Error distance known points: ", abs(round(c-c_,3)))
+    # print("Check angle triangle: ", (A+B+C)*180/np.pi) # should be 180 deg
+    A2 = A1 - B
+    A3 = A1 - np.pi + A
+
+    # Coordinates of setup point calculated from B
+    X3 = X1 + np.sin(A2)*a
+    Y3 = Y1 + np.cos(A2)*a
+
+    # Coordinates of setup point calculated from A
+    X4 = X2 + np.sin(A3)*b
+    Y4 = Y2 + np.cos(A3)*b
+
+    # Final coordinates
+    X5 = (X4 + X3)/2
+    Y5 = (Y4 + Y3)/2
+    # Azimuth
+    Delta_A = A_ - np.pi/2 - A
+    Delta_B = B_ - np.pi - np.pi/2 + B
+    Delta = (Delta_A + Delta_B)/2
+
+    # In correct frame
+    X_final = X5
+    Y_final = Y5
+    Azimuth_final = Delta + np.pi/2 + Correction_azimuth
+
+    # print("North-East coordinates: ", round(X5,3), round(Y5,3), round(Z_final,3), round(Delta*180/np.pi,3))
+    # print("North-West coordinates: ", round(X_final,3), round(Y_final,3), round(Z_final,3), round(Azimuth_final*180/np.pi,3))
+    return X_final, Y_final, Z_final, Azimuth_final
+
+def geomatic_resection_errors_angle_based(file_name: str, list_pilier, exp_file_name: str, inter_prism_distance, static_file_name: str):
+    raw_1, raw_2, raw_3, trimble_1, trimble_2, trimble_3, T_1_grand, T_2_grand, T_3_grand = tu.read_marker_file_raw_data(file_name)
+
+    selection = [[0,1],
+                [0,2],
+                [0,3],
+                [1,2],
+                [1,3],
+                [2,3]]
+
+    error_calcul = [[2,3],
+                [1,3],
+                [1,2],
+                [0,3],
+                [0,2],
+                [0,1]]
+    error_cp = []
+    error_exp = []
+    error_all = []
+    TF_1 = []
+    TF_2 = []
+    TF_3 = []
+    for i,j in zip(selection,error_calcul):
+        Field_data11 = [raw_1[i[0]][2], raw_1[i[0]][0], raw_1[i[0]][1]]
+        Field_data12 = [raw_1[i[1]][2], raw_1[i[1]][0], raw_1[i[1]][1]]
+        Field_data21 = [raw_2[i[0]][2], raw_2[i[0]][0], raw_2[i[0]][1]]
+        Field_data22 = [raw_2[i[1]][2], raw_2[i[1]][0], raw_2[i[1]][1]]
+        Field_data31 = [raw_3[i[0]][2], raw_3[i[0]][0], raw_3[i[0]][1]]
+        Field_data32 = [raw_3[i[1]][2], raw_3[i[1]][0], raw_3[i[1]][1]]
+        X1,Y1,Z1,A1 = geomatic_resection_angle_based(list_pilier[i[0]], list_pilier[i[1]], Field_data11, Field_data12)
+        X2,Y2,Z2,A2 = geomatic_resection_angle_based(list_pilier[i[0]], list_pilier[i[1]], Field_data21, Field_data22)
+        X3,Y3,Z3,A3 = geomatic_resection_angle_based(list_pilier[i[0]], list_pilier[i[1]], Field_data31, Field_data32)
+
+        T1 = T_z(A1, [X1,Y1,Z1])
+        T2 = T_z(A2, [X2,Y2,Z2])
+        T3 = T_z(A3, [X3,Y3,Z3])
+        tc1 = T1@np.array(trimble_1)
+        tc2 = T2@np.array(trimble_2)
+        tc3 = T3@np.array(trimble_3)
+
+        TF_1.append(T1)
+        TF_2.append(T2)
+        TF_3.append(T3)
+
+        # Calcul errors
+        dist_12 = np.linalg.norm(tc1.T[j[0],0:3] - tc2.T[j[0],0:3]) * 1000
+        dist_13 = np.linalg.norm(tc1.T[j[0],0:3] - tc3.T[j[0],0:3]) * 1000
+        dist_23 = np.linalg.norm(tc2.T[j[0],0:3] - tc3.T[j[0],0:3]) * 1000
+        error_all.append(dist_12)
+        error_all.append(dist_13)
+        error_all.append(dist_23)
+        dist_12 = np.linalg.norm(tc1.T[j[1],0:3] - tc2.T[j[1],0:3]) * 1000
+        dist_13 = np.linalg.norm(tc1.T[j[1],0:3] - tc3.T[j[1],0:3]) * 1000
+        dist_23 = np.linalg.norm(tc2.T[j[1],0:3] - tc3.T[j[1],0:3]) * 1000
+        error_all.append(dist_12)
+        error_all.append(dist_13)
+        error_all.append(dist_23)
+        if exp_file_name != "" and len(inter_prism_distance) != 0 :
+            error_exp += tf.inter_prism_distance_error_experiment(exp_file_name, [T1, T2, T3], inter_prism_distance)
+        if static_file_name != "":
+            cp_1, cp_2, cp_3, _, _, _ = tu.read_marker_file(static_file_name, theodolite_reference_frame=1)
+            cp_1_t = T1 @ cp_1
+            cp_2_t = T2 @ cp_2
+            cp_3_t = T3 @ cp_3
+            compute_error_between_points(cp_1_t, cp_2_t, cp_3_t, error_cp)
+    return TF_1, TF_2, TF_3, error_all, error_cp, error_exp

@@ -6,6 +6,7 @@ from pathlib import Path
 from rosbags.typesys import get_types_from_msg, register_types
 from tqdm import tqdm
 from scipy.spatial.transform import Rotation as R_scipy
+from os.path import exists
 
 # import rosbag
 # import csv
@@ -165,65 +166,65 @@ def read_marker_file(file_name: str, theodolite_reference_frame: int, threshold:
 			T_32 = point_to_point_minimization(points_theodolite_2, points_theodolite_3)
 			return points_theodolite_1, points_theodolite_2, points_theodolite_3, T_31, T_32, T_I
 
-# def read_marker_file_raw_data(file_name: str):
-#     """
-#     Function to read a text file which contains the marker data for the calibration. The result given
-#     will be the raw data from each total station.
-#
-#     The format of the file must be:
-#     theodolite_number , marker_number , status , elevation , azimuth , distance , sec , nsec
-#
-#     Parameters
-#     ----------
-#     file_name: Name of the file to read (the file should have the same structure then the usual one use by the raspi)
-#
-#     Returns
-#     -------
-#     raw_data_theodolite_1: nx3 list containing the elevation, the azimuth and the distance measurements of n markers in theodolite 1 frame
-#     raw_data_theodolite_2: nx3 list containing the elevation, the azimuth and the distance measurements of n markers in theodolite 2 frame
-#     raw_data_theodolite_3: nx3 list containing the elevation, the azimuth and the distance measurements of n markers in theodolite 3 frame
-#     points_theodolite_1: list of array markers points coordinates of the theodolite 1, in the frame chosen
-#     points_theodolite_2: list of array markers points coordinates of the theodolite 2, in the frame chosen
-#     points_theodolite_3: list of array markers points coordinates of the theodolite 3, in the frame chosen
-#     T_.1: 4x4 rigid transform obtain according to the point-to-point minimization between the chosen frame and the
-#     theodolite 1 frame (Identity matrix if frame 1 chosen)
-#     T_.2: 4x4 rigid transform obtain according to the point-to-point minimization between the chosen frame and the
-#     theodolite 2 frame (Identity matrix if frame 2 chosen)
-#     T_.3: 4x4 rigid transform obtain according to the point-to-point minimization between the chosen frame and the
-#     theodolite 3 frame (Identity matrix if frame 3 chosen)
-#     """
-#     points_theodolite_1 = []
-#     points_theodolite_2 = []
-#     points_theodolite_3 = []
-#     raw_data_theodolite_1 = []
-#     raw_data_theodolite_2 = []
-#     raw_data_theodolite_3 = []
-#     T_I = np.identity(4)
-#     correction = 0.01
-#
-#     with open(file_name, "r") as file:
-#         file.readline()
-#
-#         for line in file:
-#             item = line.strip().split(" , ")
-#             if int(item[0]) == 1 and int(item[2]) == 0:
-#                 add_point(float(item[5]), float(item[4]), float(item[3]), points_theodolite_1, 2)
-#                 raw_data_theodolite_1.append([float(item[3]), float(item[4]), float(item[5]) + correction])
-#             if int(item[0]) == 2 and int(item[2]) == 0:
-#                 add_point(float(item[5]), float(item[4]), float(item[3]), points_theodolite_2, 2)
-#                 raw_data_theodolite_2.append([float(item[3]), float(item[4]), float(item[5]) + correction])
-#             if int(item[0]) == 3 and int(item[2]) == 0:
-#                 add_point(float(item[5]), float(item[4]), float(item[3]), points_theodolite_3, 2)
-#                 raw_data_theodolite_3.append([float(item[3]), float(item[4]), float(item[5]) + correction])
-#
-#     points_theodolite_1 = np.array(points_theodolite_1).T
-#     points_theodolite_2 = np.array(points_theodolite_2).T
-#     points_theodolite_3 = np.array(points_theodolite_3).T
-#
-#     T_12 = point_to_point_minimization(points_theodolite_2, points_theodolite_1)
-#     T_13 = point_to_point_minimization(points_theodolite_3, points_theodolite_1)
-#
-#     return raw_data_theodolite_1, raw_data_theodolite_2, raw_data_theodolite_3, points_theodolite_1, points_theodolite_2, points_theodolite_3, T_I, T_12, T_13
+def read_marker_file_raw_data(file_name: str):
+    """
+    Function to read a text file which contains the marker data for the calibration. The result given
+    will be the raw data from each total station.
+
+    The format of the file must be:
+    theodolite_number , marker_number , status , elevation , azimuth , distance , sec , nsec
+
+    Parameters
+    ----------
+    file_name: Name of the file to read (the file should have the same structure then the usual one use by the raspi)
+
+    Returns
+    -------
+    raw_data_theodolite_1: nx3 list containing the elevation, the azimuth and the distance measurements of n markers in theodolite 1 frame
+    raw_data_theodolite_2: nx3 list containing the elevation, the azimuth and the distance measurements of n markers in theodolite 2 frame
+    raw_data_theodolite_3: nx3 list containing the elevation, the azimuth and the distance measurements of n markers in theodolite 3 frame
+    points_theodolite_1: list of array markers points coordinates of the theodolite 1, in the frame chosen
+    points_theodolite_2: list of array markers points coordinates of the theodolite 2, in the frame chosen
+    points_theodolite_3: list of array markers points coordinates of the theodolite 3, in the frame chosen
+    T_.1: 4x4 rigid transform obtain according to the point-to-point minimization between the chosen frame and the
+    theodolite 1 frame (Identity matrix if frame 1 chosen)
+    T_.2: 4x4 rigid transform obtain according to the point-to-point minimization between the chosen frame and the
+    theodolite 2 frame (Identity matrix if frame 2 chosen)
+    T_.3: 4x4 rigid transform obtain according to the point-to-point minimization between the chosen frame and the
+    theodolite 3 frame (Identity matrix if frame 3 chosen)
+    """
+    points_theodolite_1 = []
+    points_theodolite_2 = []
+    points_theodolite_3 = []
+    raw_data_theodolite_1 = []
+    raw_data_theodolite_2 = []
+    raw_data_theodolite_3 = []
+    T_I = np.identity(4)
+    correction = 0.01
+
+    with open(file_name, "r") as file:
+        file.readline()
+
+        for line in file:
+            item = line.strip().split(" , ")
+            if int(item[0]) == 1 and int(item[2]) == 0:
+                add_point(float(item[5]), float(item[4]), float(item[3]), points_theodolite_1, 2)
+                raw_data_theodolite_1.append([float(item[3]), float(item[4]), float(item[5]) + correction])
+            if int(item[0]) == 2 and int(item[2]) == 0:
+                add_point(float(item[5]), float(item[4]), float(item[3]), points_theodolite_2, 2)
+                raw_data_theodolite_2.append([float(item[3]), float(item[4]), float(item[5]) + correction])
+            if int(item[0]) == 3 and int(item[2]) == 0:
+                add_point(float(item[5]), float(item[4]), float(item[3]), points_theodolite_3, 2)
+                raw_data_theodolite_3.append([float(item[3]), float(item[4]), float(item[5]) + correction])
+
+    points_theodolite_1 = np.array(points_theodolite_1).T
+    points_theodolite_2 = np.array(points_theodolite_2).T
+    points_theodolite_3 = np.array(points_theodolite_3).T
+
+    T_12 = point_to_point_minimization(points_theodolite_2, points_theodolite_1)
+    T_13 = point_to_point_minimization(points_theodolite_3, points_theodolite_1)
+
+    return raw_data_theodolite_1, raw_data_theodolite_2, raw_data_theodolite_3, points_theodolite_1, points_theodolite_2, points_theodolite_3, T_I, T_12, T_13
 
 def read_rosbag_time_correction_theodolite(file):
 	read_custom_messages()
@@ -947,41 +948,41 @@ def read_prediction_data_Linear_csv_file(file_name):
 	file.close()
 	return data
 
-# def read_prediction_data_resection_csv_file(file_name: str, threshold: float = 1.0):
-# 	data = []
-#
-# 	with open(file_name, "r") as file:
-# 		for line in file:
-# 			item = line.strip().split(" ")
-# 			Time = float(item[0])
-# 			Px = float(item[1])
-# 			Py = float(item[2])
-# 			Pz = float(item[3])
-# 			array_point = np.array([Time, Px, Py, Pz, 1])
-# 			data.append(array_point)
-#
-# 	prob = np.random.default_rng().uniform(size=len(data))
-# 	mask = (prob <= threshold)
-#
-# 	return np.array(data)[mask]
-#
-# def read_prediction_data_experiment_csv_file(file_name: str, threshold: float = 1.0):
-# 	data = []
-#
-# 	with open(file_name, "r") as file:
-# 		for line in file:
-# 			item = line.strip().split(" ")
-# 			Px = float(item[1])
-# 			Py = float(item[2])
-# 			Pz = float(item[3])
-# 			array_point = np.array([Px, Py, Pz, 1])
-# 			data.append(array_point)
-#
-# 	prob = np.random.default_rng().uniform(size=len(data))
-# 	mask = (prob <= threshold)
-#
-# 	return np.array(data)[mask]
-#
+def read_prediction_data_resection_csv_file(file_name: str, threshold: float = 1.0):
+	data = []
+
+	with open(file_name, "r") as file:
+		for line in file:
+			item = line.strip().split(" ")
+			Time = float(item[0])
+			Px = float(item[1])
+			Py = float(item[2])
+			Pz = float(item[3])
+			array_point = np.array([Time, Px, Py, Pz, 1])
+			data.append(array_point)
+
+	prob = np.random.default_rng().uniform(size=len(data))
+	mask = (prob <= threshold)
+
+	return np.array(data)[mask]
+
+def read_prediction_data_experiment_csv_file(file_name: str, threshold: float = 1.0):
+	data = []
+
+	with open(file_name, "r") as file:
+		for line in file:
+			item = line.strip().split(" ")
+			Px = float(item[1])
+			Py = float(item[2])
+			Pz = float(item[3])
+			array_point = np.array([Px, Py, Pz, 1])
+			data.append(array_point)
+
+	prob = np.random.default_rng().uniform(size=len(data))
+	mask = (prob <= threshold)
+
+	return np.array(data)[mask]
+
 # def read_saved_tf(file_name):
 # 	Tf = []
 # 	with open(file_name, "r") as file:
@@ -1177,9 +1178,11 @@ def read_gps_file(name_file, limit_compteur):
 # 	return item
 
 def read_extrinsic_calibration_results_file(path_file):
-	list_values = []
-	list_values = list(np.genfromtxt(path_file, delimiter=' '))
-	return list_values
+	if(path_file==''):
+		return []
+	else:
+		list_values = list(np.genfromtxt(path_file, delimiter=' '))
+		return list_values
 
 
 # # Function which convert interpolated data pose into a specific format to use evo library
@@ -1831,88 +1834,118 @@ def read_calibration_prism_lidar_marmotte(file_name, file_name_output, name_lida
 
 	print("Conversion done !")
 
-# def save_error_list_to_file(errors: list, file_name: str):
-#     errors = np.array(errors)
-#     np.savetxt("./data/error_lists/"+file_name+".csv", errors, delimiter=" ")
-#
-# def save_tf_list_to_file(TFs: list, file_name: str):
-#     output = "./data/TF_lists/"+file_name+".csv"
-#     file = open(output,"w+")
-#     for i in TFs:
-#         file.write(str(i[0][0][0]))
-#         file.write(" ")
-#         file.write(str(i[0][0][1]))
-#         file.write(" ")
-#         file.write(str(i[0][0][2]))
-#         file.write(" ")
-#         file.write(str(i[0][0][3]))
-#         file.write(" ")
-#         file.write(str(i[0][1][0]))
-#         file.write(" ")
-#         file.write(str(i[0][1][1]))
-#         file.write(" ")
-#         file.write(str(i[0][1][2]))
-#         file.write(" ")
-#         file.write(str(i[0][1][3]))
-#         file.write(" ")
-#         file.write(str(i[0][2][0]))
-#         file.write(" ")
-#         file.write(str(i[0][2][1]))
-#         file.write(" ")
-#         file.write(str(i[0][2][2]))
-#         file.write(" ")
-#         file.write(str(i[0][2][3]))
-#         file.write("\n")
-#         file.write(str(i[1][0][0]))
-#         file.write(" ")
-#         file.write(str(i[1][0][1]))
-#         file.write(" ")
-#         file.write(str(i[1][0][2]))
-#         file.write(" ")
-#         file.write(str(i[1][0][3]))
-#         file.write(" ")
-#         file.write(str(i[1][1][0]))
-#         file.write(" ")
-#         file.write(str(i[1][1][1]))
-#         file.write(" ")
-#         file.write(str(i[1][1][2]))
-#         file.write(" ")
-#         file.write(str(i[1][1][3]))
-#         file.write(" ")
-#         file.write(str(i[1][2][0]))
-#         file.write(" ")
-#         file.write(str(i[1][2][1]))
-#         file.write(" ")
-#         file.write(str(i[1][2][2]))
-#         file.write(" ")
-#         file.write(str(i[1][2][3]))
-#         file.write("\n")
-#         file.write(str(i[2][0][0]))
-#         file.write(" ")
-#         file.write(str(i[2][0][1]))
-#         file.write(" ")
-#         file.write(str(i[2][0][2]))
-#         file.write(" ")
-#         file.write(str(i[2][0][3]))
-#         file.write(" ")
-#         file.write(str(i[2][1][0]))
-#         file.write(" ")
-#         file.write(str(i[2][1][1]))
-#         file.write(" ")
-#         file.write(str(i[2][1][2]))
-#         file.write(" ")
-#         file.write(str(i[2][1][3]))
-#         file.write(" ")
-#         file.write(str(i[2][2][0]))
-#         file.write(" ")
-#         file.write(str(i[2][2][1]))
-#         file.write(" ")
-#         file.write(str(i[2][2][2]))
-#         file.write(" ")
-#         file.write(str(i[2][2][3]))
-#         file.write("\n")
-#     file.close()
-#
+def save_error_list_to_file(errors: list, file_name: str):
+    errors = np.array(errors)
+    np.savetxt(file_name, errors, delimiter=" ")
+
+def save_tf_list_to_file(TFs: list, file_name: str):
+	output = file_name
+	file = open(output,"w+")
+	for i in TFs:
+		file.write(str(i[0][0][0]))
+		file.write(" ")
+		file.write(str(i[0][0][1]))
+		file.write(" ")
+		file.write(str(i[0][0][2]))
+		file.write(" ")
+		file.write(str(i[0][0][3]))
+		file.write(" ")
+		file.write(str(i[0][1][0]))
+		file.write(" ")
+		file.write(str(i[0][1][1]))
+		file.write(" ")
+		file.write(str(i[0][1][2]))
+		file.write(" ")
+		file.write(str(i[0][1][3]))
+		file.write(" ")
+		file.write(str(i[0][2][0]))
+		file.write(" ")
+		file.write(str(i[0][2][1]))
+		file.write(" ")
+		file.write(str(i[0][2][2]))
+		file.write(" ")
+		file.write(str(i[0][2][3]))
+		file.write("\n")
+	file.close()
+
+def save_tf_list_to_file_multi(TFs: list, file_name: str):
+	output = file_name
+	file = open(output,"w+")
+	for i in TFs:
+		file.write(str(i[0][0][0]))
+		file.write(" ")
+		file.write(str(i[0][0][1]))
+		file.write(" ")
+		file.write(str(i[0][0][2]))
+		file.write(" ")
+		file.write(str(i[0][0][3]))
+		file.write(" ")
+		file.write(str(i[0][1][0]))
+		file.write(" ")
+		file.write(str(i[0][1][1]))
+		file.write(" ")
+		file.write(str(i[0][1][2]))
+		file.write(" ")
+		file.write(str(i[0][1][3]))
+		file.write(" ")
+		file.write(str(i[0][2][0]))
+		file.write(" ")
+		file.write(str(i[0][2][1]))
+		file.write(" ")
+		file.write(str(i[0][2][2]))
+		file.write(" ")
+		file.write(str(i[0][2][3]))
+		file.write("\n")
+		file.write(str(i[1][0][0]))
+		file.write(" ")
+		file.write(str(i[1][0][1]))
+		file.write(" ")
+		file.write(str(i[1][0][2]))
+		file.write(" ")
+		file.write(str(i[1][0][3]))
+		file.write(" ")
+		file.write(str(i[1][1][0]))
+		file.write(" ")
+		file.write(str(i[1][1][1]))
+		file.write(" ")
+		file.write(str(i[1][1][2]))
+		file.write(" ")
+		file.write(str(i[1][1][3]))
+		file.write(" ")
+		file.write(str(i[1][2][0]))
+		file.write(" ")
+		file.write(str(i[1][2][1]))
+		file.write(" ")
+		file.write(str(i[1][2][2]))
+		file.write(" ")
+		file.write(str(i[1][2][3]))
+		file.write("\n")
+		file.write(str(i[2][0][0]))
+		file.write(" ")
+		file.write(str(i[2][0][1]))
+		file.write(" ")
+		file.write(str(i[2][0][2]))
+		file.write(" ")
+		file.write(str(i[2][0][3]))
+		file.write(" ")
+		file.write(str(i[2][1][0]))
+		file.write(" ")
+		file.write(str(i[2][1][1]))
+		file.write(" ")
+		file.write(str(i[2][1][2]))
+		file.write(" ")
+		file.write(str(i[2][1][3]))
+		file.write(" ")
+		file.write(str(i[2][2][0]))
+		file.write(" ")
+		file.write(str(i[2][2][1]))
+		file.write(" ")
+		file.write(str(i[2][2][2]))
+		file.write(" ")
+		file.write(str(i[2][2][3]))
+		file.write("\n")
+	file.close()
+
 # def save_results_drop_outliers(file_name_path, param, results_arr):
 # 	file_name = file_name_path + str(param[0]) + "-" + str(param[1]) + "-" + str(param[2]) + "-" + str(
 # 			param[3]) + "-" + str(param[4]) + "-" + str(param[5]) + ".txt"
@@ -2756,37 +2789,37 @@ def random_splitting_mask(data: np.ndarray, threshold: float = 0.75):
 #     T[1,3] = y
 #     T[2,3] = z
 #     return T
-#
-# def uniform_random_mask(size: int, threshold: float = 0.75):
-# 	"""
-# 	Return a mask filter using a uniform distribution.
-#
-# 	Parameters
-# 	----------
-# 	size : int
-# 		The size of the mask to generate.
-# 	threshold : float
-# 		The threshold used to generate the mask. Default = 0.75
-#
-# 	Returns
-# 	-------
-# 	mask : ndarray
-# 		A new 1D array holding boolean values.
-#
-# 	Examples
-# 	--------
-# 	>> a = np.arange(m*n).reshape(m,n)
-# 	>> mask = uniform_random_mask(m.shape[0], 0.75) # filter along first axis
-# 	>> filtered_m = m[mask]
-# 	>> mask = uniform_random_mask(m.shape[1], 0.75) # filter along second axis
-# 	>> filtered_m = m[:,mask]
-# 	"""
-# 	assert 0 < threshold <= 1, "The threshold must be greater than 0 and less than or equal to 1."
-#
-# 	uniform_dist = np.random.default_rng().uniform(size=size)
-# 	mask = uniform_dist <= threshold
-#
-# 	return mask
+
+def uniform_random_mask(size: int, threshold: float = 0.75):
+	"""
+	Return a mask filter using a uniform distribution.
+
+	Parameters
+	----------
+	size : int
+		The size of the mask to generate.
+	threshold : float
+		The threshold used to generate the mask. Default = 0.75
+
+	Returns
+	-------
+	mask : ndarray
+		A new 1D array holding boolean values.
+
+	Examples
+	--------
+	>> a = np.arange(m*n).reshape(m,n)
+	>> mask = uniform_random_mask(m.shape[0], 0.75) # filter along first axis
+	>> filtered_m = m[mask]
+	>> mask = uniform_random_mask(m.shape[1], 0.75) # filter along second axis
+	>> filtered_m = m[:,mask]
+	"""
+	assert 0 < threshold <= 1, "The threshold must be greater than 0 and less than or equal to 1."
+
+	uniform_dist = np.random.default_rng().uniform(size=size)
+	mask = uniform_dist <= threshold
+
+	return mask
 
 def distance_time_trajectory(list_trajectories_split,trimble_1,time_trimble_1):
     distance = []
@@ -2813,3 +2846,9 @@ def distance_time_trajectory(list_trajectories_split,trimble_1,time_trimble_1):
         distance.append(dist)
         time_travel.append(abs(time_1[-1]-time_1[0]))
     return sum(distance), sum(time_travel)
+
+def if_file_exist(path,option):
+    if(exists(path+option)):
+        return path
+    else:
+        return ""
