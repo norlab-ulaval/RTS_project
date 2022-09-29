@@ -2852,3 +2852,102 @@ def if_file_exist(path,option):
         return path
     else:
         return ""
+
+def check_if_converge_well(arr_error, Tf_results, debug):
+    sorted_arr_error = np.argsort(arr_error)
+    minimum_error_index = sorted_arr_error[0]
+    TF_1_ref = Tf_results[minimum_error_index][0]
+    TF_2_ref = Tf_results[minimum_error_index][1]
+    r1 = R_scipy.from_matrix(TF_1_ref[0:3,0:3])
+    r2 = R_scipy.from_matrix(TF_2_ref[0:3,0:3])
+    euler1_ref = r1.as_euler('xyz', degrees=True)
+    euler2_ref = r2.as_euler('xyz', degrees=True)
+
+    close_enough = False
+    for error_sorted in sorted_arr_error[1:3]:
+        TF_1 = Tf_results[error_sorted][0]
+        TF_2 = Tf_results[error_sorted][1]
+        r1 = R_scipy.from_matrix(TF_1[0:3,0:3])
+        r2 = R_scipy.from_matrix(TF_2[0:3,0:3])
+        euler1 = r1.as_euler('xyz', degrees=True)
+        euler2 = r2.as_euler('xyz', degrees=True)
+        r1_diff = abs(euler1[2]-euler1_ref[2])
+        r2_diff = abs(euler2[2]-euler2_ref[2])
+        t1_diff = np.linalg.norm(TF_1[0:3,3]-TF_1_ref[0:3,3])
+        t2_diff = np.linalg.norm(TF_2[0:3,3]-TF_2_ref[0:3,3])
+        if(debug):
+            print("Index: ", error_sorted)
+            print("Diff: ",r1_diff,r2_diff,t1_diff,t2_diff)
+        if(r1_diff>0.5 or r2_diff>0.5 or t1_diff>0.05 or t2_diff>0.05):
+            close_enough = False
+            break
+        else:
+            close_enough = True
+
+    if(close_enough==False):
+        minimum_error_index = sorted_arr_error[1]
+        TF_1_ref = Tf_results[minimum_error_index][0]
+        TF_2_ref = Tf_results[minimum_error_index][1]
+        r1 = R_scipy.from_matrix(TF_1_ref[0:3,0:3])
+        r2 = R_scipy.from_matrix(TF_2_ref[0:3,0:3])
+        euler1_ref = r1.as_euler('xyz', degrees=True)
+        euler2_ref = r2.as_euler('xyz', degrees=True)
+
+        close_enough = False
+        for error_sorted in sorted_arr_error[2:4]:
+            TF_1 = Tf_results[error_sorted][0]
+            TF_2 = Tf_results[error_sorted][1]
+            r1 = R_scipy.from_matrix(TF_1[0:3,0:3])
+            r2 = R_scipy.from_matrix(TF_2[0:3,0:3])
+            euler1 = r1.as_euler('xyz', degrees=True)
+            euler2 = r2.as_euler('xyz', degrees=True)
+            r1_diff = abs(euler1[2]-euler1_ref[2])
+            r2_diff = abs(euler2[2]-euler2_ref[2])
+            t1_diff = np.linalg.norm(TF_1[0:3,3]-TF_1_ref[0:3,3])
+            t2_diff = np.linalg.norm(TF_2[0:3,3]-TF_2_ref[0:3,3])
+            if(debug):
+                print("Index: ", error_sorted)
+                print("Diff: ",r1_diff,r2_diff,t1_diff,t2_diff)
+            if(r1_diff>0.5 or r2_diff>0.5 or t1_diff>0.05 or t2_diff>0.05):
+                close_enough = False
+                break
+            else:
+                close_enough = True
+
+    if(close_enough==False):
+        minimum_error_index = sorted_arr_error[2]
+        TF_1_ref = Tf_results[minimum_error_index][0]
+        TF_2_ref = Tf_results[minimum_error_index][1]
+        r1 = R_scipy.from_matrix(TF_1_ref[0:3,0:3])
+        r2 = R_scipy.from_matrix(TF_2_ref[0:3,0:3])
+        euler1_ref = r1.as_euler('xyz', degrees=True)
+        euler2_ref = r2.as_euler('xyz', degrees=True)
+
+        close_enough = False
+        for error_sorted in sorted_arr_error[3:5]:
+            TF_1 = Tf_results[error_sorted][0]
+            TF_2 = Tf_results[error_sorted][1]
+            r1 = R_scipy.from_matrix(TF_1[0:3,0:3])
+            r2 = R_scipy.from_matrix(TF_2[0:3,0:3])
+            euler1 = r1.as_euler('xyz', degrees=True)
+            euler2 = r2.as_euler('xyz', degrees=True)
+            r1_diff = abs(euler1[2]-euler1_ref[2])
+            r2_diff = abs(euler2[2]-euler2_ref[2])
+            t1_diff = np.linalg.norm(TF_1[0:3,3]-TF_1_ref[0:3,3])
+            t2_diff = np.linalg.norm(TF_2[0:3,3]-TF_2_ref[0:3,3])
+            if(debug):
+                print("Index: ", error_sorted)
+                print("Diff: ",r1_diff,r2_diff,t1_diff,t2_diff)
+            if(r1_diff>0.5 or r2_diff>0.5 or t1_diff>0.05 or t2_diff>0.05):
+                close_enough = False
+                break
+            else:
+                close_enough = True
+
+    if(close_enough==True):
+        print("Index minimum error: ", minimum_error_index)
+        print("Minimum error: ", arr_error[minimum_error_index])
+        return minimum_error_index
+    else:
+        print("Not converged well enough !! ")
+        return -1
