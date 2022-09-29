@@ -1165,12 +1165,12 @@ def read_gps_file(name_file, limit_compteur):
 #     error_exp = list(np.genfromtxt(error_file+'experiment.csv', delimiter=","))
 #
 #     return error_cp, error_exp
-#
-# def read_error_list_file_alone(error_file: str):
-# 	error_list = []
-# 	error_list = list(np.genfromtxt(error_file, delimiter=','))
-# 	return error_list
-#
+
+def read_error_list_file_alone(error_file: str):
+	error_list = []
+	error_list = list(np.genfromtxt(error_file, delimiter=','))
+	return error_list
+
 # def read_results_drop_outliers(file_name):
 # 	with open(file_name, "r") as file:
 # 		for line in file:
@@ -1801,19 +1801,19 @@ def read_calibration_prism_lidar_marmotte(file_name, file_name_output, name_lida
 		csv_file.write(str(dp13))
 		csv_file.write(" ")
 		csv_file.write(str(dp23))
-		csv_file.write("\n")
+		csv_file.write(" ")
 		csv_file.write(str(p1[0]))
 		csv_file.write(" ")
 		csv_file.write(str(p1[1]))
 		csv_file.write(" ")
 		csv_file.write(str(p1[2]))
-		csv_file.write("\n")
+		csv_file.write(" ")
 		csv_file.write(str(p2[0]))
 		csv_file.write(" ")
 		csv_file.write(str(p2[1]))
 		csv_file.write(" ")
 		csv_file.write(str(p2[2]))
-		csv_file.write("\n")
+		csv_file.write(" ")
 		csv_file.write(str(p3[0]))
 		csv_file.write(" ")
 		csv_file.write(str(p3[1]))

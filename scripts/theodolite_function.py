@@ -894,7 +894,6 @@ def inter_prism_distance_error_experiment(file_name, TF_list, Inter_prism_dist_l
 		dist_23_t = Inter_prism_dist_list[2]
 
 		error_inter_prism_dist = []
-
 		for i, j, k in zip(trimble_1.T, trimble_2.T, trimble_3.T):
 			error_inter_prism_dist.append(abs(np.linalg.norm(i[0:3] - j[0:3])-dist_12_t) * 1000)
 			error_inter_prism_dist.append(abs(np.linalg.norm(i[0:3] - k[0:3])-dist_13_t) * 1000)
