@@ -1,7 +1,7 @@
 import numpy as np
 from scipy import interpolate
 import torch
-from stheno import GP, EQ
+# from stheno import GP, EQ
 
 # from matplotlib import pyplot as plt
 # import random
