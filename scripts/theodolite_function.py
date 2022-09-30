@@ -3,8 +3,13 @@ import random
 import math
 from numpy import linalg
 from scripts import theodolite_utils as tu
+from scripts import theodolite_plot_function as tp
+from scripts import prediction_utils as pu
 from scripts.theodolite_values import *
 from scripts.theodolite_plot_function import *
+from tqdm import tqdm
+import scipy
+from scipy.spatial.transform import Rotation as R_scipy
 
 ###################################################################################################
 ###################################################################################################
@@ -23,7 +28,7 @@ def markers_histogram(number_markers,trimble_1,trimble_2,trimble_3, save_fig, na
 		distance_error.append(np.linalg.norm(trimble_1[0:3,i]-trimble_2[0:3,i])*1000)
 		distance_error.append(np.linalg.norm(trimble_3[0:3,i]-trimble_2[0:3,i])*1000)
 		distance_error.append(np.linalg.norm(trimble_1[0:3,i]-trimble_3[0:3,i])*1000)
-	plot_histogram(distance_error, save_fig, name_file, scale_x_min, scale_x_max, True)
+	tp.plot_histogram(distance_error, save_fig, name_file, scale_x_min, scale_x_max, True)
 
 ###################################################################################################
 ###################################################################################################
@@ -40,7 +45,7 @@ def markers_histogram(number_markers,trimble_1,trimble_2,trimble_3, save_fig, na
 # - distance_error_12, distance_error_13, distance_error_23: list of inter-prism distance
 def error_distance_not_moving(trimble_1, trimble_2, trimble_3, time_trimble_1, time_trimble_2, time_trimble_3, dist_max, time_max, one_prism):
 	# find tuple of not moving point
-	tuple_not_moving_trimble_1, tuple_not_moving_trimble_2, tuple_not_moving_trimble_3 = cluster_not_moving_points(trimble_1, trimble_2, trimble_3, time_trimble_1, time_trimble_2, time_trimble_3, dist_max, time_max)
+	tuple_not_moving_trimble_1, tuple_not_moving_trimble_2, tuple_not_moving_trimble_3 = tu.cluster_not_moving_points(trimble_1, trimble_2, trimble_3, time_trimble_1, time_trimble_2, time_trimble_3, dist_max, time_max)
 	mean_position_static_pose_1 = []
 	mean_position_static_pose_2 = []
 	mean_position_static_pose_3 = []
@@ -143,9 +148,9 @@ def error_distance_not_moving(trimble_1, trimble_2, trimble_3, time_trimble_1, t
 # - list_interval: list of interval for each prism
 # - list_time: list of timestamp for each of these intervals
 def split_time_interval_all_data(time_trimble_1, time_trimble_2, time_trimble_3, limit_time_interval):
-	list_time_interval_1 = split_time_interval(time_trimble_1, limit_time_interval)
-	list_time_interval_2 = split_time_interval(time_trimble_2, limit_time_interval)
-	list_time_interval_3 = split_time_interval(time_trimble_3, limit_time_interval)
+	list_time_interval_1 = tu.split_time_interval(time_trimble_1, limit_time_interval)
+	list_time_interval_2 = tu.split_time_interval(time_trimble_2, limit_time_interval)
+	list_time_interval_3 = tu.split_time_interval(time_trimble_3, limit_time_interval)
 	list_interval = []
 	list_interval.append(list_time_interval_1)
 	list_interval.append(list_time_interval_2)
@@ -182,12 +187,12 @@ def merge_interval(list_interval, list_time, time_trimble_1, time_trimble_2, tim
 		else:
 			time_interval = np.array([max_Init,min_End])
 			#print(time_interval)
-			index_ini_1 = research_index_for_time(time_trimble_1, time_interval[0], limit_search)
-			index_ini_2 = research_index_for_time(time_trimble_2, time_interval[0], limit_search)
-			index_ini_3 = research_index_for_time(time_trimble_3, time_interval[0], limit_search)
-			index_end_1 = research_index_for_time(time_trimble_1, time_interval[1], limit_search)
-			index_end_2 = research_index_for_time(time_trimble_2, time_interval[1], limit_search)
-			index_end_3 = research_index_for_time(time_trimble_3, time_interval[1], limit_search)
+			index_ini_1 = tu.research_index_for_time(time_trimble_1, time_interval[0], limit_search)
+			index_ini_2 = tu.research_index_for_time(time_trimble_2, time_interval[0], limit_search)
+			index_ini_3 = tu.research_index_for_time(time_trimble_3, time_interval[0], limit_search)
+			index_end_1 = tu.research_index_for_time(time_trimble_1, time_interval[1], limit_search)
+			index_end_2 = tu.research_index_for_time(time_trimble_2, time_interval[1], limit_search)
+			index_end_3 = tu.research_index_for_time(time_trimble_3, time_interval[1], limit_search)
 			#print(index_ini_1, index_ini_2, index_ini_3, index_end_1, index_end_2, index_end_3)
 
 			if(index_ini_1!=-1 and index_ini_2!=-1 and index_ini_3!=-1 and index_end_1!=-1 and index_end_2!=-1 and index_end_3!=-1):
@@ -227,21 +232,21 @@ def time_interpolation_subtrajectories(time_step, list_trajectories_split, trimb
 		time_resolution = int(diff_time/time_step)
 		time_interpolated = np.linspace(time_debut, time_fin, num=time_resolution)
 		# Interpolation
-		f1_x = interpolate.interp1d(time1, traj1[0])
-		f1_y = interpolate.interp1d(time1, traj1[1])
-		f1_z = interpolate.interp1d(time1, traj1[2])
+		f1_x = scipy.interpolate.interp1d(time1, traj1[0])
+		f1_y = scipy.interpolate.interp1d(time1, traj1[1])
+		f1_z = scipy.interpolate.interp1d(time1, traj1[2])
 		traj1_x = f1_x(time_interpolated)
 		traj1_y = f1_y(time_interpolated)
 		traj1_z = f1_z(time_interpolated)
-		f2_x = interpolate.interp1d(time2, traj2[0])
-		f2_y = interpolate.interp1d(time2, traj2[1])
-		f2_z = interpolate.interp1d(time2, traj2[2])
+		f2_x = scipy.interpolate.interp1d(time2, traj2[0])
+		f2_y = scipy.interpolate.interp1d(time2, traj2[1])
+		f2_z = scipy.interpolate.interp1d(time2, traj2[2])
 		traj2_x = f2_x(time_interpolated)
 		traj2_y = f2_y(time_interpolated)
 		traj2_z = f2_z(time_interpolated)
-		f3_x = interpolate.interp1d(time3, traj3[0])
-		f3_y = interpolate.interp1d(time3, traj3[1])
-		f3_z = interpolate.interp1d(time3, traj3[2])
+		f3_x = scipy.interpolate.interp1d(time3, traj3[0])
+		f3_y = scipy.interpolate.interp1d(time3, traj3[1])
+		f3_z = scipy.interpolate.interp1d(time3, traj3[2])
 		traj3_x = f3_x(time_interpolated)
 		traj3_y = f3_y(time_interpolated)
 		traj3_z = f3_z(time_interpolated)
@@ -281,7 +286,7 @@ def ptp_minimization_with_interpolated_trajectories(interpolated_trajectories, i
 		for i in range(0,len(j[0].T)):
 			Q = np.array([j[0][:,i], j[1][:,i], j[2][:,i]]).T
 			Q =np.concatenate((Q, np.array([[1,1,1]])), axis=0)
-			T = point_to_point_minimization(P, Q)
+			T = tu.point_to_point_minimization(P, Q)
 			Pose_lidar.append(T)
 			prism_correct = T@P
 			Prism_corrected.append(prism_correct)
@@ -301,13 +306,13 @@ def find_warthog_not_moving_time_interval(speed, speed_limit, time_limit):
 	speed_low_detected = False
 	begin_speed_low = 0
 	for i in speed:
-		  if(abs(i[1])<speed_limit and speed_low_detected==False):
-		      begin_speed_low = i[0]
-		      speed_low_detected = True
-		  if(abs(i[1])>=speed_limit and speed_low_detected==True):
-		      if(abs(begin_speed_low-i[0])>time_limit):
-		          not_moving_time.append(np.array([begin_speed_low,i[0]]))
-		      speed_low_detected = False
+		if(abs(i[1])<speed_limit and speed_low_detected==False):
+		  begin_speed_low = i[0]
+		  speed_low_detected = True
+		if(abs(i[1])>=speed_limit and speed_low_detected==True):
+		  if(abs(begin_speed_low-i[0])>time_limit):
+			  not_moving_time.append(np.array([begin_speed_low,i[0]]))
+		  speed_low_detected = False
 	if(speed_low_detected==True and abs(begin_speed_low-i[0])>time_limit):
 		  not_moving_time.append(np.array([begin_speed_low,i[0]]))
 	return not_moving_time
@@ -325,24 +330,24 @@ def find_prism_not_moving_time(not_moving_time, time_trimble_1, time_trimble_2, 
 	not_moving_prism_3 = []
 	number_points_limit = 0
 	for i in not_moving_time:
-		  debut = i[0]
-		  fin = i[1]
-		  list_1 = []
-		  list_2 = []
-		  list_3 = []
-		  for j1 in range(0,len(time_trimble_1)):
-		      if(time_trimble_1[j1]>= debut and time_trimble_1[j1]<fin):
-		          list_1.append(j1)
-		  for j2 in range(0,len(time_trimble_2)):
-		      if(time_trimble_2[j2]>= debut and time_trimble_2[j2]<fin):
-		          list_2.append(j2)
-		  for j3 in range(0,len(time_trimble_3)):
-		      if(time_trimble_3[j3]>= debut and time_trimble_3[j3]<fin):
-		          list_3.append(j3)
-		  if(len(list_1)>number_points_limit and len(list_2)>number_points_limit and len(list_3)>number_points_limit):
-		      not_moving_prism_1.append(list_1)
-		      not_moving_prism_2.append(list_2)
-		      not_moving_prism_3.append(list_3)
+		debut = i[0]
+		fin = i[1]
+		list_1 = []
+		list_2 = []
+		list_3 = []
+		for j1 in range(0,len(time_trimble_1)):
+		  if(time_trimble_1[j1]>= debut and time_trimble_1[j1]<fin):
+			  list_1.append(j1)
+		for j2 in range(0,len(time_trimble_2)):
+		  if(time_trimble_2[j2]>= debut and time_trimble_2[j2]<fin):
+			  list_2.append(j2)
+		for j3 in range(0,len(time_trimble_3)):
+		  if(time_trimble_3[j3]>= debut and time_trimble_3[j3]<fin):
+			  list_3.append(j3)
+		if(len(list_1)>number_points_limit and len(list_2)>number_points_limit and len(list_3)>number_points_limit):
+		  not_moving_prism_1.append(list_1)
+		  not_moving_prism_2.append(list_2)
+		  not_moving_prism_3.append(list_3)
 	return not_moving_prism_1, not_moving_prism_2, not_moving_prism_3
 
 # Function to make tupple of prism positions when warthog is static
@@ -399,7 +404,7 @@ def find_interpolated_prism_not_moving_time(not_moving_time, interpolated_trajec
 			fin = i[1]
 			for j1 in range(0,len(k)):
 				if(k[j1]>= debut and k[j1]<fin):
-					  list_pose.append(j1)
+					list_pose.append(j1)
 		not_moving_interpolated_prism.append(list_pose)
 	return not_moving_interpolated_prism
 
@@ -418,7 +423,6 @@ def compute_interpolated_distance(not_moving_interpolated_prism, interpolated_tr
 			position_1 = j[0][0:3,k]
 			position_2 = j[1][0:3,k]
 			position_3 = j[2][0:3,k]
-
 			distance_12.append(abs(np.linalg.norm(position_1-position_2))*1000)
 			distance_13.append(abs(np.linalg.norm(position_1-position_3))*1000)
 			distance_23.append(abs(np.linalg.norm(position_2-position_3))*1000)
@@ -449,7 +453,7 @@ def sort_interpolated_point_accoridng_to_speed(speed_min, speed_max, speed_step,
 			distance_23_speed.append([])
 	for i,j in zip(interpolated_trajectories, interpolated_time):
 		for k in range(0,len(j)):
-			index = research_index_for_time_speed(speed, j[k], 0.1)
+			index = tu.research_index_for_time_speed(speed, j[k], 0.1)
 			if(index!=-1):
 				speed_point = abs(speed[index][1])
 				position_1 = i[0][0:3,k]
@@ -540,7 +544,7 @@ def statistic_dynamic_interpolated_points(distance_12_not_moving, distance_13_no
 def process_data_theodolite(file_marker, file_rosbag_theodolite, file_rosbag_imu):
 	print("Marker data reading")
 	# Markers reference
-	marker_1, marker_2, marker_3, T_1, T_2, T_3 = read_marker_file(file_marker, 1)
+	marker_1, marker_2, marker_3, T_1, T_2, T_3 = tu.read_marker_file(file_marker, 1)
 	Tf = []
 	Tf.append(T_1)
 	Tf.append(T_2)
@@ -571,10 +575,10 @@ def process_data_theodolite(file_marker, file_rosbag_theodolite, file_rosbag_imu
 	else:
 		wheel = False
 	# Read rosbag for linear velocity
-	speed, accel = read_rosbag_imu_node(file_rosbag_imu, wheel)
+	speed, accel = tu.read_rosbag_imu_node(file_rosbag_imu, wheel)
 	print("Angular velocity reading")
 	# Read rosbag for angular velocity around Z
-	angular_speed = read_rosbag_imu_data(file_rosbag_imu, wheel)
+	angular_speed = tu.read_rosbag_imu_data(file_rosbag_imu, wheel)
 	print("Finish !")
 
 	return interpolated_trajectories, interpolated_time, speed, angular_speed, accel
@@ -582,9 +586,9 @@ def process_data_theodolite(file_marker, file_rosbag_theodolite, file_rosbag_imu
 def process_data_TS(path, inter_error, file_rosbag_imu):
 
 	prefix = "GP-10-20"
-	P1 = np.array(read_prediction_data_csv_file(path + prefix + "_1.csv"))
-	P2 = np.array(read_prediction_data_csv_file(path + prefix + "_2.csv"))
-	P3 = np.array(read_prediction_data_csv_file(path + prefix + "_3.csv"))
+	P1 = np.array(tu.read_prediction_data_csv_file(path + prefix + "_1.csv"))
+	P2 = np.array(tu.read_prediction_data_csv_file(path + prefix + "_2.csv"))
+	P3 = np.array(tu.read_prediction_data_csv_file(path + prefix + "_3.csv"))
 
 	dist_prism = []
 	origin = 0
@@ -598,10 +602,10 @@ def process_data_TS(path, inter_error, file_rosbag_imu):
 	print("Linear velocity reading")
 
 	# Read rosbag for linear velocity
-	speed, accel = read_rosbag_imu_node(file_rosbag_imu, True)
+	speed, accel = tu.read_rosbag_imu_node(file_rosbag_imu, True)
 	print("Angular velocity reading")
 	# Read rosbag for angular velocity around Z
-	angular_speed = read_rosbag_imu_data(file_rosbag_imu, True)
+	angular_speed = tu.read_rosbag_imu_data(file_rosbag_imu, True)
 
 	linear_speed_list = []
 	angular_speed_list = []
@@ -609,13 +613,13 @@ def process_data_TS(path, inter_error, file_rosbag_imu):
 	mean_error_prisms_list = []
 	timestamp = []
 	for i in dist_prism:
-		index = research_index_for_time_speed(speed, i[0], 0.4)
+		index = tu.research_index_for_time_speed(speed, i[0], 0.4)
 		if (index != -1):
 			speed_value = speed[index][1]
-			index = research_index_for_time_speed(angular_speed, i[0], 0.4)
+			index = tu.research_index_for_time_speed(angular_speed, i[0], 0.4)
 			if (index != -1):
 				angular_value = angular_speed[index][1]
-				index = research_index_for_time_speed(accel, i[0], 0.4)
+				index = tu.research_index_for_time_speed(accel, i[0], 0.4)
 				if (index != -1):
 					accel_value = accel[index][1]
 					dist_12 = i[1]
@@ -663,13 +667,13 @@ def sort_interpolated_point_according_to_speed_and_angular(interpolated_trajecto
 	mean_error_prisms_list = mean_error_prisms_l
 	for i,j in zip(interpolated_trajectories, interpolated_time):
 		for k in range(0,len(j)):
-			index = research_index_for_time_speed(speed, j[k], 0.4)
+			index = tu.research_index_for_time_speed(speed, j[k], 0.4)
 			if(index!=-1):
 				speed_value = speed[index][1]
-				index = research_index_for_time_speed(angular, j[k], 0.4)
+				index = tu.research_index_for_time_speed(angular, j[k], 0.4)
 				if(index!=-1):
 					angular_value = angular[index][1]
-					index = research_index_for_time_speed(accel, j[k], 0.4)
+					index = tu.research_index_for_time_speed(accel, j[k], 0.4)
 					if(index!=-1):
 						accel_value = accel[index][1]
 						position_1 = i[0][0:3,k]
@@ -725,8 +729,8 @@ def analyze_std_ptp(P, noise_min, noise_max, noise_step, number):
 			noise_point = np.array([X,Y,Z])
 			Q = np.array([P[0] + noise_point[:,0], P[1] + noise_point[:,1], P[2] + noise_point[:,2]])
 			Q =np.concatenate((Q, np.array([[1,1,1]])), axis=0)
-			T = point_to_point_minimization(P, Q)
-			r = R.from_matrix(T[0:3,0:3])
+			T = tu.point_to_point_minimization(P, Q)
+			r = R_scipy.from_matrix(T[0:3,0:3])
 			euler = r.as_euler('zyx', degrees=True)
 			list_yaw.append(euler[0])
 			list_pitch.append(euler[1])
@@ -776,7 +780,7 @@ def distance_between_gps(gps_front, gps_back):
 	origin_time = 0
 	index_arr = 0
 	for i in range(0,len(gps_front)-1):
-		index, time_index = findClosest(np.array(gps_back)[index_arr+1:-1,0], np.array(gps_front)[i,0])
+		index, time_index = tu.findClosest(np.array(gps_back)[index_arr+1:-1,0], np.array(gps_front)[i,0])
 		dist_time = abs(time_index-np.array(gps_front)[i,0])
 		index_arr = index + index_arr
 		if dist_time > 0.4:
@@ -863,7 +867,7 @@ def distance_between_not_moving_gps(not_moving_gps_front, not_moving_gps_back, g
 	distance_gps = []
 	for i,j in zip(not_moving_gps_front,not_moving_gps_back):
 		for k in i:
-			index = research_index_for_time_gps(gps_back, j, gps_front[k][0], time_limit)
+			index = tu.research_index_for_time_gps(gps_back, j, gps_front[k][0], time_limit)
 			if(index!=-1):
 				gps_front_position = np.array([gps_front[k][1],gps_front[k][2],gps_front[k][3]])
 				gps_back_position = np.array([gps_back[index][1],gps_back[index][2],gps_back[index][3]])
@@ -902,3 +906,144 @@ def inter_prism_distance_error_experiment(file_name, TF_list, Inter_prism_dist_l
 		return error_inter_prism_dist
 	else:
 		return []
+
+def drop_points_filtering(file_name_path, param, repo_out):
+	number_points_input = []
+	number_points_out_outliers = []
+	number_points_out_filters_only = []
+	number_points_out_filters = []
+	number_points_out_outliers_end_with_outliers = []
+	number_points_out_outliers_end_without_ouliers = []
+
+	for i, repo_out_name in zip(file_name_path, repo_out):
+		print(i)
+
+		# Data filtered with outliers
+		t1, t2, t3, tp1, tp2, tp3, d1, d2, d3, a1, a2, a3, e1, e2, e3 = tu.read_rosbag_theodolite_without_tf_raw_data_pre_filtered(
+			i)
+		index_1_f = tu.thresold_raw_data(t1, d1, a1, e1, param[0], param[1] * 3.1415926 / 180,
+										   param[2] * 3.1415926 / 180, param[3])
+		index_2_f = tu.thresold_raw_data(t2, d2, a2, e2, param[0], param[1] * 3.1415926 / 180,
+										   param[2] * 3.1415926 / 180, param[3])
+		index_3_f = tu.thresold_raw_data(t3, d3, a3, e3, param[0], param[1] * 3.1415926 / 180,
+										   param[2] * 3.1415926 / 180, param[3])
+		t1 = t1[index_1_f]
+		t2 = t2[index_2_f]
+		t3 = t3[index_3_f]
+		tp1 = tp1[index_1_f].T
+		tp2 = tp2[index_2_f].T
+		tp3 = tp3[index_3_f].T
+
+		# Raw data
+		tr1, tr2, tr3, trp1, trp2, trp3, d1, d2, d3, a1, a2, a3, e1, e2, e3 = tu.read_rosbag_theodolite_without_tf_raw_data(
+			i)
+
+		sum_input_points = len(tr1) + len(tr2) + len(tr3)
+		sum_outliers_points = len(t1) + len(t2) + len(t3)
+
+		# data filtered in pipeline
+		list_interval, list_time = split_time_interval_all_data(t1, t2, t3, param[3])
+		list_trajectories_split = merge_interval(list_interval, list_time, t1, t2, t3, param[3])
+
+		sum_filters_points = 0
+		sum_filters_points_with_outliers = 0
+
+		for j in tqdm(list_trajectories_split):
+			index_1 = np.array([j[0, 0], j[1, 0]])
+			index_2 = np.array([j[0, 1], j[1, 1]])
+			index_3 = np.array([j[0, 2], j[1, 2]])
+
+			sum_filters_points = sum_filters_points + len(t1[index_1[0]:index_1[1]]) + len(
+				t2[index_2[0]:index_2[1]]) + len(t3[index_3[0]:index_3[1]])
+
+			index_1 = pu.delta_t_function(index_1, t1, param[4])
+			index_2 = pu.delta_t_function(index_2, t2, param[4])
+			index_3 = pu.delta_t_function(index_3, t3, param[4])
+
+			begin = np.max([t1[index_1[0]], t2[index_2[0]], t3[index_3[0]]])
+			end = np.min([t1[index_1[1]], t2[index_2[1]], t3[index_3[1]]])
+
+			if (abs(end - begin) > param[5] and begin < end):
+				sum_filters_points_with_outliers = sum_filters_points_with_outliers + len(
+					t1[index_1[0]:index_1[1]]) + len(t2[index_2[0]:index_2[1]]) + len(t3[index_3[0]:index_3[1]])
+
+			# Raw data in pipeline
+		list_interval, list_time = split_time_interval_all_data(tr1, tr2, tr3, param[3])
+		list_trajectories_split = merge_interval(list_interval, list_time, tr1, tr2, tr3, param[3])
+
+		sum_filters_points_only = 0
+		sum_filters_points_without_outliers = 0
+
+		for j in tqdm(list_trajectories_split):
+			index_1 = np.array([j[0, 0], j[1, 0]])
+			index_2 = np.array([j[0, 1], j[1, 1]])
+			index_3 = np.array([j[0, 2], j[1, 2]])
+
+			sum_filters_points_only = sum_filters_points_only + len(tr1[index_1[0]:index_1[1]]) + len(
+				tr2[index_2[0]:index_2[1]]) + len(tr3[index_3[0]:index_3[1]])
+
+			index_1 = pu.delta_t_function(index_1, tr1, param[4])
+			index_2 = pu.delta_t_function(index_2, tr2, param[4])
+			index_3 = pu.delta_t_function(index_3, tr3, param[4])
+
+			begin = np.max([tr1[index_1[0]], tr2[index_2[0]], tr3[index_3[0]]])
+			end = np.min([tr1[index_1[1]], tr2[index_2[1]], tr3[index_3[1]]])
+
+			if (abs(end - begin) > param[5] and begin < end):
+				sum_filters_points_without_outliers = sum_filters_points_without_outliers + len(
+					tr1[index_1[0]:index_1[1]]) + len(tr2[index_2[0]:index_2[1]]) + len(tr3[index_3[0]:index_3[1]])
+
+		number_points_input.append(sum_input_points)
+		number_points_out_outliers.append(sum_outliers_points)
+		number_points_out_filters.append(sum_filters_points)
+		number_points_out_filters_only.append(sum_filters_points_only)
+		number_points_out_outliers_end_with_outliers.append(sum_filters_points_with_outliers)
+		number_points_out_outliers_end_without_ouliers.append(sum_filters_points_without_outliers)
+
+		results_arr = np.array([sum_input_points, sum_outliers_points, sum_filters_points, sum_filters_points_only,
+								sum_filters_points_with_outliers, sum_filters_points_without_outliers])
+		tu.save_results_drop_outliers(repo_out_name+"ablation_tests/", param, results_arr)
+
+	print("Results done !")
+
+	return number_points_input, number_points_out_outliers, number_points_out_filters, number_points_out_filters_only, number_points_out_outliers_end_with_outliers, number_points_out_outliers_end_without_ouliers
+
+def drop_outlier_filtering_loop(param,file_list,repo_out_list):
+    mean_points_input = []
+    mean_point_out_outlier = []
+    mean_point_out_filter = []
+    mean_point_out_filter_only = []
+    mean_points_out_outliers_end_with_outliers = []
+    mean_points_out_outliers_end_without_outliers = []
+    for i in param:
+        print("**********************************************")
+        print("**********************************************")
+        print(i)
+        number_points_input, number_points_out_outliers, number_points_out_filters, number_points_out_filters_only, number_points_out_outliers_end_with_outliers, number_points_out_outliers_end_without_ouliers = drop_points_filtering(file_list, i, repo_out_list)
+        mean_points_input.append(np.sum(number_points_input))
+        mean_point_out_outlier.append(np.sum(number_points_out_outliers))
+        mean_point_out_filter.append(np.sum(number_points_out_filters))
+        mean_point_out_filter_only.append(np.sum(number_points_out_filters_only))
+        mean_points_out_outliers_end_with_outliers.append(np.sum(number_points_out_outliers_end_with_outliers))
+        mean_points_out_outliers_end_without_outliers.append(np.sum(number_points_out_outliers_end_without_ouliers))
+    return mean_points_input,mean_point_out_outlier,mean_point_out_filter,mean_point_out_filter_only,mean_points_out_outliers_end_with_outliers,mean_points_out_outliers_end_without_outliers
+
+def percentage_points_removed(mean_points_input, mean_point_out_outlier, mean_point_out_filter, mean_point_out_filter_only, mean_points_out_outliers_end_with_outliers, mean_points_out_outliers_end_without_outliers):
+    percentage_out_outliers = []
+    percentage_out_filters = []
+    percentage_out_total_outliers_filters = []
+    percentage_out_end_outliers_only = []
+    percentage_out_total = []
+    for i,j,k,l,m,n in zip(mean_points_input, mean_point_out_outlier, mean_point_out_filter, mean_point_out_filter_only, mean_points_out_outliers_end_with_outliers, mean_points_out_outliers_end_without_outliers):
+        percentage_outliers_only = (i-j)/i*100
+        percentage_filters_only = (i-l)/i*100
+        percentage_total_outliers_filters = (i-k)/i*100
+        percentage_end_outliers_only = abs(l-n)/i*100
+        percentage_total = (i-m)/i*100
+
+        percentage_out_outliers.append(percentage_outliers_only)
+        percentage_out_filters.append(percentage_filters_only)
+        percentage_out_total_outliers_filters.append(percentage_total_outliers_filters)
+        percentage_out_end_outliers_only.append(percentage_end_outliers_only)
+        percentage_out_total.append(percentage_total)
+    return percentage_out_outliers,percentage_out_filters,percentage_out_total_outliers_filters,percentage_out_end_outliers_only,percentage_out_total

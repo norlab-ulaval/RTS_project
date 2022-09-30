@@ -1184,6 +1184,13 @@ def read_extrinsic_calibration_results_file(path_file):
 		list_values = list(np.genfromtxt(path_file, delimiter=' '))
 		return list_values
 
+def read_results_drop_outliers(file_name):
+    data = []
+    with open(file_name, "r") as file:
+        for line in file:
+            item = line.strip().split(" ")
+            data.append(item)
+    return data
 
 # # Function which convert interpolated data pose into a specific format to use evo library
 # # Input:
@@ -1501,6 +1508,23 @@ def Convert_raw_data_GNSS_to_csv(time_data, point_data, file_name):
 # 		csv_file.write("\n")
 # 	csv_file.close()
 # 	print("Conversion done !")
+
+def save_results_drop_outliers(file_name_path, param, results_arr):
+    file_name = file_name_path+str(param[0])+"-"+str(param[1])+"-"+str(param[2])+"-"+str(param[3])+"-"+str(param[4])+"-"+str(param[5])+".txt"
+    file = open(file_name,"w+")
+    file.write(str(results_arr[0]))
+    file.write(" ")
+    file.write(str(results_arr[1]))
+    file.write(" ")
+    file.write(str(results_arr[2]))
+    file.write(" ")
+    file.write(str(results_arr[3]))
+    file.write(" ")
+    file.write(str(results_arr[4]))
+    file.write(" ")
+    file.write(str(results_arr[5]))
+    file.write("\n")
+    file.close()
 
 # Function which convert the inter-GPS distance to a csv file
 # Input:
