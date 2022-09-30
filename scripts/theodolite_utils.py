@@ -1171,11 +1171,11 @@ def read_error_list_file_alone(error_file: str):
 	error_list = list(np.genfromtxt(error_file, delimiter=','))
 	return error_list
 
-# def read_results_drop_outliers(file_name):
-# 	with open(file_name, "r") as file:
-# 		for line in file:
-# 			item = line.strip().split(" ")
-# 	return item
+def read_results_drop_outliers(file_name):
+	with open(file_name, "r") as file:
+		for line in file:
+			item = line.strip().split(" ")
+	return item
 
 def read_extrinsic_calibration_results_file(path_file):
 	if(path_file==''):
@@ -1184,13 +1184,6 @@ def read_extrinsic_calibration_results_file(path_file):
 		list_values = list(np.genfromtxt(path_file, delimiter=' '))
 		return list_values
 
-def read_results_drop_outliers(file_name):
-    data = []
-    with open(file_name, "r") as file:
-        for line in file:
-            item = line.strip().split(" ")
-            data.append(item)
-    return data
 
 # # Function which convert interpolated data pose into a specific format to use evo library
 # # Input:
@@ -2975,3 +2968,72 @@ def check_if_converge_well(arr_error, Tf_results, debug):
     else:
         print("Not converged well enough !! ")
         return -1
+
+def result_prediction(file_name_path, path_file_type, path_option):
+	dist_prism_all = []
+	dist_separate = []
+	for i in file_name_path:
+		file_sensors = if_file_exist(i + "sensors_extrinsic_calibration/calibration_results.csv", '')
+		extrinsic_calibration_results = read_extrinsic_calibration_results_file(file_sensors)
+		if(len(extrinsic_calibration_results)>=3):
+			_, _, _, T_1, T_2, T_3 = read_marker_file(i+'total_stations/GCP.txt', 1, 1)
+			trimble_1 = read_prediction_data_resection_csv_file(i+path_option+path_file_type+"1.csv")
+			trimble_2 = read_prediction_data_resection_csv_file(i+path_option+path_file_type+"2.csv")
+			trimble_3 = read_prediction_data_resection_csv_file(i+path_option+path_file_type+"3.csv")
+			if(len(np.array(trimble_1)) > 0 and len(np.array(trimble_2)) > 0 and len(np.array(trimble_3)) > 0):
+				p1 = np.array(trimble_1)[:,1:5]
+				p2 = np.array(trimble_2)[:,1:5]
+				p3 = np.array(trimble_3)[:,1:5]
+				p1t = T_1@p1.T
+				p2t = T_2@p2.T
+				p3t = T_3@p3.T
+				dist = []
+				for t1,t2,t3 in zip(p1t.T,p2t.T,p3t.T):
+					dp12 = abs(np.linalg.norm(t1[0:3]-t2[0:3])-extrinsic_calibration_results[0])*1000
+					dp13 = abs(np.linalg.norm(t1[0:3]-t3[0:3])-extrinsic_calibration_results[1])*1000
+					dp23 = abs(np.linalg.norm(t2[0:3]-t3[0:3])-extrinsic_calibration_results[2])*1000
+					dist.append(dp12)
+					dist.append(dp13)
+					dist.append(dp23)
+					dist_prism_all.append(dp12)
+					dist_prism_all.append(dp13)
+					dist_prism_all.append(dp23)
+				dist_separate.append(dist)
+			else:
+				print("No data in file(s) "+i+"  !!")
+		else:
+			print("No inter-prism distances !")
+	print("Results done !")
+	dist_prism_all = np.array(dist_prism_all)
+	return dist_prism_all, dist_separate
+
+def read_and_compute_drop_outliers_filters_results(param,path, path_option):
+	mpi_r = []
+	mpoo_r = []
+	mpof_r = []
+	mpofo_r = []
+	mpooewo_r = []
+	mpooewo_r = []
+	for i in param:
+		result_1 = []
+		result_2 = []
+		result_3 = []
+		result_4 = []
+		result_5 = []
+		result_6 = []
+		for j in path:
+			file_name = j+path_option+str(i[0])+"-"+str(i[1])+"-"+str(i[2])+"-"+str(i[3])+"-"+str(i[4])+"-"+str(i[5])+".txt"
+			results = read_results_drop_outliers(file_name)
+			result_1.append(float(results[0]))
+			result_2.append(float(results[1]))
+			result_3.append(float(results[2]))
+			result_4.append(float(results[3]))
+			result_5.append(float(results[4]))
+			result_6.append(float(results[5]))
+		mpi_r.append(np.sum(result_1))
+		mpoo_r.append(np.sum(result_2))
+		mpof_r.append(np.sum(result_3))
+		mpofo_r.append(np.sum(result_4))
+		mpooewo_r.append(np.sum(result_5))
+		mpooewo_r.append(np.sum(result_6))
+	return mpi_r,mpoo_r,mpof_r,mpofo_r,mpooewo_r,mpooewo_r
