@@ -1,7 +1,7 @@
 import numpy as np
 from scipy import interpolate
 import torch
-# from stheno import GP, EQ
+from stheno.torch import GP, EQ
 
 # from matplotlib import pyplot as plt
 # import random
@@ -514,13 +514,6 @@ def linear_prediction(T_pred, time_origin, X_1_interp, Y_1_interp, Z_1_interp, X
 #         md = np.mean([d12, d13, d23])
 #         error_euclidian_GP.append(np.array([d12, d13, d23, md]))
 #     return error_euclidian_GP, T_prediction
-#
-#
-# #import lab as B
-# import matplotlib.pyplot as plt
-# import torch
-# from wbml.plot import tweak
-# from stheno.torch import EQ, GP, Matern52, Matern32
 
 class Model_stheno(torch.nn.Module):
     """A GP model with learnable parameters."""
@@ -558,7 +551,6 @@ def GP_function_stheno(x, x_obs, y_obs, variance, lengthscale, noise_init, optim
     # Condition on observations and make predictions after optimisation.
     f_post = f | (f(x_obs, noise), y_obs)
     prior_after = f, noise
-    print(f)
     #mean, lower, upper = f_post(x, noise).marginal_credible_bounds()
     mean, variance = f_post(x, noise).marginals()
     return mean.detach().numpy().flatten(), variance.detach().numpy().flatten()
