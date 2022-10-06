@@ -21,7 +21,7 @@ This library is linked to the project RTS of the [Norlab Laboratory](https://nor
 ## Installation
 
 RTS_Extrinsic_Calibration is supported on **Python 3.8.14** on **Ubuntu 22.04**.
-You might also want to use a [virtual environment](https://github.com/norlab-ulaval/RTS_Extrinsic_Calibration/doc/install_in_virtualenv.md) for the installation.
+You might also want to use a [virtual environment](https://github.com/norlab-ulaval/RTS_Extrinsic_Calibration/blob/main/doc/install_in_virtualenv.md) for the installation.
 The `requirements.txt` file contains all the packages needed for the installation.
 
 ## Manual
@@ -30,9 +30,9 @@ Details about the code are in the [Wiki](https://github.com/norlab-ulaval/RTS_Ex
 
 ## Datasets
 
-A 2022 dataset consisting of `.bag` files with RTS data is available [Here](https://github.com/norlab-ulaval/RTS_Extrinsic_Calibration/) with a details explanation about the data collected.
+A 2022 dataset consisting of `.bag` files with RTS data is available [Here](https://github.com/norlab-ulaval/RTS_Extrinsic_Calibration/wiki) with a details explanation about the data collected.
 
-The direct link to the 2022 dataset for download is [Here](http://norlab.s3.valeria.science/Vaidis2022_dataset/Vaidis2022_dataset.zip?AWSAccessKeyId=H3XB5NQ8TRQ0XCHFG8CB&Expires=2269184931&Signature=JfN9%2F19LYGzulyhdmlT%2F%2B1jjw5I%3D)
+The direct link to the 2022 dataset for download is http://norlab.s3.valeria.science/Vaidis2022_dataset/Vaidis2022_dataset.zip?AWSAccessKeyId=H3XB5NQ8TRQ0XCHFG8CB&Expires=2269184931&Signature=JfN9%2F19LYGzulyhdmlT%2F%2B1jjw5I%3D (44GB).
 
 The 2022 dataset was taken with two different robotic platform and contains over 30 kilometers of prism trajectories tracked by three RTSs.
 
