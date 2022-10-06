@@ -3013,7 +3013,6 @@ def read_and_compute_drop_outliers_filters_results(param,path, path_option):
 	mpof_r = []
 	mpofo_r = []
 	mpooewo_r = []
-	mpooewo_r = []
 	for i in param:
 		result_1 = []
 		result_2 = []
@@ -3036,4 +3035,4 @@ def read_and_compute_drop_outliers_filters_results(param,path, path_option):
 		mpofo_r.append(np.sum(result_4))
 		mpooewo_r.append(np.sum(result_5))
 		mpooewo_r.append(np.sum(result_6))
-	return mpi_r,mpoo_r,mpof_r,mpofo_r,mpooewo_r,mpooewo_r
+	return mpi_r,mpoo_r,mpof_r,mpofo_r,mpooewo_r
