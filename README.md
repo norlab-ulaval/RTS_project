@@ -30,7 +30,7 @@ Details about the code are in the [Wiki](https://github.com/norlab-ulaval/RTS_Ex
 
 ## Datasets
 
-A 2022 dataset consisting of `.bag` files with RTS data is available [Here]([https://github.com/norlab-ulaval/RTS_Extrinsic_Calibration/wiki](https://github.com/norlab-ulaval/RTS_Extrinsic_Calibration/wiki/RTS-2022-Dataset)) with a details explanation about the data collected.
+A 2022 dataset consisting of `.bag` files with RTS data is available [Here]([https://github.com/norlab-ulaval/RTS_Extrinsic_Calibration/wiki/RTS-2022-Dataset]) with a details explanation about the data collected.
 
 The 2022 dataset was taken with two different robotic platform and contains over 30 kilometers of prism trajectories tracked by three RTSs.
 
