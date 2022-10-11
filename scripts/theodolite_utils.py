@@ -1409,79 +1409,79 @@ def Convert_raw_data_GNSS_to_csv(time_data, point_data, file_name):
 	csv_file.close()
 	print("Conversion done !")
 
-# def Convert_datane_to_csv(e_noise, filename_e):
-# 	csv_file = open(filename_e, "w+")
-# 	once = False
-# 	for i in e_noise:
-# 		if(once == False):
-# 			csv_file.write(str(i[3][0]))
-# 			csv_file.write("\n")
-# 			once = True
-# 		csv_file.write(str(i[0][0]))
-# 		csv_file.write(" ")
-# 		csv_file.write(str(i[0][1]))
-# 		csv_file.write(" ")
-# 		csv_file.write(str(i[0][2]))
-# 		csv_file.write(" ")
-# 		csv_file.write(str(i[1][0]))
-# 		csv_file.write(" ")
-# 		csv_file.write(str(i[1][1]))
-# 		csv_file.write(" ")
-# 		csv_file.write(str(i[1][2]))
-# 		csv_file.write(" ")
-# 		csv_file.write(str(i[2][0]))
-# 		csv_file.write(" ")
-# 		csv_file.write(str(i[2][1]))
-# 		csv_file.write(" ")
-# 		csv_file.write(str(i[2][2]))
-# 		csv_file.write("\n")
-# 	csv_file.close()
-# 	print("Conversion done !")
-#
-# def Convert_datapr_to_csv(t, T, filename):
-# 	csv_file = open(filename, "w+")
-# 	for j,i in zip(t,T):
-# 		csv_file.write(str(j))
-# 		csv_file.write(" ")
-# 		csv_file.write(str(i[0,0]))
-# 		csv_file.write(" ")
-# 		csv_file.write(str(i[0,1]))
-# 		csv_file.write(" ")
-# 		csv_file.write(str(i[0,2]))
-# 		csv_file.write(" ")
-# 		csv_file.write(str(i[0,3]))
-# 		csv_file.write(" ")
-# 		csv_file.write(str(i[1,0]))
-# 		csv_file.write(" ")
-# 		csv_file.write(str(i[1,1]))
-# 		csv_file.write(" ")
-# 		csv_file.write(str(i[1,2]))
-# 		csv_file.write(" ")
-# 		csv_file.write(str(i[1,3]))
-# 		csv_file.write(" ")
-# 		csv_file.write(str(i[2,0]))
-# 		csv_file.write(" ")
-# 		csv_file.write(str(i[2,1]))
-# 		csv_file.write(" ")
-# 		csv_file.write(str(i[2,2]))
-# 		csv_file.write(" ")
-# 		csv_file.write(str(i[2,3]))
-# 		csv_file.write("\n")
-# 	csv_file.close()
-# 	print("Conversion done !")
-#
-# def Convert_datant_to_csv(t_noise_1, t_noise_2, t_noise_3, filename_t):
-# 	csv_file = open(filename_t, "w+")
-# 	for i,j,k in zip(t_noise_1, t_noise_2, t_noise_3):
-# 		csv_file.write(str(i))
-# 		csv_file.write(" ")
-# 		csv_file.write(str(j))
-# 		csv_file.write(" ")
-# 		csv_file.write(str(k))
-# 		csv_file.write("\n")
-# 	csv_file.close()
-# 	print("Conversion done !")
-#
+def Convert_datane_to_csv(e_noise, filename_e):
+	csv_file = open(filename_e, "w+")
+	once = False
+	for i in e_noise:
+		if(once == False):
+			csv_file.write(str(i[3][0]))
+			csv_file.write("\n")
+			once = True
+		csv_file.write(str(i[0][0]))
+		csv_file.write(" ")
+		csv_file.write(str(i[0][1]))
+		csv_file.write(" ")
+		csv_file.write(str(i[0][2]))
+		csv_file.write(" ")
+		csv_file.write(str(i[1][0]))
+		csv_file.write(" ")
+		csv_file.write(str(i[1][1]))
+		csv_file.write(" ")
+		csv_file.write(str(i[1][2]))
+		csv_file.write(" ")
+		csv_file.write(str(i[2][0]))
+		csv_file.write(" ")
+		csv_file.write(str(i[2][1]))
+		csv_file.write(" ")
+		csv_file.write(str(i[2][2]))
+		csv_file.write("\n")
+	csv_file.close()
+	print("Conversion done !")
+
+def Convert_datapr_to_csv(t, T, filename):
+	csv_file = open(filename, "w+")
+	for j,i in zip(t,T):
+		csv_file.write(str(j))
+		csv_file.write(" ")
+		csv_file.write(str(i[0,0]))
+		csv_file.write(" ")
+		csv_file.write(str(i[0,1]))
+		csv_file.write(" ")
+		csv_file.write(str(i[0,2]))
+		csv_file.write(" ")
+		csv_file.write(str(i[0,3]))
+		csv_file.write(" ")
+		csv_file.write(str(i[1,0]))
+		csv_file.write(" ")
+		csv_file.write(str(i[1,1]))
+		csv_file.write(" ")
+		csv_file.write(str(i[1,2]))
+		csv_file.write(" ")
+		csv_file.write(str(i[1,3]))
+		csv_file.write(" ")
+		csv_file.write(str(i[2,0]))
+		csv_file.write(" ")
+		csv_file.write(str(i[2,1]))
+		csv_file.write(" ")
+		csv_file.write(str(i[2,2]))
+		csv_file.write(" ")
+		csv_file.write(str(i[2,3]))
+		csv_file.write("\n")
+	csv_file.close()
+	print("Conversion done !")
+
+def Convert_datant_to_csv(t_noise_1, t_noise_2, t_noise_3, filename_t):
+	csv_file = open(filename_t, "w+")
+	for i,j,k in zip(t_noise_1, t_noise_2, t_noise_3):
+		csv_file.write(str(i))
+		csv_file.write(" ")
+		csv_file.write(str(j))
+		csv_file.write(" ")
+		csv_file.write(str(k))
+		csv_file.write("\n")
+	csv_file.close()
+	print("Conversion done !")
+
 # def Convert_data_prediction_to_csv(time_data, prediction, file_name):
 # 	csv_file = open(file_name, "w+")
 # 	for i,j in zip(time_data, prediction):
@@ -2521,191 +2521,191 @@ def research_index_for_time(time_trimble, time_interval, limit_search):
 # 	return linear_speed_gps_utm
 #
 # #########################################################################################################################
-#
-# def Rx(theta):
-# 	return np.matrix([[1, 0, 0], [0, math.cos(theta), -math.sin(theta)], [0, math.sin(theta), math.cos(theta)]])
-#
-# def Ry(theta):
-# 	return np.matrix([[math.cos(theta), 0, math.sin(theta)], [0, 1, 0], [-math.sin(theta), 0, math.cos(theta)]])
-#
-# def Rz(theta):
-# 	return np.matrix([[math.cos(theta), -math.sin(theta), 0], [math.sin(theta), math.cos(theta), 0], [0, 0, 1]])
-#
-# def traj_simulation(t, speed_linear, speed_yaw, speed_pitch, speed_roll):
-# 	# Init
-# 	T_3d = []
-# 	yaw = []
-# 	pitch = []
-# 	roll = []
-# 	x = []
-# 	y = []
-# 	z = []
-# 	T_3d.append(np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]))
-# 	yaw.append(0)
-# 	pitch.append(0)
-# 	roll.append(0)
-# 	x.append(0)
-# 	y.append(0)
-# 	z.append(0)
-# 	dt = (t[1]-t[0])
-#
-# 	for i in range(1, len(t)):
-# 		# Update coordinates
-# 		dx = speed_linear[i] * dt
-# 		dy = 0
-# 		dz = 0
-# 		d_yaw = speed_yaw[i] * dt
-# 		d_pitch = speed_pitch[i] * dt
-# 		d_roll = speed_roll[i] * dt
-#
-# 		former_yaw = yaw[i - 1]
-# 		new_yaw = former_yaw + speed_yaw[i] * dt
-# 		former_pitch = pitch[i - 1]
-# 		new_pitch = former_pitch + speed_pitch[i] * dt
-# 		former_roll = roll[i - 1]
-# 		new_roll = former_roll + speed_roll[i] * dt
-#
-# 		# Compute new pose
-# 		R_transition_3D = np.array(Rz(d_yaw) @ Ry(d_pitch) @ Rx(d_roll))
-# 		Transition_3D = np.array([x[i - 1], y[i - 1], z[i - 1]]) + np.array([dx, dy, dz])
-# 		P_new_3D = R_transition_3D[0:3, 0:3] @ Transition_3D
-# 		R_new_3D = Rz(new_yaw) @ Ry(new_pitch) @ Rx(new_roll)
-# 		T_new_3d = np.column_stack((R_new_3D, P_new_3D.T))
-# 		T_new_new_3d = np.concatenate((T_new_3d, np.array([[0, 0, 0, 1]])), axis=0)
-#
-# 		# Save new 3D coordinates
-# 		T_3d.append(T_new_new_3d)
-# 		yaw.append(new_yaw)
-# 		pitch.append(new_pitch)
-# 		roll.append(new_roll)
-# 		x.append(P_new_3D.flatten()[0])
-# 		y.append(P_new_3D.flatten()[1])
-# 		z.append(P_new_3D.flatten()[2])
-#
-# 	return T_3d, yaw, pitch, roll, x, y, z
-#
-# def noise_apply(mode, mean_e, std_e, mean_g, std_g, mean_noise_t, std_noise_t, rate, T_arr, t, P1, P2, P3):
-# 	P1_ref = []
-# 	P2_ref = []
-# 	P3_ref = []
-# 	P1_wnoise_sub = []
-# 	P2_wnoise_sub = []
-# 	P3_wnoise_sub = []
-# 	P1_noise = []
-# 	P2_noise = []
-# 	P3_noise = []
-# 	P1_noise_sub = []
-# 	P2_noise_sub = []
-# 	P3_noise_sub = []
-# 	t_ref_1 = []
-# 	t_ref_2 = []
-# 	t_ref_3 = []
-# 	t_sub_1 = []
-# 	t_sub_2 = []
-# 	t_sub_3 = []
-# 	e_noise = []
-# 	t_noise_1 = []
-# 	t_noise_2 = []
-# 	t_noise_3 = []
-#
-# 	d1 = []
-# 	d2 = []
-# 	d3 = []
-#
-# 	global_noise_1 = np.random.normal(mean_g, std_g, size=3)
-# 	global_noise_2 = np.random.normal(mean_g, std_g, size=3)
-# 	global_noise_3 = np.random.normal(mean_g, std_g, size=3)
-#
-# 	# Noise measurements
-# 	for i in range(0, len(T_arr)):
-# 		# Reference
-# 		p1_ref = (T_arr[i] @ P1[0:4, 3]).T
-# 		p2_ref = (T_arr[i] @ P2[0:4, 3]).T
-# 		p3_ref = (T_arr[i] @ P3[0:4, 3]).T
-# 		d1.append(abs(np.linalg.norm(p1_ref - p2_ref))*1000)
-# 		d2.append(abs(np.linalg.norm(p1_ref - p3_ref)) * 1000)
-# 		d3.append(abs(np.linalg.norm(p2_ref - p3_ref)) * 1000)
-#
-# 		P1_ref.append(p1_ref)
-# 		P2_ref.append(p2_ref)
-# 		P3_ref.append(p3_ref)
-#
-# 		# Noise for each axis coordinate
-# 		e_p1 = np.random.normal(mean_e, std_e, size=3)
-# 		e_p2 = np.random.normal(mean_e, std_e, size=3)
-# 		e_p3 = np.random.normal(mean_e, std_e, size=3)
-# 		e_noise.append(np.array([e_p1, e_p2, e_p3, global_noise_1, global_noise_2, global_noise_3]))
-#
-# 		# Point with noise
-# 		p1_noise = (T_arr[i] @ P1)[0:3, 3].T + e_p1 + global_noise_1
-# 		p2_noise = (T_arr[i] @ P2)[0:3, 3].T + e_p2 + global_noise_2
-# 		p3_noise = (T_arr[i] @ P3)[0:3, 3].T + e_p3 + global_noise_3
-# 		P1_noise.append(p1_noise)
-# 		P2_noise.append(p2_noise)
-# 		P3_noise.append(p3_noise)
-#
-# 	# Check rate of T_arr
-# 	diff_t = t[1] - t[0]
-# 	subsampling_t = 1 / rate
-# 	div = round(subsampling_t / diff_t)
-#
-# 	if (mode == "Sync"):
-# 		for i in range(0, len(T_arr), div):
-# 			temporal_noise = np.random.normal(mean_noise_t, std_noise_t, size=3)
-# 			t_noise_1.append(temporal_noise[0])
-# 			t_noise_2.append(temporal_noise[1])
-# 			t_noise_3.append(temporal_noise[2])
-# 			t_ref_1.append(t[i])
-# 			t_ref_2.append(t[i])
-# 			t_ref_3.append(t[i])
-# 			t_sub_1.append(t[i]+temporal_noise[0])
-# 			t_sub_2.append(t[i]+temporal_noise[0])
-# 			t_sub_3.append(t[i]+temporal_noise[0])
-# 			P1_noise_sub.append(P1_noise[i])
-# 			P2_noise_sub.append(P2_noise[i])
-# 			P3_noise_sub.append(P3_noise[i])
-#
-# 			p1_ref = (T_arr[i] @ P1)[0:3, 3].T
-# 			p2_ref = (T_arr[i] @ P2)[0:3, 3].T
-# 			p3_ref = (T_arr[i] @ P3)[0:3, 3].T
-# 			P1_wnoise_sub.append(p1_ref)
-# 			P2_wnoise_sub.append(p2_ref)
-# 			P3_wnoise_sub.append(p3_ref)
-#
-# 	if (mode == "Async"):
-# 		div_async = round(div / 3)
-# 		sort_arr = np.array([1, 0, 0])
-# 		for i in range(0, len(T_arr), div_async):
-# 			temporal_noise = np.random.normal(mean_noise_t, std_noise_t, size=1)
-# 			if (sort_arr[0] == 1 and sort_arr[1] == 0 and sort_arr[2] == 0):
-# 				t_ref_1.append(t[i])
-# 				t_noise_1.append(temporal_noise[0])
-# 				t_sub_1.append(t[i]+temporal_noise[0])
-# 				P1_noise_sub.append(P1_noise[i])
-# 				sort_arr[0] = 0
-# 				sort_arr[1] = 1
-# 				p1_ref = (T_arr[i] @ P1)[0:3, 3].T
-# 				P1_wnoise_sub.append(p1_ref)
-# 			elif (sort_arr[0] == 0 and sort_arr[1] == 1 and sort_arr[2] == 0):
-# 				t_ref_2.append(t[i])
-# 				t_noise_2.append(temporal_noise[0])
-# 				t_sub_2.append(t[i]+temporal_noise[0])
-# 				P2_noise_sub.append(P2_noise[i])
-# 				sort_arr[1] = 0
-# 				sort_arr[2] = 1
-# 				p2_ref = (T_arr[i] @ P2)[0:3, 3].T
-# 				P2_wnoise_sub.append(p2_ref)
-# 			elif (sort_arr[0] == 0 and sort_arr[1] == 0 and sort_arr[2] == 1):
-# 				t_ref_3.append(t[i])
-# 				t_noise_3.append(temporal_noise[0])
-# 				t_sub_3.append(t[i]+temporal_noise[0])
-# 				P3_noise_sub.append(P3_noise[i])
-# 				sort_arr[2] = 0
-# 				sort_arr[0] = 1
-# 				p3_ref = (T_arr[i] @ P3)[0:3, 3].T
-# 				P3_wnoise_sub.append(p3_ref)
-#
-# 	return P1_ref, P2_ref ,P3_ref, P1_noise, P2_noise, P3_noise, P1_noise_sub, P2_noise_sub , P3_noise_sub, t_sub_1, t_sub_2, t_sub_3, e_noise, t_noise_1, t_noise_2, t_noise_3, t_ref_1, t_ref_2, t_ref_3, P1_wnoise_sub, P2_wnoise_sub, P3_wnoise_sub, d1, d2, d3
+
+def Rx(theta):
+	return np.matrix([[1, 0, 0], [0, math.cos(theta), -math.sin(theta)], [0, math.sin(theta), math.cos(theta)]])
+
+def Ry(theta):
+	return np.matrix([[math.cos(theta), 0, math.sin(theta)], [0, 1, 0], [-math.sin(theta), 0, math.cos(theta)]])
+
+def Rz(theta):
+	return np.matrix([[math.cos(theta), -math.sin(theta), 0], [math.sin(theta), math.cos(theta), 0], [0, 0, 1]])
+
+def traj_simulation(t, speed_linear, speed_yaw, speed_pitch, speed_roll):
+	# Init
+	T_3d = []
+	yaw = []
+	pitch = []
+	roll = []
+	x = []
+	y = []
+	z = []
+	T_3d.append(np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]))
+	yaw.append(0)
+	pitch.append(0)
+	roll.append(0)
+	x.append(0)
+	y.append(0)
+	z.append(0)
+	dt = (t[1]-t[0])
+
+	for i in range(1, len(t)):
+		# Update coordinates
+		dx = speed_linear[i] * dt
+		dy = 0
+		dz = 0
+		d_yaw = speed_yaw[i] * dt
+		d_pitch = speed_pitch[i] * dt
+		d_roll = speed_roll[i] * dt
+
+		former_yaw = yaw[i - 1]
+		new_yaw = former_yaw + speed_yaw[i] * dt
+		former_pitch = pitch[i - 1]
+		new_pitch = former_pitch + speed_pitch[i] * dt
+		former_roll = roll[i - 1]
+		new_roll = former_roll + speed_roll[i] * dt
+
+		# Compute new pose
+		R_transition_3D = np.array(Rz(d_yaw) @ Ry(d_pitch) @ Rx(d_roll))
+		Transition_3D = np.array([x[i - 1], y[i - 1], z[i - 1]]) + np.array([dx, dy, dz])
+		P_new_3D = R_transition_3D[0:3, 0:3] @ Transition_3D
+		R_new_3D = Rz(new_yaw) @ Ry(new_pitch) @ Rx(new_roll)
+		T_new_3d = np.column_stack((R_new_3D, P_new_3D.T))
+		T_new_new_3d = np.concatenate((T_new_3d, np.array([[0, 0, 0, 1]])), axis=0)
+
+		# Save new 3D coordinates
+		T_3d.append(T_new_new_3d)
+		yaw.append(new_yaw)
+		pitch.append(new_pitch)
+		roll.append(new_roll)
+		x.append(P_new_3D.flatten()[0])
+		y.append(P_new_3D.flatten()[1])
+		z.append(P_new_3D.flatten()[2])
+
+	return T_3d, yaw, pitch, roll, x, y, z
+
+def noise_apply(mode, mean_e, std_e, mean_g, std_g, mean_noise_t, std_noise_t, rate, T_arr, t, P1, P2, P3):
+	P1_ref = []
+	P2_ref = []
+	P3_ref = []
+	P1_wnoise_sub = []
+	P2_wnoise_sub = []
+	P3_wnoise_sub = []
+	P1_noise = []
+	P2_noise = []
+	P3_noise = []
+	P1_noise_sub = []
+	P2_noise_sub = []
+	P3_noise_sub = []
+	t_ref_1 = []
+	t_ref_2 = []
+	t_ref_3 = []
+	t_sub_1 = []
+	t_sub_2 = []
+	t_sub_3 = []
+	e_noise = []
+	t_noise_1 = []
+	t_noise_2 = []
+	t_noise_3 = []
+
+	d1 = []
+	d2 = []
+	d3 = []
+
+	global_noise_1 = np.random.normal(mean_g, std_g, size=3)
+	global_noise_2 = np.random.normal(mean_g, std_g, size=3)
+	global_noise_3 = np.random.normal(mean_g, std_g, size=3)
+
+	# Noise measurements
+	for i in range(0, len(T_arr)):
+		# Reference
+		p1_ref = (T_arr[i] @ P1[0:4, 3]).T
+		p2_ref = (T_arr[i] @ P2[0:4, 3]).T
+		p3_ref = (T_arr[i] @ P3[0:4, 3]).T
+		d1.append(abs(np.linalg.norm(p1_ref - p2_ref))*1000)
+		d2.append(abs(np.linalg.norm(p1_ref - p3_ref)) * 1000)
+		d3.append(abs(np.linalg.norm(p2_ref - p3_ref)) * 1000)
+
+		P1_ref.append(p1_ref)
+		P2_ref.append(p2_ref)
+		P3_ref.append(p3_ref)
+
+		# Noise for each axis coordinate
+		e_p1 = np.random.normal(mean_e, std_e, size=3)
+		e_p2 = np.random.normal(mean_e, std_e, size=3)
+		e_p3 = np.random.normal(mean_e, std_e, size=3)
+		e_noise.append(np.array([e_p1, e_p2, e_p3, global_noise_1, global_noise_2, global_noise_3]))
+
+		# Point with noise
+		p1_noise = (T_arr[i] @ P1)[0:3, 3].T + e_p1 + global_noise_1
+		p2_noise = (T_arr[i] @ P2)[0:3, 3].T + e_p2 + global_noise_2
+		p3_noise = (T_arr[i] @ P3)[0:3, 3].T + e_p3 + global_noise_3
+		P1_noise.append(p1_noise)
+		P2_noise.append(p2_noise)
+		P3_noise.append(p3_noise)
+
+	# Check rate of T_arr
+	diff_t = t[1] - t[0]
+	subsampling_t = 1 / rate
+	div = round(subsampling_t / diff_t)
+
+	if (mode == "Sync"):
+		for i in range(0, len(T_arr), div):
+			temporal_noise = np.random.normal(mean_noise_t, std_noise_t, size=3)
+			t_noise_1.append(temporal_noise[0])
+			t_noise_2.append(temporal_noise[1])
+			t_noise_3.append(temporal_noise[2])
+			t_ref_1.append(t[i])
+			t_ref_2.append(t[i])
+			t_ref_3.append(t[i])
+			t_sub_1.append(t[i]+temporal_noise[0])
+			t_sub_2.append(t[i]+temporal_noise[0])
+			t_sub_3.append(t[i]+temporal_noise[0])
+			P1_noise_sub.append(P1_noise[i])
+			P2_noise_sub.append(P2_noise[i])
+			P3_noise_sub.append(P3_noise[i])
+
+			p1_ref = (T_arr[i] @ P1)[0:3, 3].T
+			p2_ref = (T_arr[i] @ P2)[0:3, 3].T
+			p3_ref = (T_arr[i] @ P3)[0:3, 3].T
+			P1_wnoise_sub.append(p1_ref)
+			P2_wnoise_sub.append(p2_ref)
+			P3_wnoise_sub.append(p3_ref)
+
+	if (mode == "Async"):
+		div_async = round(div / 3)
+		sort_arr = np.array([1, 0, 0])
+		for i in range(0, len(T_arr), div_async):
+			temporal_noise = np.random.normal(mean_noise_t, std_noise_t, size=1)
+			if (sort_arr[0] == 1 and sort_arr[1] == 0 and sort_arr[2] == 0):
+				t_ref_1.append(t[i])
+				t_noise_1.append(temporal_noise[0])
+				t_sub_1.append(t[i]+temporal_noise[0])
+				P1_noise_sub.append(P1_noise[i])
+				sort_arr[0] = 0
+				sort_arr[1] = 1
+				p1_ref = (T_arr[i] @ P1)[0:3, 3].T
+				P1_wnoise_sub.append(p1_ref)
+			elif (sort_arr[0] == 0 and sort_arr[1] == 1 and sort_arr[2] == 0):
+				t_ref_2.append(t[i])
+				t_noise_2.append(temporal_noise[0])
+				t_sub_2.append(t[i]+temporal_noise[0])
+				P2_noise_sub.append(P2_noise[i])
+				sort_arr[1] = 0
+				sort_arr[2] = 1
+				p2_ref = (T_arr[i] @ P2)[0:3, 3].T
+				P2_wnoise_sub.append(p2_ref)
+			elif (sort_arr[0] == 0 and sort_arr[1] == 0 and sort_arr[2] == 1):
+				t_ref_3.append(t[i])
+				t_noise_3.append(temporal_noise[0])
+				t_sub_3.append(t[i]+temporal_noise[0])
+				P3_noise_sub.append(P3_noise[i])
+				sort_arr[2] = 0
+				sort_arr[0] = 1
+				p3_ref = (T_arr[i] @ P3)[0:3, 3].T
+				P3_wnoise_sub.append(p3_ref)
+
+	return P1_ref, P2_ref ,P3_ref, P1_noise, P2_noise, P3_noise, P1_noise_sub, P2_noise_sub , P3_noise_sub, t_sub_1, t_sub_2, t_sub_3, e_noise, t_noise_1, t_noise_2, t_noise_3, t_ref_1, t_ref_2, t_ref_3, P1_wnoise_sub, P2_wnoise_sub, P3_wnoise_sub, d1, d2, d3
 
 def thresold_raw_data(time, distance, azimuth, elevation, e_distance, e_azimuth, e_elevation, time_limit):
 	begin_t = 0
