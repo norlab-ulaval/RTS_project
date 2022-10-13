@@ -623,12 +623,13 @@ def one_inter_prism_resection_advanced(Inter_distance, file_name, file_name_mark
         print("Selected points: ", len(index_keep))
         if((len(index_keep)>=8 and min_6dof==False) or (len(index_keep)>=8 and min_6dof==True)):
 
-            marker_1, marker_2, marker_3, T1_basic, T12_basic, T13_basic = tu.read_marker_file(file_name_marker, 1, threshold_marker)
+            if(file_name_marker!=""):
+                marker_1, marker_2, marker_3, T1_basic, T12_basic, T13_basic = tu.read_marker_file(file_name_marker, 1, threshold_marker)
             if(prior=="PTP" or (prior =="A" and RF[0]=='')):
                 T12_init = tu.point_to_point_minimization(p2.T, p1.T)
                 T13_init = tu.point_to_point_minimization(p3.T, p1.T)
             else:
-                if(prior=="CP"):
+                if(prior=="CP" and file_name_marker!=""):
                     T12_init = T12_basic
                     T13_init = T13_basic
                 else:
@@ -654,6 +655,7 @@ def one_inter_prism_resection_advanced(Inter_distance, file_name, file_name_mark
                 p3_p = p3[~mask]
 
                 if(min_6dof):
+                    print("6-DOF")
                     x_init = [T12_init_log[2, 1], T12_init_log[0, 2], T12_init_log[1, 0], T12_init_log[0, 3],
                               T12_init_log[1, 3], T12_init_log[2, 3],
                               T13_init_log[2, 1], T13_init_log[0, 2], T13_init_log[1, 0], T13_init_log[0, 3],
@@ -699,7 +701,9 @@ def one_inter_prism_resection_advanced(Inter_distance, file_name, file_name_mark
                         if (robot == "HD2"):
                             z_2_correction = T12[2, 3] - (0.43 - 0.2)*2
                             z_3_correction = T13[2, 3] - (0.43 - 0.2)*2
-
+                        if(robot == "simulation"):
+                            z_2_correction = T12[2, 3] - (0.65 - 0.15) * 2
+                            z_3_correction = T13[2, 3] - (0.65 - 0.35) * 2
                         x_init = [T12_init_log[2, 1], T12_init_log[0, 2], T12_init_log[1, 0], T12_init_log[0, 3],
                                   T12_init_log[1, 3], z_2_correction,
                                   T13_init_log[2, 1], T13_init_log[0, 2], T13_init_log[1, 0], T13_init_log[0, 3],
@@ -743,6 +747,7 @@ def one_inter_prism_resection_advanced(Inter_distance, file_name, file_name_mark
                         T13 = exp_T(xi_13)
 
                 else:
+                    print("4-DOF")
                     x_init = [T12_init_log[0, 3], T12_init_log[1, 3], T12_init_log[2, 3], T12_init_log[1, 0],
                               T13_init_log[0, 3], T13_init_log[1, 3], T13_init_log[2, 3], T13_init_log[1, 0]]
                     start_time = time.time()
@@ -796,6 +801,9 @@ def one_inter_prism_resection_advanced(Inter_distance, file_name, file_name_mark
                         if (robot == "HD2"):
                             z_2_correction = T12[2, 3] - (0.43-0.2)*2
                             z_3_correction = T13[2, 3] - (0.43-0.2)*2
+                        if (robot == "simulation"):
+                            z_2_correction = T12[2, 3] - (0.65 - 0.15) * 2
+                            z_3_correction = T13[2, 3] - (0.65 - 0.35) * 2
 
                         x_init = [T12_init_log[0, 3], T12_init_log[1, 3], z_2_correction, T12_init_log[1, 0],
                                   T13_init_log[0, 3], T13_init_log[1, 3], z_3_correction, T13_init_log[1, 0]]
@@ -844,23 +852,25 @@ def one_inter_prism_resection_advanced(Inter_distance, file_name, file_name_mark
                     dist_prism_new.append(dp2)
                     dist_prism_new.append(dp3)
 
-                    dp1 = abs(np.linalg.norm(p1_p[i_n, 0:3] - (T12_basic@p2_p[i_n, 0:4].T)[0:3]) - dist_12_t)*1000
-                    dp2 = abs(np.linalg.norm(p1_p[i_n, 0:3] - (T13_basic@p3_p[i_n, 0:4].T)[0:3]) - dist_13_t)*1000
-                    dp3 = abs(np.linalg.norm((T13_basic@p3_p[i_n, 0:4].T)[0:3] - (T12_basic@p2_p[i_n, 0:4].T)[0:3]) - dist_23_t)*1000
-                    dist_prism_basic.append(dp1)
-                    dist_prism_basic.append(dp2)
-                    dist_prism_basic.append(dp3)
+                    if(file_name_marker!=""):
+                        dp1 = abs(np.linalg.norm(p1_p[i_n, 0:3] - (T12_basic@p2_p[i_n, 0:4].T)[0:3]) - dist_12_t)*1000
+                        dp2 = abs(np.linalg.norm(p1_p[i_n, 0:3] - (T13_basic@p3_p[i_n, 0:4].T)[0:3]) - dist_13_t)*1000
+                        dp3 = abs(np.linalg.norm((T13_basic@p3_p[i_n, 0:4].T)[0:3] - (T12_basic@p2_p[i_n, 0:4].T)[0:3]) - dist_23_t)*1000
+                        dist_prism_basic.append(dp1)
+                        dist_prism_basic.append(dp2)
+                        dist_prism_basic.append(dp3)
 
-                m1_b = marker_1
-                m2_b = T12_basic@marker_2
-                m3_b = T13_basic@marker_3
+                if(file_name_marker!=""):
+                    m1_b = marker_1
+                    m2_b = T12_basic@marker_2
+                    m3_b = T13_basic@marker_3
 
-                m1_n = marker_1
-                m2_n = T12@marker_2
-                m3_n = T13@marker_3
+                    m1_n = marker_1
+                    m2_n = T12@marker_2
+                    m3_n = T13@marker_3
 
-                compute_error_between_points(m1_b, m2_b, m3_b, error_basic)
-                compute_error_between_points(m1_n, m2_n, m3_n, error_new)
+                    compute_error_between_points(m1_b, m2_b, m3_b, error_basic)
+                    compute_error_between_points(m1_n, m2_n, m3_n, error_new)
                 exp_errors += tf.inter_prism_distance_error_experiment(file_name, [T_1, T12, T13], Inter_distance)
                 TF_list.append([T_1, T12, T13])
         dist_prism_new_all.append(dist_prism_new)
