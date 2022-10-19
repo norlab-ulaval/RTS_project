@@ -983,27 +983,27 @@ def read_prediction_data_experiment_csv_file(file_name: str, threshold: float = 
 
 	return np.array(data)[mask]
 
-# def read_saved_tf(file_name):
-# 	Tf = []
-# 	with open(file_name, "r") as file:
-# 		for line in file:
-# 			item = line.strip().split(" ")
-# 			T = np.identity(4)
-# 			T[0, 0] = item[0]
-# 			T[0, 1] = item[1]
-# 			T[0, 2] = item[2]
-# 			T[0, 3] = item[3]
-# 			T[1, 0] = item[4]
-# 			T[1, 1] = item[5]
-# 			T[1, 2] = item[6]
-# 			T[1, 3] = item[7]
-# 			T[2, 0] = item[8]
-# 			T[2, 1] = item[9]
-# 			T[2, 2] = item[10]
-# 			T[2, 3] = item[11]
-# 			Tf.append(T)
-#
-# 	return Tf
+def read_saved_tf(file_name):
+	Tf = []
+	with open(file_name, "r") as file:
+		for line in file:
+			item = line.strip().split(" ")
+			T = np.identity(4)
+			T[0, 0] = item[0]
+			T[0, 1] = item[1]
+			T[0, 2] = item[2]
+			T[0, 3] = item[3]
+			T[1, 0] = item[4]
+			T[1, 1] = item[5]
+			T[1, 2] = item[6]
+			T[1, 3] = item[7]
+			T[2, 0] = item[8]
+			T[2, 1] = item[9]
+			T[2, 2] = item[10]
+			T[2, 3] = item[11]
+			Tf.append(T)
+
+	return Tf
 #
 # # Function which read a rosbag of odometry data and return the lists of the speed and acceleration data
 # # Input:
@@ -1846,6 +1846,176 @@ def read_calibration_prism_lidar_marmotte(file_name, file_name_output, name_lida
 		csv_file.write(str(dp13))
 		csv_file.write(" ")
 		csv_file.write(str(dp23))
+		csv_file.write("\n")
+		csv_file.close()
+
+	print("Conversion done !")
+def read_sensor_positions(file_name, file_name_output, name_lidar):
+	file = open(file_name, "r")
+	line = file.readline()
+	points = []
+	number = 0
+	while line:
+		item = line.split(" ")
+		ha = float(item[0]) + float(item[1])*1/60 + float(item[2])*1/3600
+		va = float(item[6]) + float(item[7])*1/60 + float(item[8])*1/3600
+		d = float(item[12])
+		number = number + 1
+		points.append(give_points_calibration(d, ha, va, 1))
+		line = file.readline()
+	file.close()
+
+	P1 = points[0]
+	P2 = points[1]
+	P3 = points[2]
+
+	if(number>3):
+
+		G1 = points[3]
+		G2 = points[4]
+		G3 = points[5]
+
+		if(number>6):
+
+			# To be done for lidar
+
+			# if (name_lidar == "Robosense_32"):
+			# 	distance_lidar_top_to_lidar_origin = 0.063  # In meter, for RS32 on warthog
+			#
+			# l1 = points[6]
+			# l23 = points[7] - points[8]
+			# l4 = l1 - l23  # Vecteur directionnel lidar altitude
+			# l4n = 1 / np.linalg.norm(l4, axis=0)
+			# l = l1 - distance_lidar_top_to_lidar_origin * l4n
+
+			csv_file = open(file_name_output, "w+")
+			csv_file.write(str(P1[0]))
+			csv_file.write(" ")
+			csv_file.write(str(P1[1]))
+			csv_file.write(" ")
+			csv_file.write(str(P1[2]))
+			csv_file.write(" ")
+			csv_file.write(str(1))
+			csv_file.write("\n")
+			csv_file.write(str(P2[0]))
+			csv_file.write(" ")
+			csv_file.write(str(P2[1]))
+			csv_file.write(" ")
+			csv_file.write(str(P2[2]))
+			csv_file.write(" ")
+			csv_file.write(str(1))
+			csv_file.write("\n")
+			csv_file.write(str(P3[0]))
+			csv_file.write(" ")
+			csv_file.write(str(P3[1]))
+			csv_file.write(" ")
+			csv_file.write(str(P3[2]))
+			csv_file.write(" ")
+			csv_file.write(str(1))
+			csv_file.write("\n")
+			csv_file.write(str(G1[0]))
+			csv_file.write(" ")
+			csv_file.write(str(G1[1]))
+			csv_file.write(" ")
+			csv_file.write(str(G1[2]))
+			csv_file.write(" ")
+			csv_file.write(str(1))
+			csv_file.write("\n")
+			csv_file.write(str(G2[0]))
+			csv_file.write(" ")
+			csv_file.write(str(G2[1]))
+			csv_file.write(" ")
+			csv_file.write(str(G2[2]))
+			csv_file.write(" ")
+			csv_file.write(str(1))
+			csv_file.write("\n")
+			csv_file.write(str(G3[0]))
+			csv_file.write(" ")
+			csv_file.write(str(G3[1]))
+			csv_file.write(" ")
+			csv_file.write(str(G3[2]))
+			csv_file.write(" ")
+			csv_file.write(str(1))
+			csv_file.write("\n")
+			csv_file.close()
+
+		else:
+			csv_file = open(file_name_output, "w+")
+			csv_file.write(str(P1[0]))
+			csv_file.write(" ")
+			csv_file.write(str(P1[1]))
+			csv_file.write(" ")
+			csv_file.write(str(P1[2]))
+			csv_file.write(" ")
+			csv_file.write(str(1))
+			csv_file.write("\n")
+			csv_file.write(str(P2[0]))
+			csv_file.write(" ")
+			csv_file.write(str(P2[1]))
+			csv_file.write(" ")
+			csv_file.write(str(P2[2]))
+			csv_file.write(" ")
+			csv_file.write(str(1))
+			csv_file.write("\n")
+			csv_file.write(str(P3[0]))
+			csv_file.write(" ")
+			csv_file.write(str(P3[1]))
+			csv_file.write(" ")
+			csv_file.write(str(P3[2]))
+			csv_file.write(" ")
+			csv_file.write(str(1))
+			csv_file.write("\n")
+			csv_file.write(str(G1[0]))
+			csv_file.write(" ")
+			csv_file.write(str(G1[1]))
+			csv_file.write(" ")
+			csv_file.write(str(G1[2]))
+			csv_file.write(" ")
+			csv_file.write(str(1))
+			csv_file.write("\n")
+			csv_file.write(str(G2[0]))
+			csv_file.write(" ")
+			csv_file.write(str(G2[1]))
+			csv_file.write(" ")
+			csv_file.write(str(G2[2]))
+			csv_file.write(" ")
+			csv_file.write(str(1))
+			csv_file.write("\n")
+			csv_file.write(str(G3[0]))
+			csv_file.write(" ")
+			csv_file.write(str(G3[1]))
+			csv_file.write(" ")
+			csv_file.write(str(G3[2]))
+			csv_file.write(" ")
+			csv_file.write(str(1))
+			csv_file.write("\n")
+			csv_file.close()
+
+	else:
+		csv_file = open(file_name_output, "w+")
+		csv_file.write(str(P1[0]))
+		csv_file.write(" ")
+		csv_file.write(str(P1[1]))
+		csv_file.write(" ")
+		csv_file.write(str(P1[2]))
+		csv_file.write(" ")
+		csv_file.write(str(1))
+		csv_file.write("\n")
+		csv_file.write(str(P2[0]))
+		csv_file.write(" ")
+		csv_file.write(str(P2[1]))
+		csv_file.write(" ")
+		csv_file.write(str(P2[2]))
+		csv_file.write(" ")
+		csv_file.write(str(1))
+		csv_file.write("\n")
+		csv_file.write(str(P3[0]))
+		csv_file.write(" ")
+		csv_file.write(str(P3[1]))
+		csv_file.write(" ")
+		csv_file.write(str(P3[2]))
+		csv_file.write(" ")
+		csv_file.write(str(1))
 		csv_file.write("\n")
 		csv_file.close()
 
