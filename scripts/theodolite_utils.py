@@ -1252,7 +1252,7 @@ def grountruth_GP_gps_convert_for_eval(interpolated_time, Pose_gps, output):
 	iterator_lidar = 0
 	for j in interpolated_time:
 		T = Pose_gps[iterator_lidar]
-		result = np.array([j, T[0], T[1], T[2]])
+		result = np.array([j, T[0,3], T[1,3], T[2,3]])
 		groundtruth_file.write(str(result[0]))
 		groundtruth_file.write(" ")
 		groundtruth_file.write(str(result[1]))
