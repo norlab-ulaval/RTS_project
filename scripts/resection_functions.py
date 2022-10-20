@@ -922,6 +922,33 @@ def compute_error_between_points(m1_n, m2_n, m3_n, error):
 #         error.append(dist_13)
 #         error.append(dist_23)
 
+def inter_prism_distance_error(m1_n, m2_n, m3_n, Inter_prism_dist_list):
+    if(len(Inter_prism_dist_list)!=0):
+
+        error_inter_prism_dist = []
+        for i, j, k in zip(m1_n, m2_n, m3_n):
+            error_inter_prism_dist.append(abs(np.linalg.norm(i[0:3] - j[0:3])-Inter_prism_dist_list[0]) * 1000)
+            error_inter_prism_dist.append(abs(np.linalg.norm(i[0:3] - k[0:3])-Inter_prism_dist_list[1]) * 1000)
+            error_inter_prism_dist.append(abs(np.linalg.norm(j[0:3] - k[0:3])-Inter_prism_dist_list[2]) * 1000)
+
+        return error_inter_prism_dist
+    else:
+        return []
+
+def inter_prism_distance_error_mean(m1_n, m2_n, m3_n, Inter_prism_dist_list):
+    if(len(Inter_prism_dist_list)!=0):
+
+        error_inter_prism_dist = []
+        for i, j, k in zip(m1_n, m2_n, m3_n):
+            dist1 = (abs(np.linalg.norm(i[0:3] - j[0:3])-Inter_prism_dist_list[0]) * 1000)
+            dist2 = (abs(np.linalg.norm(i[0:3] - k[0:3])-Inter_prism_dist_list[1]) * 1000)
+            dist3 = (abs(np.linalg.norm(j[0:3] - k[0:3])-Inter_prism_dist_list[2]) * 1000)
+            error_inter_prism_dist.append(np.mean([dist1,dist2,dist3]))
+
+        return error_inter_prism_dist
+    else:
+        return []
+
 @dispatch(np.ndarray, np.ndarray, np.ndarray, np.ndarray, str, list, str)
 def geomatic_resection_optimization_on_pose(trimble_1: NDArray, trimble_2: NDArray, trimble_3: NDArray, pillars_ref: NDArray, exp_file_name: str = "", inter_prism_dist: list = [], static_file_name: str="") -> \
         Tuple[NDArray, NDArray, NDArray, NDArray, NDArray, NDArray, List[float], List[float], List[float], List[float], List[float]]:
