@@ -1219,6 +1219,13 @@ def read_extrinsic_calibration_results_file(path_file):
 # 	groundtruth_file.close()
 # 	print("Conversion done !")
 
+def save_delay_synchronization_GNSS(delay, output):
+	delay_file = open(output,"w+")
+	delay_file.write(str(delay))
+	delay_file.write("\n")
+	delay_file.close()
+	print("Conversion done !")
+
 def grountruth_GP_convert_for_eval(interpolated_time, Pose_lidar, output):
 	groundtruth_file = open(output,"w+")
 	iterator_lidar = 0
@@ -1405,6 +1412,14 @@ def Convert_raw_data_GNSS_to_csv(time_data, point_data, file_name):
 		csv_file.write(str(j[1]))
 		csv_file.write(" ")
 		csv_file.write(str(j[2]))
+		csv_file.write(" ")
+		csv_file.write(str(0))
+		csv_file.write(" ")
+		csv_file.write(str(0))
+		csv_file.write(" ")
+		csv_file.write(str(0))
+		csv_file.write(" ")
+		csv_file.write(str(1))
 		csv_file.write("\n")
 	csv_file.close()
 	print("Conversion done !")
