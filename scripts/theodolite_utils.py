@@ -1183,6 +1183,11 @@ def read_extrinsic_calibration_results_file(path_file):
 	else:
 		list_values = list(np.genfromtxt(path_file, delimiter=' '))
 		return list_values
+def read_time_delay(file_name):
+	with open(file_name, "r") as file:
+		for line in file:
+			item = line.strip().split(" ")
+	return item[0]
 
 
 # # Function which convert interpolated data pose into a specific format to use evo library
@@ -1277,6 +1282,30 @@ def grountruth_GP_gps_convert_for_eval(interpolated_time, Pose_gps, output):
 		groundtruth_file.write(str(1))
 		groundtruth_file.write("\n")
 		iterator_lidar = iterator_lidar+1
+	groundtruth_file.close()
+	print("Conversion done !")
+
+def grountruth_GNSS_sorted_convert_for_eval(Index_list, name_file, time_delay, output):
+	GNSS_raw_data = read_prediction_data_Linear_csv_file(name_file)
+	groundtruth_file = open(output,"w+")
+	for j in Index_list:
+		data = GNSS_raw_data[j]
+		groundtruth_file.write(str(data[0]+time_delay))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(data[1]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(data[2]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(data[3]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(0))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(0))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(0))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(1))
+		groundtruth_file.write("\n")
 	groundtruth_file.close()
 	print("Conversion done !")
 
