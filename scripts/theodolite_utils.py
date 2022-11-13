@@ -1209,40 +1209,60 @@ def read_time_delay(file_name):
 			item = line.strip().split(" ")
 	return item[0]
 
+def read_icp_odom_file(file_name):
+	data = []
+	# Read text file
+	file = open(file_name, "r")
+	line = file.readline()
+	while line:
+		#line = line.replace("]","")
+		item = line.replace("]","").replace("[","").split(" ")
+		Time = float(item[0])
+		Px = float(item[1])
+		Py = float(item[2])
+		Pz = float(item[3])
+		Qx = float(item[4])
+		Qy = float(item[5])
+		Qz = float(item[6])
+		Qw = float(item[7])
+		array_point = np.array([Time, Px, Py, Pz, 1, Qx, Qy, Qz, Qw])
+		data.append(array_point)
+		line = file.readline()
+	file.close()
+	return data
 
-# # Function which convert interpolated data pose into a specific format to use evo library
-# # Input:
-# # - interpolated_time: list of timestamp of the pose
-# # - Pose_lidar: list of 4x4 matrix of the poses
-# # - output: name of the file to create
-# def grountruth_convert_for_eval(interpolated_time, Pose_lidar, output):
-# 	groundtruth_file = open(output,"w+")
-# 	iterator_lidar = 0
-# 	for j in interpolated_time:
-# 		for i in j:
-# 			T = Pose_lidar[iterator_lidar]
-# 			Rot = R_scipy.from_matrix(T[0:3,0:3])
-# 			quat = Rot.as_quat()
-# 			result = np.array([i, T[0,3], T[1,3], T[2,3], quat[0], quat[1], quat[2], quat[3]])
-# 			groundtruth_file.write(str(result[0]))
-# 			groundtruth_file.write(" ")
-# 			groundtruth_file.write(str(result[1]))
-# 			groundtruth_file.write(" ")
-# 			groundtruth_file.write(str(result[2]))
-# 			groundtruth_file.write(" ")
-# 			groundtruth_file.write(str(result[3]))
-# 			groundtruth_file.write(" ")
-# 			groundtruth_file.write(str(result[4]))
-# 			groundtruth_file.write(" ")
-# 			groundtruth_file.write(str(result[5]))
-# 			groundtruth_file.write(" ")
-# 			groundtruth_file.write(str(result[6]))
-# 			groundtruth_file.write(" ")
-# 			groundtruth_file.write(str(result[7]))
-# 			groundtruth_file.write("\n")
-# 			iterator_lidar = iterator_lidar+1
-# 	groundtruth_file.close()
-# 	print("Conversion done !")
+# Function which convert interpolated data pose into a specific format to use evo library
+# Input:
+# - interpolated_time: list of timestamp of the pose
+# - Pose_lidar: list of 4x4 matrix of the poses
+# - output: name of the file to create
+def grountruth_convert_for_eval(interpolated_time, Pose_lidar, output):
+	groundtruth_file = open(output,"w+")
+	iterator_lidar = 0
+	for j in interpolated_time:
+		T = Pose_lidar[iterator_lidar]
+		Rot = R_scipy.from_matrix(T[0:3,0:3])
+		quat = Rot.as_quat()
+		result = np.array([j, T[0,3], T[1,3], T[2,3], quat[0], quat[1], quat[2], quat[3]])
+		groundtruth_file.write(str(result[0]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(result[1]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(result[2]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(result[3]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(result[4]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(result[5]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(result[6]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(result[7]))
+		groundtruth_file.write("\n")
+		iterator_lidar = iterator_lidar+1
+	groundtruth_file.close()
+	print("Conversion done !")
 
 def save_delay_synchronization_GNSS(delay, output):
 	delay_file = open(output,"w+")
@@ -1253,7 +1273,6 @@ def save_delay_synchronization_GNSS(delay, output):
 
 def ICP_convert_for_eval(Pose_lidar, output):
 	groundtruth_file = open(output,"w+")
-	iterator_lidar = 0
 	for j in Pose_lidar:
 		groundtruth_file.write(str(j[0]))
 		groundtruth_file.write(" ")
@@ -1299,6 +1318,30 @@ def grountruth_GP_convert_for_eval(interpolated_time, Pose_lidar, output):
 		groundtruth_file.write(str(result[7]))
 		groundtruth_file.write("\n")
 		iterator_lidar = iterator_lidar+1
+	groundtruth_file.close()
+	print("Conversion done !")
+
+def grountruth_ICP_sorted_convert_for_eval(Index_list, name_file, output):
+	raw_data = read_icp_odom_file(name_file)
+	groundtruth_file = open(output,"w+")
+	for j in Index_list:
+		data = raw_data[j]
+		groundtruth_file.write(str(data[0]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(data[1]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(data[2]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(data[3]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(data[5]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(data[6]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(data[7]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(data[8]))
+		groundtruth_file.write("\n")
 	groundtruth_file.close()
 	print("Conversion done !")
 
