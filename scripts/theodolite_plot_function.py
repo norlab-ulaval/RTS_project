@@ -130,9 +130,9 @@ def plot_trajectories_prism(number_data, trimble_1, trimble_2, trimble_3, T_1_ra
     fig.tight_layout()
     if save_pdf == 1:
         if plot_3d == 1:
-            fig.savefig(file_pdf, bbox_inches='tight')
+            fig.savefig(file_pdf, bbox_inches='tight', transparent=True)
         else:
-            fig.savefig(file_pdf, bbox_inches='tight')
+            fig.savefig(file_pdf, bbox_inches='tight', transparent=True)
 
 # ###################################################################################################
 # ###################################################################################################
