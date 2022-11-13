@@ -1,6 +1,7 @@
 import numpy as np
 import math
 from rosbags.rosbag1 import Reader
+from rosbags.rosbag2 import Reader as Reader2
 from rosbags.serde import deserialize_cdr, ros1_to_cdr
 from pathlib import Path
 from rosbags.typesys import get_types_from_msg, register_types
@@ -226,6 +227,25 @@ def read_marker_file_raw_data(file_name: str):
 
     return raw_data_theodolite_1, raw_data_theodolite_2, raw_data_theodolite_3, points_theodolite_1, points_theodolite_2, points_theodolite_3, T_I, T_12, T_13
 
+def read_rosbag2_icp_odom(file):
+	Icp_list = []
+
+	# create reader instance and open for reading
+	with Reader2(file) as reader:
+		# iterate over messages
+		for connection, timestamp, rawdata in reader.messages():
+			if connection.topic == '/icp_odom':
+				msg = deserialize_cdr(rawdata, connection.msgtype)
+				time = second_nsecond(msg.header.stamp.sec, msg.header.stamp.nanosec)
+				x = msg.pose.pose.position.x
+				y = msg.pose.pose.position.y
+				z = msg.pose.pose.position.z
+				qx = msg.pose.pose.orientation.x
+				qy = msg.pose.pose.orientation.y
+				qz = msg.pose.pose.orientation.z
+				qw = msg.pose.pose.orientation.w
+				Icp_list.append([time, x, y, z, qx, qy, qz, qw])
+	return Icp_list
 def read_rosbag_time_correction_theodolite(file):
 	read_custom_messages()
 	with Reader(file) as bag:
