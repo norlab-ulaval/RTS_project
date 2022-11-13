@@ -1251,6 +1251,29 @@ def save_delay_synchronization_GNSS(delay, output):
 	delay_file.close()
 	print("Conversion done !")
 
+def ICP_convert_for_eval(Pose_lidar, output):
+	groundtruth_file = open(output,"w+")
+	iterator_lidar = 0
+	for j in Pose_lidar:
+		groundtruth_file.write(str(j[0]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(j[1]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(j[2]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(j[3]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(j[4]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(j[5]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(j[6]))
+		groundtruth_file.write(" ")
+		groundtruth_file.write(str(j[7]))
+		groundtruth_file.write("\n")
+	groundtruth_file.close()
+	print("Conversion done !")
+
 def grountruth_GP_convert_for_eval(interpolated_time, Pose_lidar, output):
 	groundtruth_file = open(output,"w+")
 	iterator_lidar = 0
@@ -1941,16 +1964,36 @@ def read_sensor_positions(file_name, file_name_output, name_lidar):
 
 		if(number>6):
 
-			# To be done for lidar
-
-			# if (name_lidar == "Robosense_32"):
-			# 	distance_lidar_top_to_lidar_origin = 0.063  # In meter, for RS32 on warthog
-			#
-			# l1 = points[6]
-			# l23 = points[7] - points[8]
-			# l4 = l1 - l23  # Vecteur directionnel lidar altitude
-			# l4n = 1 / np.linalg.norm(l4, axis=0)
-			# l = l1 - distance_lidar_top_to_lidar_origin * l4n
+			if (name_lidar == "Robosense_32"):
+				distance_lidar_top_to_lidar_origin = 0.063  # In meter, for RS32 on warthog
+				L1 = points[6]
+				L2 = points[7]
+				L3 = points[8]
+				# Define vectors of the plan
+				u = L2[0:3] - L1[0:3]
+				v = L3[0:3] - L1[0:3]
+				# Calculate normal vector
+				A = np.array([[u[0], u[1]],
+							  [v[0], v[1]]])
+				y = np.array([-u[2], -v[2]])
+				x = np.linalg.solve(A, y)
+				n = np.array([x[0], x[1], 1])
+				# Cartesian equation of the plan if needed
+				# d = -np.dot(n, L1[0:3])
+				# Eq_param = np.array([n[0], n[1], n[2], d])
+				# print("Parameters of plan equation: ", Eq_param)
+				# print(np.dot(Eq_param, L1), np.dot(Eq_param, L2), np.dot(Eq_param, L3))
+				# Projection of L1 on line L2L3
+				I = L2[0:3] + np.dot(L1[0:3] - L2[0:3], L3[0:3] - L2[0:3]) / np.dot(L3[0:3] - L2[0:3],
+					L3[0:3] - L2[0:3]) * (L3[0:3] - L2[0:3])
+				# Find origin of lidar
+				z = I - L1[0:3]
+				z_unit = 1 / np.linalg.norm(z) * z
+				O = distance_lidar_top_to_lidar_origin * z_unit + L1[0:3]
+				# Find unit axis vector of lidar
+				Ox = -1 / np.linalg.norm(n) * n + O
+				Oz = -1 * z_unit + O
+				Oy = 1 * np.cross(-z_unit, -1 / np.linalg.norm(n) * n) + O
 
 			csv_file = open(file_name_output, "w+")
 			csv_file.write(str(P1[0]))
@@ -1998,6 +2041,38 @@ def read_sensor_positions(file_name, file_name_output, name_lidar):
 			csv_file.write(str(G3[1]))
 			csv_file.write(" ")
 			csv_file.write(str(G3[2]))
+			csv_file.write(" ")
+			csv_file.write(str(1))
+			csv_file.write("\n")
+			csv_file.write(str(O[0]))
+			csv_file.write(" ")
+			csv_file.write(str(O[1]))
+			csv_file.write(" ")
+			csv_file.write(str(O[2]))
+			csv_file.write(" ")
+			csv_file.write(str(1))
+			csv_file.write("\n")
+			csv_file.write(str(Ox[0]))
+			csv_file.write(" ")
+			csv_file.write(str(Ox[1]))
+			csv_file.write(" ")
+			csv_file.write(str(Ox[2]))
+			csv_file.write(" ")
+			csv_file.write(str(1))
+			csv_file.write("\n")
+			csv_file.write(str(Oy[0]))
+			csv_file.write(" ")
+			csv_file.write(str(Oy[1]))
+			csv_file.write(" ")
+			csv_file.write(str(Oy[2]))
+			csv_file.write(" ")
+			csv_file.write(str(1))
+			csv_file.write("\n")
+			csv_file.write(str(Oz[0]))
+			csv_file.write(" ")
+			csv_file.write(str(Oz[1]))
+			csv_file.write(" ")
+			csv_file.write(str(Oz[2]))
 			csv_file.write(" ")
 			csv_file.write(str(1))
 			csv_file.write("\n")
