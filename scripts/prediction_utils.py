@@ -609,3 +609,45 @@ def delta_t_function(index, t1, delta_t):
         new_index[1] = i
 
     return new_index
+
+def compute_covariance_prism(P1, P2, P3, e12, e13, e23, ez):
+	# Define unit vector for prism orthogonal frame
+	u = P1-P2
+	v = P3-P1
+	w = P2-P3
+	u_unit = 1/np.linalg.norm(u)*u
+	v_unit = 1/np.linalg.norm(v)*v
+	w_unit = 1/np.linalg.norm(w)*w
+	n = np.cross(u_unit,v_unit)
+	u_ = np.cross(n,w_unit)
+	v_ = np.cross(n,u_unit)
+	w_ = np.cross(n,v_unit)
+
+	# Compute Covariance matrix of prism 1
+	theta_uv_ = np.arccos(np.dot(u_unit, v_unit))
+	L11 = np.max([e12,abs(np.cos(theta_uv_)*e13)])
+	L12 = np.sin(theta_uv_)*e13
+	L13 = ez
+	L1 = np.array([[L11,0,0],[0,L12,0],[0,0,L13]])
+	Q1 = np.array([u_unit, v_, n]).T
+	C1 = Q1@np.linalg.inv(L1)@np.linalg.inv(Q1)
+
+	# Compute Covariance matrix of prism 2
+	theta_wu_ = np.arccos(np.dot(w_unit, u_unit))
+	L21 = np.max([e23,abs(np.cos(theta_wu_)*e12)])
+	L22 = np.sin(theta_uv_)*e12
+	L23 = ez
+	L2 = np.array([[L21,0,0],[0,L22,0],[0,0,L23]])
+	Q2 = np.array([w_unit, u_, n]).T
+	C2 = Q2@np.linalg.inv(L2)@np.linalg.inv(Q2)
+
+	# Compute Covariance matrix of prism 3
+	theta_vw_ = np.arccos(np.dot(v_unit, w_unit))
+	L31 = np.max([e13,abs(np.cos(theta_vw_)*e23)])
+	L32 = np.sin(theta_uv_)*e23
+	L33 = ez
+	L3 = np.array([[L31,0,0],[0,L32,0],[0,0,L33]])
+	Q3 = np.array([v_unit, w_, n]).T
+	C3 = Q3@np.linalg.inv(L3)@np.linalg.inv(Q3)
+
+	return C1, C2, C3
