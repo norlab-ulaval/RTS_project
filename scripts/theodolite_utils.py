@@ -1025,39 +1025,45 @@ def read_saved_tf(file_name):
 
 	return Tf
 #
-# # Function which read a rosbag of odometry data and return the lists of the speed and acceleration data
-# # Input:
-# # - filename: name of the rosbag to open
-# # - wheel: option to select the topic to read (True:/warthog_velocity_controller/odom, False:/imu_and_wheel_odom)
-# # Output:
-# # - speed: list of 1x2 matrix which contain the timestamp [0] and the speed [1] for each data
-# # - accel: list of 1x2 matrix which contain the timestamp [0] and the accel [1] for each data
-# # def read_rosbag_imu_node(filename, wheel):
-# # 	bag = rosbag.Bag(filename)
-# # 	speed = []
-# # 	speed_only = []
-# # 	time_only = []
-# # 	accel = []
-# # 	accel_only = []
-# # 	if(wheel==True):
-# # 		topic_name = '/warthog_velocity_controller/odom'
-# # 	else:
-# # 		topic_name = '/imu_and_wheel_odom'
-# # 	for _, msg, t in bag.read_messages(topics=[topic_name]):
-# # 		odom = Odometry(msg.header, msg.child_frame_id, msg.pose, msg.twist)
-# # 		time = second_nsecond(odom.header.stamp.secs, odom.header.stamp.nsecs)
-# # 		vitesse_lineaire = odom.twist.twist.linear.x
-# # 		speed.append(np.array([time,vitesse_lineaire]))
-# # 		speed_only.append(abs(vitesse_lineaire))
-# # 		time_only.append(time)
-# # 	speed_only_arr = np.array(speed_only)
-# # 	time_only_arr = np.array(time_only)
-# # 	diff_speed = np.diff(speed_only_arr)
-# # 	time_diff_mean = np.mean(np.diff(time_only_arr), axis=0)
-# # 	for i in range(0, len(diff_speed)):
-# # 		accel.append(np.array([time_only[i],diff_speed[i]/time_diff_mean]))
-# # 		accel_only.append(abs(diff_speed[i]/time_diff_mean))
-# # 	return speed, accel, speed_only, accel_only
+# Function which read a rosbag of odometry data and return the lists of the speed and acceleration data
+# Input:
+# - filename: name of the rosbag to open
+# - wheel: option to select the topic to read (True:/warthog_velocity_controller/odom, False:/imu_and_wheel_odom)
+# Output:
+# - speed: list of 1x2 matrix which contain the timestamp [0] and the speed [1] for each data
+# - accel: list of 1x2 matrix which contain the timestamp [0] and the accel [1] for each data
+def read_rosbag_imu_node(filename, wheel):
+	# create reader instance and open for reading
+	speed = []
+	speed_only = []
+	time_only = []
+	accel = []
+	accel_only = []
+	with Reader2(filename) as reader:
+		# iterate over messages
+		for connection, timestamp, rawdata in reader.messages():
+			if (wheel == True):
+				topic_name = '/warthog_velocity_controller/odom'
+			else:
+				topic_name = '/imu_and_wheel_odom'
+
+			if connection.topic == topic_name:
+				msg = deserialize_cdr(rawdata, connection.msgtype)
+				time = second_nsecond(msg.header.stamp.sec, msg.header.stamp.nanosec)
+				vitesse_lineaire = msg.twist.twist.linear.x
+				speed.append(np.array([time, vitesse_lineaire]))
+				speed_only.append(abs(vitesse_lineaire))
+				time_only.append(time)
+
+	speed_only_arr = np.array(speed_only)
+	time_only_arr = np.array(time_only)
+	diff_speed = np.diff(speed_only_arr)
+	time_diff_mean = np.mean(np.diff(time_only_arr), axis=0)
+	for i in range(0, len(diff_speed)):
+		accel.append(np.array([time_only[i], diff_speed[i] / time_diff_mean]))
+		accel_only.append(abs(diff_speed[i] / time_diff_mean))
+	return speed, accel, speed_only, accel_only
+
 #
 # # Function which read a rosbag of imu data and return the list of the angular velocity around Z axis
 # # Input:
