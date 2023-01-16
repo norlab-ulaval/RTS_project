@@ -2487,22 +2487,22 @@ def point_to_point_minimization(P, Q):
 	T[0:3,3] = t
 	return T
 
-# # Function to find prism not moving points according to the point just before in the array of the trajectories.
-# # The not moving point are selected because of their position proximity
-# # Input:
-# # - trimble: list of trajectory points
-# # - limit_m: proximity limit in meters to find not moving points. If the distance between two near indexed points is less than the limit,
-# # the point at the index i is selected
-# # Output: list of index of the not moving points
-# def find_not_moving_points(trimble, limit_m):
-# 	ind_not_moving = []
-# 	start_point = trimble[0:3,0]
-# 	for i in range(1,len(trimble.T)):
-# 		if(np.linalg.norm(trimble[0:3,i]-start_point)<limit_m):
-# 			ind_not_moving.append(i)
-# 		start_point = trimble[0:3,i]
-# 	return ind_not_moving
-#
+# Function to find prism not moving points according to the point just before in the array of the trajectories.
+# The not moving point are selected because of their position proximity
+# Input:
+# - trimble: list of trajectory points
+# - limit_m: proximity limit in meters to find not moving points. If the distance between two near indexed points is less than the limit,
+# the point at the index i is selected
+# Output: list of index of the not moving points
+def find_not_moving_points(trimble, limit_m):
+	ind_not_moving = []
+	start_point = trimble[0:3,0]
+	for i in range(1,len(trimble.T)):
+		if(np.linalg.norm(trimble[0:3,i]-start_point)<limit_m):
+			ind_not_moving.append(i)
+		start_point = trimble[0:3,i]
+	return ind_not_moving
+
 # # Function to find lidar interpolated not moving points
 # # Input:
 # # - pose_lidar: list of lidar pose 4x4 matrix
@@ -3394,3 +3394,57 @@ def read_and_compute_drop_outliers_filters_results(param,path, path_option):
 		mpooewo_r.append(np.sum(result_5))
 		mpooewo_r.append(np.sum(result_6))
 	return mpi_r,mpoo_r,mpof_r,mpofo_r,mpooewo_r
+
+def split_static_distance(distance_used, threshold_distance, threshold_number):
+	Groupe_index_list = []
+	Mean_list = []
+	start = distance_used[0]
+	list = []
+	list_index = []
+	list_index_global = []
+	index = 0
+	for i in distance_used:
+		if np.linalg.norm(start - i) < threshold_distance:
+			list.append(i)
+			list_index.append(index)
+		else:
+			if (len(list) > threshold_number):
+				mean_list = np.mean(list)
+				Mean_list.append(int(mean_list))
+				Groupe_index_list.append((list - mean_list) * 1000)
+				list_index_global.append(list_index)
+			list = []
+			list_index = []
+			start = i
+		index = index + 1
+	if len(list) > threshold_number:
+		mean_list = np.mean(list)
+		Mean_list.append(int(mean_list))
+		Groupe_index_list.append((list - mean_list) * 1000)
+		list_index_global.append(list_index)
+	return Groupe_index_list, Mean_list, list_index_global
+
+def split_static_angle(angle_used, threshold_distance, threshold_number):
+	Groupe_index_list = []
+	start = angle_used[0]
+	list = []
+	for i in angle_used:
+		if np.linalg.norm(start - i) < threshold_distance:
+			list.append(i)
+		else:
+			if (len(list) > threshold_number):
+				mean_list = np.mean(list)
+				Groupe_index_list.append((list - mean_list))
+			list = []
+			start = i
+	if len(list) > threshold_number:
+		mean_list = np.mean(list)
+		Groupe_index_list.append((list - mean_list))
+	return Groupe_index_list
+
+def split_angle_form_index_list(angle_used, index_list):
+	angle_list = []
+	for i in index_list:
+		mean_list = np.mean(angle_used[i])
+		angle_list.append(angle_used[i]-mean_list)
+	return angle_list
