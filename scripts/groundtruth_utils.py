@@ -215,7 +215,6 @@ def pipeline_groundtruth(path, Sensor, path_sensor_file, parameters, file, outpu
 
     print("Pipeline done !")
 
-
 def load_sensor_position(path, Sensor, Gps_reference_chosen):
     # Load sensor positions
     file_sensor_positions = if_file_exist(path + "sensors_extrinsic_calibration/sensor_positions.csv", '')
@@ -264,3 +263,181 @@ def load_sensor_position(path, Sensor, Gps_reference_chosen):
                              p3_position_lidar]).T
 
     return p_sensor
+
+def range_noise(range_value, random_noise, num_samples):
+    return range_value*(1+random_noise[2]*10**(-6)) + np.random.normal(random_noise[0], random_noise[1], num_samples)
+
+def elevation_noise(true_value, random_noise_precision, random_noise_tilt, num_samples):
+    return true_value + np.random.normal(random_noise_precision[0], random_noise_precision[1], num_samples) + np.random.normal(random_noise_tilt[0], random_noise_tilt[1], num_samples)
+
+def azimuth_noise(true_value, elevation_value, random_noise_precision, random_noise_tilt, num_samples):
+    return true_value + np.random.normal(random_noise_precision[0], random_noise_precision[1], num_samples) + np.random.normal(random_noise_tilt[0], random_noise_tilt[1], num_samples)/np.tan(elevation_value)
+
+def edm_noise(measured_edm, lambda_edm, Measured_values, Nominal_values, noise_temp, noise_pressure, noise_humidity, num_samples):
+    N_gr = 287.6155 + 4.88660/(lambda_edm)**2 + 0.06800/(lambda_edm)**4
+    x = 7.5*(Measured_values[1]+np.random.normal(noise_temp[0], noise_temp[1], num_samples))/(237.3+Measured_values[1]+np.random.normal(noise_temp[0], noise_temp[1], num_samples))+0.7857
+    e = (Measured_values[2]+np.random.normal(noise_humidity[0], noise_humidity[1], num_samples))*(10**x)/100
+    N_l = (273.15/1013.25)*(N_gr*(Measured_values[0]+np.random.normal(noise_pressure[0], noise_pressure[1], num_samples))/(273.15+Measured_values[1]+np.random.normal(noise_temp[0], noise_pressure[1], num_samples)))-11.27*e/(273.15+Measured_values[1]+np.random.normal(noise_temp[0], noise_pressure[1], num_samples))
+    N_o = (273.15/1013.25)*(N_gr*Nominal_values[0]/(273.15+Nominal_values[1]))-11.27*Nominal_values[2]/(273.15+Nominal_values[1])
+    ppm = (N_o - N_l)/(1+N_l*10**(-6))
+    return measured_edm*(1+ppm*10**(-6))
+
+def get_cov_ellipsoid(cov, mu=np.zeros((3)), nstd=3):
+    """
+    Return the 3d points representing the covariance matrix
+    cov centred at mu and scaled by the factor nstd.
+    Plot on your favourite 3d axis.
+    Example 1:  ax.plot_wireframe(X,Y,Z,alpha=0.1)
+    Example 2:  ax.plot_surface(X,Y,Z,alpha=0.1)
+    """
+    assert cov.shape==(3,3)
+
+    # Find and sort eigenvalues to correspond to the covariance matrix
+    eigvals, eigvecs = np.linalg.eigh(cov)
+    idx = np.sum(cov,axis=0).argsort()
+    eigvals_temp = eigvals[idx]
+    idx = eigvals_temp.argsort()
+    eigvals = eigvals[idx]
+    eigvecs = eigvecs[:,idx]
+
+    # Set of all spherical angles to draw our ellipsoid
+    n_points = 100
+    theta = np.linspace(0, 2*np.pi, n_points)
+    phi = np.linspace(0, np.pi, n_points)
+
+    # Width, height and depth of ellipsoid
+    rx, ry, rz = nstd * np.sqrt(eigvals)
+
+    # Get the xyz points for plotting
+    # Cartesian coordinates that correspond to the spherical angles:
+    X = rx * np.outer(np.cos(theta), np.sin(phi))
+    Y = ry * np.outer(np.sin(theta), np.sin(phi))
+    Z = rz * np.outer(np.ones_like(theta), np.cos(phi))
+
+    # Rotate ellipsoid for off axis alignment
+    old_shape = X.shape
+    # Flatten to vectorise rotation
+    X,Y,Z = X.flatten(), Y.flatten(), Z.flatten()
+    X,Y,Z = np.matmul(eigvecs, np.array([X,Y,Z]))
+    X,Y,Z = X.reshape(old_shape), Y.reshape(old_shape), Z.reshape(old_shape)
+
+    # Add in offsets for the mean
+    X = X + mu[0]
+    Y = Y + mu[1]
+    Z = Z + mu[2]
+
+    return X,Y,Z
+
+def return_error_marker(trimble_1_gcp, trimble_2_gcp, trimble_3_gcp, T_1_grand, T_2_grand, T_3_grand):
+    tp1 = T_1_grand@trimble_1_gcp
+    tp2 = T_2_grand@trimble_2_gcp
+    tp3 = T_3_grand@trimble_3_gcp
+    error = []
+    for i,j,k in zip(tp1[0:3],tp2[0:3],tp3[0:3]):
+        dist_12 = np.linalg.norm(i-j)
+        dist_13 = np.linalg.norm(i-k)
+        dist_23 = np.linalg.norm(k-j)
+        error.append(dist_12)
+        error.append(dist_13)
+        error.append(dist_23)
+    return error
+
+def return_good_tf(min_array, min_index):
+    T_1_choose = min_array[min_index,3]
+    T_2_choose = min_array[min_index,4]
+    T_3_choose = min_array[min_index,5]
+    return T_1_choose, T_2_choose, T_3_choose
+
+def calculate_uncertainty_resection(min_array, min_index):
+    T_1_choose = min_array[min_index,3]
+    r = R.from_matrix(T_1_choose[0:3,0:3])
+    angle = r.as_euler('xyz', degrees=False)
+    V_1_choose = np.array([T_1_choose[0,3],T_1_choose[1,3],T_1_choose[2,3],angle[0],angle[1],angle[2]])
+    T_2_choose = min_array[min_index,4]
+    r = R.from_matrix(T_2_choose[0:3,0:3])
+    angle = r.as_euler('xyz', degrees=False)
+    V_2_choose = np.array([T_2_choose[0,3],T_2_choose[1,3],T_2_choose[2,3],angle[0],angle[1],angle[2]])
+    T_3_choose = min_array[min_index,5]
+    r = R.from_matrix(T_3_choose[0:3,0:3])
+    angle = r.as_euler('xyz', degrees=False)
+    V_3_choose = np.array([T_3_choose[0,3],T_3_choose[1,3],T_3_choose[2,3],angle[0],angle[1],angle[2]])
+
+    value_1 = []
+    value_2 = []
+    value_3 = []
+    for i in np.array(min_array[:,3]):
+        r = R.from_matrix(i[0:3,0:3])
+        angle = r.as_euler('xyz', degrees=False)
+        value_1.append(np.array([i[0,3],i[1,3],i[2,3], angle[0], angle[1], angle[2]]))
+    for i in np.array(min_array[:,4]):
+        r = R.from_matrix(i[0:3,0:3])
+        angle = r.as_euler('xyz', degrees=False)
+        value_2.append(np.array([i[0,3],i[1,3],i[2,3], angle[0], angle[1], angle[2]]))
+    for i in np.array(min_array[:,5]):
+        r = R.from_matrix(i[0:3,0:3])
+        angle = r.as_euler('xyz', degrees=False)
+        value_3.append(np.array([i[0,3],i[1,3],i[2,3], angle[0], angle[1], angle[2]]))
+    value_1 = np.array(value_1)
+    value_2 = np.array(value_2)
+    value_3 = np.array(value_3)
+
+    std_1 = [np.std(value_1[:,0]-V_1_choose[0]), np.std(value_1[:,1]-V_1_choose[1]), np.std(value_1[:,2]-V_1_choose[2]),
+             np.std(value_1[:,3]-V_1_choose[3]), np.std(value_1[:,4]-V_1_choose[4]), np.std(value_1[:,5]-V_1_choose[5])]
+    std_2 = [np.std(value_2[:,0]-V_2_choose[0]), np.std(value_2[:,1]-V_2_choose[1]), np.std(value_2[:,2]-V_2_choose[2]),
+             np.std(value_2[:,3]-V_2_choose[3]), np.std(value_2[:,4]-V_2_choose[4]), np.std(value_2[:,5]-V_2_choose[5])]
+    std_3 = [np.std(value_3[:,0]-V_3_choose[0]), np.std(value_3[:,1]-V_3_choose[1]), np.std(value_3[:,2]-V_3_choose[2]),
+             np.std(value_3[:,3]-V_3_choose[3]), np.std(value_3[:,4]-V_3_choose[4]), np.std(value_3[:,5]-V_3_choose[5])]
+
+    return T_1_choose, T_2_choose, T_3_choose, std_1, std_2, std_3
+
+def function_noise_resection(file_name, number_test):
+    min_1 = []
+    min_2 = []
+    min_3 = []
+    for i in range(0,number_test):
+        trimble_1_gcp, trimble_2_gcp, trimble_3_gcp, T_1_grand, T_2_grand, T_3_grand = read_marker_file(file_name, 1, 0.8)
+        error_1 = return_error_marker(trimble_1_gcp, trimble_2_gcp, trimble_3_gcp, T_1_grand, T_2_grand, T_3_grand)
+        min_1.append([trimble_1_gcp,trimble_2_gcp,trimble_3_gcp,T_1_grand,T_2_grand,T_3_grand,error_1])
+
+        trimble_1_gcp, trimble_2_gcp, trimble_3_gcp, T_1_grand, T_2_grand, T_3_grand = read_marker_file(file_name, 2, 0.8)
+        error_2 = return_error_marker(trimble_1_gcp, trimble_2_gcp, trimble_3_gcp, T_1_grand, T_2_grand, T_3_grand)
+        min_2.append([trimble_1_gcp,trimble_2_gcp,trimble_3_gcp,T_1_grand,T_2_grand,T_3_grand,error_2])
+
+        trimble_1_gcp, trimble_2_gcp, trimble_3_gcp, T_1_grand, T_2_grand, T_3_grand = read_marker_file(file_name, 3, 0.8)
+        error_3 = return_error_marker(trimble_1_gcp, trimble_2_gcp, trimble_3_gcp, T_1_grand, T_2_grand, T_3_grand)
+        min_3.append([trimble_1_gcp,trimble_2_gcp,trimble_3_gcp,T_1_grand,T_2_grand,T_3_grand,error_3])
+    min_1 = np.array(min_1)
+    min_2 = np.array(min_2)
+    min_3 = np.array(min_3)
+    list_min_1 = np.array([np.median(i) for i in min_1[:,6]])
+    min_index_1 = np.where(list_min_1 == np.min(list_min_1))[0][0]
+    list_min_2 = np.array([np.median(i) for i in min_2[:,6]])
+    min_index_2 = np.where(list_min_2 == np.min(list_min_2))[0][0]
+    list_min_3 = np.array([np.median(i) for i in min_3[:,6]])
+    min_index_3 = np.where(list_min_3 == np.min(list_min_3))[0][0]
+    ts_chosen = np.where([np.min(list_min_1), np.min(list_min_2), np.min(list_min_3)] == np.min([np.min(list_min_1), np.min(list_min_2), np.min(list_min_3)]))[0][0]
+    print("Min median error [m]: ", round(np.min([np.min(list_min_1), np.min(list_min_2), np.min(list_min_3)]),5))
+    print("RTS number ", ts_chosen, " taken as main frame")
+    if(ts_chosen==0):
+        return calculate_uncertainty_resection(min_1, min_index_1)
+    if(ts_chosen==1):
+        return calculate_uncertainty_resection(min_2, min_index_2)
+    if(ts_chosen==2):
+        return calculate_uncertainty_resection(min_3, min_index_3)
+
+def correct_tf(T_init, std_noise, num_samples):
+    T_corrected_list = []
+    r = R.from_matrix(T_init[0:3,0:3])
+    angle = r.as_euler('xyz', degrees=False)
+    for i in range(0, num_samples):
+        angle_corrected = np.array([angle[0]+np.random.normal(0, std_noise[3], 1),
+                                    angle[1]+np.random.normal(0, std_noise[4], 1),
+                                    angle[2]+np.random.normal(0, std_noise[5], 1)])
+        r = R.from_euler('xyz', angle_corrected.flatten(), degrees=False)
+        R_corrected = r.as_matrix()
+        T_corrected = np.identity(4)
+        T_corrected[0:3,0:3]= R_corrected
+        T_change = np.array([np.random.normal(0, std_noise[0], 1),np.random.normal(0, std_noise[1], 1),np.random.normal(0, std_noise[2], 1),0]).T
+        T_corrected[:,3] = T_init[:,3] + T_change
+        T_corrected_list.append(T_corrected)
+    return T_corrected_list
