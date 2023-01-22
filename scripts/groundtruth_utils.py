@@ -531,3 +531,57 @@ def return_uncertainty_of_discrete_trajectory(trimble_used, dist_used, azimuth_u
 
         trajectory_list.append([mu_raw_data, cov_matrix_simulated])
     return np.array(trajectory_list)
+
+def return_point_from_covariance(cov, p, num_samples):
+    eigvals, eigvecs = np.linalg.eigh(cov)
+    idx = np.sum(cov, axis=0).argsort()
+    eigvals_temp = eigvals[idx]
+    idx = eigvals_temp.argsort()
+    eigvals = eigvals[idx]
+    eigvecs = eigvecs[:, idx]
+    sigma_values = np.sqrt(eigvals)
+
+    correction_1 = np.random.normal(0, sigma_values[0], num_samples)
+    correction_2 = np.random.normal(0, sigma_values[1], num_samples)
+    correction_3 = np.random.normal(0, sigma_values[2], num_samples)
+
+    p_corrected = []
+    for i,j,k in zip(correction_1,correction_2,correction_3):
+        p_corrected.append(p[0:3] + i*eigvecs[0] + j*eigvecs[1] + k*eigvecs[2])
+    return p_corrected
+
+def find_noise_list_tf(T_list):
+    T_x = []
+    T_y = []
+    T_z = []
+    T_roll = []
+    T_pitch = []
+    T_yaw = []
+    for i in T_list:
+        r = R.from_matrix(i[0:3, 0:3])
+        angle = r.as_euler('xyz', degrees=False)
+        T_x.append(i[0,3])
+        T_y.append(i[1,3])
+        T_z.append(i[2, 3])
+        T_roll.append(angle[0])
+        T_pitch.append(angle[1])
+        T_yaw.append(angle[2])
+    mu_x = np.mean(T_x)
+    mu_y = np.mean(T_y)
+    mu_z = np.mean(T_z)
+    # mu_roll = np.mean(T_roll)
+    # mu_pitch = np.mean(T_pitch)
+    # mu_yaw = np.mean(T_yaw)
+    # std_x = np.std(T_x)
+    # std_y = np.std(T_y)
+    # std_z = np.std(T_z)
+    # std_roll = np.std(T_roll)
+    # std_pitch = np.std(T_pitch)
+    # std_yaw = np.std(T_yaw)
+    p_T = np.array([T_x, T_y, T_z])
+    # print(np.array(p_T))
+    cov_matrix = np.cov(p_T)
+    mu_points = np.mean(p_T, axis=1)
+    # print(cov_matrix)
+    # print(mu_points)
+    return p_T, mu_points, cov_matrix
