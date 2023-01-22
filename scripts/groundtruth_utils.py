@@ -441,3 +441,93 @@ def correct_tf(T_init, std_noise, num_samples):
         T_corrected[:,3] = T_init[:,3] + T_change
         T_corrected_list.append(T_corrected)
     return T_corrected_list
+
+def MC_raw_data(num_samples, range_value, random_noise_range, true_azimuth, true_elevation, random_noise_angle, random_noise_tilt):
+
+    # ## Atmospheric corrections
+    # measured_edm = 20
+    # lambda_edm =  0.905  # In micro-meter
+    # Nominal_values = [1013.25, 0, 0]    # Nominal values for the TS (Pressure [hPa], temperature [C], humidity [%])
+    # Measured_values = [1020, 5, 15]     # Pressure [hPa], temperature [C], humidity [%]
+    # noise_temp = [0, 0.1]
+    # noise_pressure = [0, 10]
+    # noise_humidity = [0, 2]
+    # edm_range = theodo_g.edm_noise(measured_edm, lambda_edm, Measured_values, Nominal_values, noise_temp, noise_pressure, noise_humidity, num_samples)
+
+    dist = range_noise(range_value, random_noise_range, num_samples)
+    elevation = elevation_noise(true_elevation, random_noise_angle, random_noise_tilt, num_samples)
+    azimuth = azimuth_noise(true_azimuth, elevation, random_noise_angle, random_noise_tilt, num_samples)
+
+    points_simulated = []
+    for i, j, k in zip(dist, azimuth, elevation):
+        point = give_points(i, j, k, 2)
+        points_simulated.append(point)
+    points_simulated = np.array(points_simulated)
+
+    cov_matrix_simulated = np.cov(points_simulated.T[0:3, :])
+    mu_points_simulated = np.mean(points_simulated.T[0:3, :], axis=1)
+    mu_raw_data = give_points(range_value, true_azimuth,true_elevation, 2)
+
+    return mu_raw_data, mu_points_simulated, cov_matrix_simulated
+
+def list_static_points(trimble_used, limit_speed, limit_number):
+
+    P_nm_list = find_not_moving_points(trimble_used, limit_speed)
+
+    Groupe_index_list = []
+    start = P_nm_list[0]
+    list = []
+    for i in P_nm_list:
+        if np.linalg.norm(trimble_used.T[start][0:3] - trimble_used.T[i][0:3]) < limit_speed:
+            list.append(i)
+        else:
+            if (len(list) > limit_number):
+                Groupe_index_list.append(list)
+            list = []
+            start = i
+    if len(list) > 0:
+        Groupe_index_list.append(list)
+    return Groupe_index_list
+
+def unit_return_covariance_point(trimble_used, dist_used, azimuth_used, elevation_used, Groupe_index_1_list, list_number):
+    P_1_0 = trimble_used.T[Groupe_index_1_list[list_number]]
+    D_1_0 = dist_used.T[Groupe_index_1_list[list_number]]
+    A_1_0 = azimuth_used.T[Groupe_index_1_list[list_number]]
+    E_1_0 = elevation_used.T[Groupe_index_1_list[list_number]]
+    #Cov_1_0 = np.cov(P_1_0.T[0:3])
+    cov_matrix = np.cov(P_1_0.T[0:3, :])
+    mu_points = np.mean(P_1_0.T[0:3, :], axis=1)
+    mean_D_1_0 = np.mean(D_1_0)
+    mean_A_1_0 = np.mean(A_1_0)
+    mean_E_1_0 = np.mean(E_1_0)
+    return mu_points, cov_matrix, mean_D_1_0, mean_A_1_0, mean_E_1_0, P_1_0
+
+def return_uncertainty_of_discrete_trajectory(trimble_used, dist_used, azimuth_used, elevation_used, Groupe_index_list):
+    trajectory_list = []
+    for i in range(0, len(Groupe_index_list)):
+        # Good data
+        D_1_0 = dist_used.T[Groupe_index_list[i]]
+        A_1_0 = azimuth_used.T[Groupe_index_list[i]]
+        E_1_0 = elevation_used.T[Groupe_index_list[i]]
+
+        # MC
+        num_samples = 1000
+        ## Range
+        range_value = np.mean(D_1_0)
+        random_noise_range = [0, 0.004 / 2, 2]  ## Mean, sigma, ppm,  4mm + 2ppm (2 sigma)  ISO17123-3
+        ## Angles
+        true_azimuth = np.mean(A_1_0)
+        true_elevation = np.mean(E_1_0)
+        random_noise_angle = [0,
+                              0.000024241 / 5 * 4 / 2]  # Mean, sigma, 5"=0.000024241 précison datasheet  (2 sigma)  ISO17123-3
+        ## Tilt compensator
+        random_noise_tilt = [0,
+                             0.000002424 / 2]  # Mean, sigma, 0.5"=0.000002424 précison datasheet  (2 sigma)  ISO17123-3
+        mu_raw_data, mu_points_simulated, cov_matrix_simulated = MC_raw_data(num_samples, range_value,
+                                                                              random_noise_range, true_azimuth,
+                                                                              true_elevation,
+                                                                              random_noise_angle,
+                                                                              random_noise_tilt)
+
+        trajectory_list.append([mu_raw_data, cov_matrix_simulated])
+    return np.array(trajectory_list)
