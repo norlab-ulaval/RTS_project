@@ -4,6 +4,16 @@ from scripts.theodolite_function import *
 from scripts.prediction_utils import *
 from scripts.resection_functions import *
 
+from pylgmath import so3op, se3op, Transformation
+from pysteam.evaluable.se3 import SE3StateVar
+from pysteam.evaluable.vspace import VSpaceStateVar
+from pysteam.evaluable.p2p import P2PErrorEvaluator
+from pysteam.trajectory import Time
+from pysteam.trajectory.const_vel import Interface as TrajectoryInterface
+from pysteam.problem import OptimizationProblem, StaticNoiseModel, L2LossFunc, WeightedLeastSquareCostTerm, DynamicNoiseModel
+from pysteam.solver import GaussNewtonSolver
+from pysteam.solver import Covariance
+
 def pipeline_groundtruth(path, Sensor, path_sensor_file, parameters, file, output, path_sensor_file_synch_time, Gps_reference_chosen):
 
     sensor_data = []
@@ -585,3 +595,148 @@ def find_noise_list_tf(T_list):
     # print(cov_matrix)
     # print(mu_points)
     return p_T, mu_points, cov_matrix
+
+def STEAM_interpolation_with_covariance(Time_RTS, Time_sensor, MC_data):
+    ## STEAM 1
+    num_states = len(Time_RTS)  # total number of states
+    fake_meas = np.empty((num_states, 4, 1))
+    iterator_meas = 0
+    for mc1 in MC_data:
+        fake_meas[iterator_meas, 0, 0] = mc1[1][0]
+        fake_meas[iterator_meas, 1, 0] = mc1[1][1]
+        fake_meas[iterator_meas, 2, 0] = mc1[1][2]
+        fake_meas[iterator_meas, 3, 0] = 1
+        iterator_meas += 1
+    # states with initial conditions and associated timestamps
+    # T_ba = T_k0 where 0 can be some global frame (e.g. UTM) and k is the vehicle/robot frame at time k
+    states = [(Time_RTS[i], Transformation(C_ba=np.eye(3), r_ba_in_a=fake_meas[i, :3]), np.zeros((6, 1))) for i in
+              range(num_states)]
+    # wrap states with corresponding steam state variables (no copying!)
+    state_vars = [(t, SE3StateVar(T_vi), VSpaceStateVar(w_iv_inv)) for t, T_vi, w_iv_inv in states]
+    qcd = np.ones(6)
+    traj = TrajectoryInterface(qcd=qcd)
+    for t, T_vi, w_iv_inv in state_vars:
+        traj.add_knot(time=Time(t), T_k0=T_vi, w_0k_ink=w_iv_inv)
+    cost_terms = []
+    # use a shared L2 loss function and noise model for all cost terms
+    loss_func = L2LossFunc()
+    # noise_model = StaticNoiseModel(3*np.eye(3), "information")
+    # noise_model = DynamicNoiseModel()
+    for i, j in zip(range(num_states), MC_data):
+        noise_model = StaticNoiseModel(np.linalg.inv(j[2]), "information")
+        error_func = P2PErrorEvaluator(T_rq=state_vars[i][1], reference=np.array([[0, 0, 0, 1]]).T, query=fake_meas[i])
+        cost_terms.append(WeightedLeastSquareCostTerm(error_func, noise_model, loss_func))
+
+    Error_STEAM = False
+    try:
+        opt_prob = OptimizationProblem()
+        opt_prob.add_state_var(*[v for state_var in state_vars for v in state_var[1:]])
+        opt_prob.add_cost_term(*traj.get_prior_cost_terms())
+        opt_prob.add_cost_term(*cost_terms)
+        solver = GaussNewtonSolver(opt_prob, verbose=False)
+        solver.optimize()
+    except:
+        print("Exception interpolation !")
+        Error_STEAM = True
+
+    if Error_STEAM==False:
+        time_interpolated = np.array(Time_sensor)
+        Error_STEAM = False
+        try:
+            T_k0_interp0 = [
+                traj.get_pose_interpolator(Time(i)).evaluate().matrix() for i in time_interpolated
+            ]
+            T_0k_interp = np.array([np.linalg.inv(x) for x in T_k0_interp0])
+            covariance = Covariance(opt_prob)
+            T_k0_interp1 = [
+                traj.get_covariance(covariance, Time(i)) for i in time_interpolated
+            ]
+            MC_interpolated = []
+            for in0, in1, in2 in zip(time_interpolated, T_0k_interp, T_k0_interp1):
+                MC_interpolated.append([in0, in1[0:3, 3], in2[0:3, 0:3]])
+        except:
+            print("Exception extraction !")
+            Error_STEAM = True
+
+        if Error_STEAM == False:
+            return MC_interpolated
+        else:
+            return []
+
+    else:
+        return []
+
+
+
+def plot_frame(ax, T_ri=np.eye(4), length=1, **kwargs):
+  axes = T_ri @ np.concatenate((np.eye(3) * length, np.ones((1, 3))), axis=0)
+  ax.plot(*zip(T_ri[:3, 3], axes[:3, 0]), color='r', **kwargs)
+  ax.plot(*zip(T_ri[:3, 3], axes[:3, 1]), color='g', **kwargs)
+  ax.plot(*zip(T_ri[:3, 3], axes[:3, 2]), color='b', **kwargs)
+
+def get_cov_ellipsoid(ax, mu, cov, nstd=3, **kwargs):
+  assert mu.shape == (3,) and cov.shape == (3, 3)
+
+  # Find and sort eigenvalues to correspond to the covariance matrix
+  eigvals, eigvecs = np.linalg.eigh(cov)
+  idx = np.sum(cov, axis=0).argsort()
+  eigvals_temp = eigvals[idx]
+  idx = eigvals_temp.argsort()
+  eigvals = eigvals[idx]
+  eigvecs = eigvecs[:, idx]
+
+  # Set of all spherical angles to draw our ellipsoid
+  n_points = 100
+  theta = np.linspace(0, 2 * np.pi, n_points)
+  phi = np.linspace(0, np.pi, n_points)
+
+  # Width, height and depth of ellipsoid
+  rx, ry, rz = nstd * np.sqrt(eigvals)
+
+  # Get the xyz points for plotting
+  # Cartesian coordinates that correspond to the spherical angles:
+  X = rx * np.outer(np.cos(theta), np.sin(phi))
+  Y = ry * np.outer(np.sin(theta), np.sin(phi))
+  Z = rz * np.outer(np.ones_like(theta), np.cos(phi))
+
+  # Rotate ellipsoid for off axis alignment
+  old_shape = X.shape
+  # Flatten to vectorise rotation
+  X, Y, Z = X.flatten(), Y.flatten(), Z.flatten()
+  X, Y, Z = np.matmul(eigvecs, np.array([X, Y, Z]))
+  X, Y, Z = X.reshape(old_shape), Y.reshape(old_shape), Z.reshape(old_shape)
+
+  # Add in offsets for the mean
+  X = X + mu[0]
+  Y = Y + mu[1]
+  Z = Z + mu[2]
+
+  return ax.plot_wireframe(X, Y, Z, **kwargs)
+
+def set_axes_equal(ax):
+    '''Make axes of 3D plot have equal scale so that spheres appear as spheres,
+    cubes as cubes, etc..  This is one possible solution to Matplotlib's
+    ax.set_aspect('equal') and ax.axis('equal') not working for 3D.
+
+    Input
+      ax: a matplotlib axis, e.g., as output from plt.gca().
+    '''
+
+    x_limits = ax.get_xlim3d()
+    y_limits = ax.get_ylim3d()
+    z_limits = ax.get_zlim3d()
+
+    x_range = abs(x_limits[1] - x_limits[0])
+    x_middle = np.mean(x_limits)
+    y_range = abs(y_limits[1] - y_limits[0])
+    y_middle = np.mean(y_limits)
+    z_range = abs(z_limits[1] - z_limits[0])
+    z_middle = np.mean(z_limits)
+
+    # The plot bounding box is a sphere in the sense of the infinity
+    # norm, hence I call half the max range the plot radius.
+    plot_radius = 0.5*max([x_range, y_range, z_range])
+
+    ax.set_xlim3d([x_middle - plot_radius, x_middle + plot_radius])
+    ax.set_ylim3d([y_middle - plot_radius, y_middle + plot_radius])
+    ax.set_zlim3d([z_middle - plot_radius, z_middle + plot_radius])
