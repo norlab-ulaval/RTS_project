@@ -659,7 +659,7 @@ def STEAM_interpolation_with_covariance(Time_RTS, Time_sensor, MC_data):
             Error_STEAM = True
 
         if Error_STEAM == False:
-            return MC_interpolated
+            return MC_interpolated, T_0k_interp, T_k0_interp1
         else:
             return []
 
