@@ -1401,6 +1401,38 @@ def grountruth_GNSS_sorted_convert_for_eval(Index_list, name_file, time_delay, o
 	groundtruth_file.close()
 	print("Conversion done !")
 
+def save_MC_interpolated_sorted(MC_sorted, output):
+    MC_file = open(output,"w+")
+    for i in MC_sorted:
+        MC_file.write(str(i[0]))
+        MC_file.write(" ")
+        MC_file.write(str(i[1][0]))
+        MC_file.write(" ")
+        MC_file.write(str(i[1][1]))
+        MC_file.write(" ")
+        MC_file.write(str(i[1][2]))
+        MC_file.write(" ")
+        MC_file.write(str(i[2][0][0]))
+        MC_file.write(" ")
+        MC_file.write(str(i[2][0][1]))
+        MC_file.write(" ")
+        MC_file.write(str(i[2][0][2]))
+        MC_file.write(" ")
+        MC_file.write(str(i[2][1][0]))
+        MC_file.write(" ")
+        MC_file.write(str(i[2][1][1]))
+        MC_file.write(" ")
+        MC_file.write(str(i[2][1][2]))
+        MC_file.write(" ")
+        MC_file.write(str(i[2][2][0]))
+        MC_file.write(" ")
+        MC_file.write(str(i[2][2][1]))
+        MC_file.write(" ")
+        MC_file.write(str(i[2][2][2]))
+        MC_file.write("\n")
+    MC_file.close()
+    print("Conversion done !")
+
 # def grountruth_GP_gps_convert_for_eval2(Pose_gps, output):
 # 	groundtruth_file = open(output,"w+")
 # 	for j in Pose_gps:
