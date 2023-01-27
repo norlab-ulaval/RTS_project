@@ -659,7 +659,7 @@ def STEAM_interpolation_with_covariance(Time_RTS, Time_sensor, MC_data):
             Error_STEAM = True
 
         if Error_STEAM == False:
-            return MC_interpolated, T_0k_interp, T_k0_interp1
+            return MC_interpolated
         else:
             return []
 
@@ -740,3 +740,54 @@ def set_axes_equal(ax):
     ax.set_xlim3d([x_middle - plot_radius, x_middle + plot_radius])
     ax.set_ylim3d([y_middle - plot_radius, y_middle + plot_radius])
     ax.set_zlim3d([z_middle - plot_radius, z_middle + plot_radius])
+
+def chose_sensor_before_ptp(path, Sensor, Gps_reference_chosen):
+    # Load sensor positions
+    file_sensor_positions = if_file_exist(path + "sensors_extrinsic_calibration/sensor_positions.csv", '')
+    sensor_positions_list = read_extrinsic_calibration_results_file(file_sensor_positions)
+
+    Sensors = []
+    P1_position_RTS = np.array(sensor_positions_list[0])
+    P2_position_RTS = np.array(sensor_positions_list[1])
+    P3_position_RTS = np.array(sensor_positions_list[2])
+    if Sensor == "GNSS":
+        Sensors.append(np.array(sensor_positions_list[3]))
+        Sensors.append(np.array(sensor_positions_list[4]))
+        Sensors.append(np.array(sensor_positions_list[5]))
+
+        P1_position_GNSS = P1_position_RTS - Sensors[Gps_reference_chosen - 1]
+        P1_position_GNSS[3] = 1
+        P2_position_GNSS = P2_position_RTS - Sensors[Gps_reference_chosen - 1]
+        P2_position_GNSS[3] = 1
+        P3_position_GNSS = P3_position_RTS - Sensors[Gps_reference_chosen - 1]
+        P3_position_GNSS[3] = 1
+
+        P_sensor = np.array([P1_position_GNSS,
+                             P2_position_GNSS,
+                             P3_position_GNSS]).T
+
+        return P_sensor
+
+    if Sensor == "Robosense_32":
+        Sensors.append(np.array(sensor_positions_list[6]))
+        Sensors.append(np.array(sensor_positions_list[7]))
+        Sensors.append(np.array(sensor_positions_list[8]))
+        Sensors.append(np.array(sensor_positions_list[9]))
+        ux = Sensors[1] - Sensors[0]
+        uy = Sensors[2] - Sensors[0]
+        uz = Sensors[3] - Sensors[0]
+
+        T_lidar = np.array([[ux[0], uy[0], uz[0], Sensors[0][0]],
+                            [ux[1], uy[1], uz[1], Sensors[0][1]],
+                            [ux[2], uy[2], uz[2], Sensors[0][2]],
+                            [0, 0, 0, 1]])
+        T_lidar_inv = np.linalg.inv(T_lidar)
+        P1_position_lidar = T_lidar_inv @ P1_position_RTS
+        P2_position_lidar = T_lidar_inv @ P2_position_RTS
+        P3_position_lidar = T_lidar_inv @ P3_position_RTS
+
+        P_sensor = np.array([P1_position_lidar,
+                             P2_position_lidar,
+                             P3_position_lidar]).T
+
+        return P_sensor
