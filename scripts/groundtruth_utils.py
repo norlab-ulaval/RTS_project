@@ -339,18 +339,42 @@ def get_cov_ellipsoid(cov, mu=np.zeros((3)), nstd=3):
     return X,Y,Z
 
 def return_error_marker(trimble_1_gcp, trimble_2_gcp, trimble_3_gcp, T_1_grand, T_2_grand, T_3_grand):
-    tp1 = T_1_grand@trimble_1_gcp
-    tp2 = T_2_grand@trimble_2_gcp
-    tp3 = T_3_grand@trimble_3_gcp
-    error = []
-    for i,j,k in zip(tp1[0:3],tp2[0:3],tp3[0:3]):
-        dist_12 = np.linalg.norm(i-j)
-        dist_13 = np.linalg.norm(i-k)
-        dist_23 = np.linalg.norm(k-j)
-        error.append(dist_12)
-        error.append(dist_13)
-        error.append(dist_23)
-    return error
+    if(len(trimble_1_gcp)<4):
+        t1 = []
+        t2 = []
+        t3 = []
+        for i,j,k in zip(trimble_1_gcp.T,trimble_2_gcp.T,trimble_3_gcp.T):
+            t1.append(np.array([i[0],i[1],i[2],1]))
+            t2.append(np.array([j[0], j[1], j[2], 1]))
+            t3.append(np.array([k[0], k[1], k[2], 1]))
+        t1 = np.array(t1).T
+        t2 = np.array(t2).T
+        t3 = np.array(t3).T
+        tp1 = T_1_grand @ t1
+        tp2 = T_2_grand @ t2
+        tp3 = T_3_grand @ t3
+        error = []
+        for i, j, k in zip(tp1.T[0:3], tp2.T[0:3], tp3.T[0:3]):
+            dist_12 = np.linalg.norm(i - j)
+            dist_13 = np.linalg.norm(i - k)
+            dist_23 = np.linalg.norm(k - j)
+            error.append(dist_12)
+            error.append(dist_13)
+            error.append(dist_23)
+        return error
+    else:
+        tp1 = T_1_grand@trimble_1_gcp
+        tp2 = T_2_grand@trimble_2_gcp
+        tp3 = T_3_grand@trimble_3_gcp
+        error = []
+        for i,j,k in zip(tp1[0:3],tp2[0:3],tp3[0:3]):
+            dist_12 = np.linalg.norm(i-j)
+            dist_13 = np.linalg.norm(i-k)
+            dist_23 = np.linalg.norm(k-j)
+            error.append(dist_12)
+            error.append(dist_13)
+            error.append(dist_23)
+        return error
 
 def return_good_tf(min_array, min_index):
     T_1_choose = min_array[min_index,3]
@@ -358,81 +382,133 @@ def return_good_tf(min_array, min_index):
     T_3_choose = min_array[min_index,5]
     return T_1_choose, T_2_choose, T_3_choose
 
+def check_if_angle_is_in_interval(angle):
+    if 0<=angle<2*math.pi:
+        return angle
+    else:
+        if angle<0:
+            return angle+2*math.pi
+        else:
+            if angle>=2*math.pi:
+                return angle-2*math.pi
+
 def calculate_uncertainty_resection(min_array, min_index):
     T_1_choose = min_array[min_index,3]
     r = R.from_matrix(T_1_choose[0:3,0:3])
     angle = r.as_euler('xyz', degrees=False)
-    V_1_choose = np.array([T_1_choose[0,3],T_1_choose[1,3],T_1_choose[2,3],angle[0],angle[1],angle[2]])
+    V_1_choose = np.array([T_1_choose[0,3],T_1_choose[1,3],T_1_choose[2,3],check_if_angle_is_in_interval(angle[0]),
+                           check_if_angle_is_in_interval(angle[1]),check_if_angle_is_in_interval(angle[2])])
+    print(angle)
+    print(check_if_angle_is_in_interval(angle[0]),check_if_angle_is_in_interval(angle[1]),check_if_angle_is_in_interval(angle[2]))
+
     T_2_choose = min_array[min_index,4]
     r = R.from_matrix(T_2_choose[0:3,0:3])
     angle = r.as_euler('xyz', degrees=False)
-    V_2_choose = np.array([T_2_choose[0,3],T_2_choose[1,3],T_2_choose[2,3],angle[0],angle[1],angle[2]])
+    V_2_choose = np.array([T_2_choose[0,3],T_2_choose[1,3],T_2_choose[2,3],check_if_angle_is_in_interval(angle[0]),
+                           check_if_angle_is_in_interval(angle[1]),check_if_angle_is_in_interval(angle[2])])
+    print(angle)
+    print(check_if_angle_is_in_interval(angle[0]), check_if_angle_is_in_interval(angle[1]),
+          check_if_angle_is_in_interval(angle[2]))
+
     T_3_choose = min_array[min_index,5]
     r = R.from_matrix(T_3_choose[0:3,0:3])
     angle = r.as_euler('xyz', degrees=False)
-    V_3_choose = np.array([T_3_choose[0,3],T_3_choose[1,3],T_3_choose[2,3],angle[0],angle[1],angle[2]])
+    V_3_choose = np.array([T_3_choose[0,3],T_3_choose[1,3],T_3_choose[2,3],check_if_angle_is_in_interval(angle[0]),
+                           check_if_angle_is_in_interval(angle[1]),check_if_angle_is_in_interval(angle[2])])
+    print(angle)
+    print(check_if_angle_is_in_interval(angle[0]), check_if_angle_is_in_interval(angle[1]),
+          check_if_angle_is_in_interval(angle[2]))
 
     value_1 = []
     value_2 = []
     value_3 = []
     for i in np.array(min_array[:,3]):
-        r = R.from_matrix(i[0:3,0:3])
-        angle = r.as_euler('xyz', degrees=False)
-        value_1.append(np.array([i[0,3],i[1,3],i[2,3], angle[0], angle[1], angle[2]]))
-    for i in np.array(min_array[:,4]):
-        r = R.from_matrix(i[0:3,0:3])
-        angle = r.as_euler('xyz', degrees=False)
-        value_2.append(np.array([i[0,3],i[1,3],i[2,3], angle[0], angle[1], angle[2]]))
-    for i in np.array(min_array[:,5]):
-        r = R.from_matrix(i[0:3,0:3])
-        angle = r.as_euler('xyz', degrees=False)
-        value_3.append(np.array([i[0,3],i[1,3],i[2,3], angle[0], angle[1], angle[2]]))
+        R_diff = T_1_choose[0:3, 0:3] @ np.linalg.inv(i[0:3, 0:3])
+        r = R.from_matrix(R_diff)
+        angle11 = r.as_euler('xyz', degrees=False)
+        value_1.append(np.array([i[0, 3], i[1, 3], i[2, 3], angle11[0], angle11[1], angle11[2]]))
+
+    for j in np.array(min_array[:,4]):
+        R_diff = T_2_choose[0:3, 0:3] @ np.linalg.inv(j[0:3, 0:3])
+        r = R.from_matrix(R_diff)
+        angle22 = r.as_euler('xyz', degrees=False)
+        value_2.append(np.array([j[0, 3], j[1, 3], j[2, 3], angle22[0], angle22[1], angle22[2]]))
+
+    for k in np.array(min_array[:,5]):
+        R_diff = T_3_choose[0:3, 0:3] @ np.linalg.inv(k[0:3, 0:3])
+        r = R.from_matrix(R_diff)
+        angle33 = r.as_euler('xyz', degrees=False)
+        value_3.append(np.array([k[0, 3], k[1, 3], k[2, 3], angle33[0], angle33[1], angle33[2]]))
     value_1 = np.array(value_1)
     value_2 = np.array(value_2)
     value_3 = np.array(value_3)
 
-    std_1 = [np.std(value_1[:,0]-V_1_choose[0]), np.std(value_1[:,1]-V_1_choose[1]), np.std(value_1[:,2]-V_1_choose[2]),
-             np.std(value_1[:,3]-V_1_choose[3]), np.std(value_1[:,4]-V_1_choose[4]), np.std(value_1[:,5]-V_1_choose[5])]
-    std_2 = [np.std(value_2[:,0]-V_2_choose[0]), np.std(value_2[:,1]-V_2_choose[1]), np.std(value_2[:,2]-V_2_choose[2]),
-             np.std(value_2[:,3]-V_2_choose[3]), np.std(value_2[:,4]-V_2_choose[4]), np.std(value_2[:,5]-V_2_choose[5])]
-    std_3 = [np.std(value_3[:,0]-V_3_choose[0]), np.std(value_3[:,1]-V_3_choose[1]), np.std(value_3[:,2]-V_3_choose[2]),
-             np.std(value_3[:,3]-V_3_choose[3]), np.std(value_3[:,4]-V_3_choose[4]), np.std(value_3[:,5]-V_3_choose[5])]
+    std_1 = [np.std(value_1[:, 0] - V_1_choose[0]), np.std(value_1[:, 1] - V_1_choose[1]),
+             np.std(value_1[:, 2] - V_1_choose[2]),
+             np.std(value_1[:, 3]), np.std(value_1[:, 4]), np.std(value_1[:, 5])]
 
-    return T_1_choose, T_2_choose, T_3_choose, std_1, std_2, std_3
+    std_2 = [np.std(value_2[:, 0] - V_2_choose[0]), np.std(value_2[:, 1] - V_2_choose[1]),
+             np.std(value_2[:, 2] - V_2_choose[2]),
+             np.std(value_2[:, 3]), np.std(value_2[:, 4]), np.std(value_2[:, 5])]
+
+    std_3 = [np.std(value_3[:, 0] - V_3_choose[0]), np.std(value_3[:, 1] - V_3_choose[1]),
+             np.std(value_3[:, 2] - V_3_choose[2]),
+             np.std(value_3[:, 3]), np.std(value_3[:, 4]), np.std(value_3[:, 5])]
+
+    return T_1_choose, T_2_choose, T_3_choose, std_1, std_2, std_3, min_array, min_index
 
 def function_noise_resection(file_name, number_test):
     min_1 = []
     min_2 = []
     min_3 = []
     for i in range(0,number_test):
-        trimble_1_gcp, trimble_2_gcp, trimble_3_gcp, T_1_grand, T_2_grand, T_3_grand = read_marker_file(file_name, 1, 0.8)
-        error_1 = return_error_marker(trimble_1_gcp, trimble_2_gcp, trimble_3_gcp, T_1_grand, T_2_grand, T_3_grand)
-        min_1.append([trimble_1_gcp,trimble_2_gcp,trimble_3_gcp,T_1_grand,T_2_grand,T_3_grand,error_1])
+        trimble_1_gcp1, trimble_2_gcp1, trimble_3_gcp1, T_1_grand1, T_2_grand1, T_3_grand1 = read_marker_file(file_name, 1, 0.8)
+        error_1 = return_error_marker(trimble_1_gcp1, trimble_2_gcp1, trimble_3_gcp1, T_1_grand1, T_2_grand1, T_3_grand1)
+        min_1.append([trimble_1_gcp1,trimble_2_gcp1,trimble_3_gcp1,T_1_grand1,T_2_grand1,T_3_grand1,error_1])
 
-        trimble_1_gcp, trimble_2_gcp, trimble_3_gcp, T_1_grand, T_2_grand, T_3_grand = read_marker_file(file_name, 2, 0.8)
-        error_2 = return_error_marker(trimble_1_gcp, trimble_2_gcp, trimble_3_gcp, T_1_grand, T_2_grand, T_3_grand)
-        min_2.append([trimble_1_gcp,trimble_2_gcp,trimble_3_gcp,T_1_grand,T_2_grand,T_3_grand,error_2])
+        trimble_1_gcp2, trimble_2_gcp2, trimble_3_gcp2, T_1_grand2, T_2_grand2, T_3_grand2 = read_marker_file(file_name, 2, 0.8)
+        error_2 = return_error_marker(trimble_1_gcp2, trimble_2_gcp2, trimble_3_gcp2, T_1_grand2, T_2_grand2, T_3_grand2)
+        min_2.append([trimble_1_gcp2,trimble_2_gcp2,trimble_3_gcp2,T_1_grand2,T_2_grand2,T_3_grand2,error_2])
 
-        trimble_1_gcp, trimble_2_gcp, trimble_3_gcp, T_1_grand, T_2_grand, T_3_grand = read_marker_file(file_name, 3, 0.8)
-        error_3 = return_error_marker(trimble_1_gcp, trimble_2_gcp, trimble_3_gcp, T_1_grand, T_2_grand, T_3_grand)
-        min_3.append([trimble_1_gcp,trimble_2_gcp,trimble_3_gcp,T_1_grand,T_2_grand,T_3_grand,error_3])
+        trimble_1_gcp3, trimble_2_gcp3, trimble_3_gcp3, T_1_grand3, T_2_grand3, T_3_grand3 = read_marker_file(file_name, 3, 0.8)
+        error_3 = return_error_marker(trimble_1_gcp3, trimble_2_gcp3, trimble_3_gcp3, T_1_grand3, T_2_grand3, T_3_grand3)
+        min_3.append([trimble_1_gcp3,trimble_2_gcp3,trimble_3_gcp3,T_1_grand3,T_2_grand3,T_3_grand3,error_3])
+
+    print("points: ", trimble_1_gcp1)
+
     min_1 = np.array(min_1)
     min_2 = np.array(min_2)
     min_3 = np.array(min_3)
+
     list_min_1 = np.array([np.median(i) for i in min_1[:,6]])
     min_index_1 = np.where(list_min_1 == np.min(list_min_1))[0][0]
+
     list_min_2 = np.array([np.median(i) for i in min_2[:,6]])
     min_index_2 = np.where(list_min_2 == np.min(list_min_2))[0][0]
+
     list_min_3 = np.array([np.median(i) for i in min_3[:,6]])
     min_index_3 = np.where(list_min_3 == np.min(list_min_3))[0][0]
+
     ts_chosen = np.where([np.min(list_min_1), np.min(list_min_2), np.min(list_min_3)] == np.min([np.min(list_min_1), np.min(list_min_2), np.min(list_min_3)]))[0][0]
     print("Min median error [m]: ", round(np.min([np.min(list_min_1), np.min(list_min_2), np.min(list_min_3)]),5))
-    print("RTS number ", ts_chosen, " taken as main frame")
+    print("RTS number ", str(ts_chosen+1), " taken as main frame")
     if(ts_chosen==0):
+        print("pt1 ",min_1[0, 0])
+        print("t1 ",min_1[0, 3])
+        print("t2 ",min_1[0,4])
+        print("t3 ",min_1[0, 5])
         return calculate_uncertainty_resection(min_1, min_index_1)
     if(ts_chosen==1):
+        print("pt1 ",min_2[0, 0])
+        print("t1 ",min_2[0, 3])
+        print("t2 ",min_2[0, 4])
+        print("t3 ",min_2[0, 5])
         return calculate_uncertainty_resection(min_2, min_index_2)
     if(ts_chosen==2):
+        print("pt1 ",min_3[0, 0])
+        print("t1 ",min_3[0, 3])
+        print("t2 ",min_3[0, 4])
+        print("t3 ",min_3[0, 5])
         return calculate_uncertainty_resection(min_3, min_index_3)
 
 def correct_tf(T_init, std_noise, num_samples):
@@ -452,7 +528,25 @@ def correct_tf(T_init, std_noise, num_samples):
         T_corrected_list.append(T_corrected)
     return T_corrected_list
 
-def MC_raw_data(num_samples, range_value, random_noise_range, true_azimuth, true_elevation, random_noise_angle, random_noise_tilt):
+def MC_raw_data_only(num_samples, range_value, random_noise_range, true_azimuth, true_elevation, random_noise_angle, random_noise_tilt):
+
+    dist = range_noise(range_value, random_noise_range, num_samples)
+    elevation = elevation_noise(true_elevation, random_noise_angle, random_noise_tilt, num_samples)
+    azimuth = azimuth_noise(true_azimuth, elevation, random_noise_angle, random_noise_tilt, num_samples)
+
+    points_simulated = []
+    for i, j, k in zip(dist, azimuth, elevation):
+        point = give_points(i, j, k, 2)
+        points_simulated.append(point)
+    points_simulated = np.array(points_simulated)
+
+    cov_matrix_simulated = np.cov(points_simulated.T[0:3, :])
+    mu_points_simulated = np.mean(points_simulated.T[0:3, :], axis=1)
+    mu_raw_data = give_points(range_value, true_azimuth,true_elevation, 2)
+
+    return mu_raw_data, mu_points_simulated, cov_matrix_simulated
+
+def MC_raw_data(num_samples, range_value, random_noise_range, true_azimuth, true_elevation, random_noise_angle, random_noise_tilt, Tf_mean, T_corrected):
 
     # ## Atmospheric corrections
     # measured_edm = 20
@@ -469,14 +563,14 @@ def MC_raw_data(num_samples, range_value, random_noise_range, true_azimuth, true
     azimuth = azimuth_noise(true_azimuth, elevation, random_noise_angle, random_noise_tilt, num_samples)
 
     points_simulated = []
-    for i, j, k in zip(dist, azimuth, elevation):
+    for i, j, k , l in zip(dist, azimuth, elevation, T_corrected):
         point = give_points(i, j, k, 2)
-        points_simulated.append(point)
+        points_simulated.append(l@point)
     points_simulated = np.array(points_simulated)
 
     cov_matrix_simulated = np.cov(points_simulated.T[0:3, :])
     mu_points_simulated = np.mean(points_simulated.T[0:3, :], axis=1)
-    mu_raw_data = give_points(range_value, true_azimuth,true_elevation, 2)
+    mu_raw_data = Tf_mean@give_points(range_value, true_azimuth,true_elevation, 2)
 
     return mu_raw_data, mu_points_simulated, cov_matrix_simulated
 
@@ -791,3 +885,103 @@ def chose_sensor_before_ptp(path, Sensor, Gps_reference_chosen):
                              P3_position_lidar]).T
 
         return P_sensor
+
+def extrinsic_calibration_noise(file_name, random_noise_range, random_noise_angle, random_noise_tilt, num_samples):
+    raw_1 = []
+    raw_2 = []
+    raw_3 = []
+    with open(file_name, "r") as file:
+        file.readline()
+        for line in file:
+            item = line.strip().split(" , ")
+            if int(item[0]) == 1 and int(item[2]) == 0:
+                raw_1.append([float(item[5]), float(item[4]), float(item[3])])
+            if int(item[0]) == 2 and int(item[2]) == 0:
+                raw_2.append([float(item[5]), float(item[4]), float(item[3])])
+            if int(item[0]) == 3 and int(item[2]) == 0:
+                raw_3.append([float(item[5]), float(item[4]), float(item[3])])
+
+    stat_1 = []
+    stat_2 = []
+    stat_3 = []
+    for i, j, k in zip(raw_1, raw_2, raw_3):
+        mu_raw_data, _, cov_matrix = MC_raw_data_only(1000, i[0], random_noise_range, i[1], i[2],
+                                                               random_noise_angle, random_noise_tilt)
+        stat_1.append([mu_raw_data, cov_matrix])
+        mu_raw_data, _, cov_matrix = MC_raw_data_only(1000, j[0], random_noise_range, j[1], j[2],
+                                                               random_noise_angle, random_noise_tilt)
+        stat_2.append([mu_raw_data, cov_matrix])
+        mu_raw_data, _, cov_matrix = MC_raw_data_only(1000, k[0], random_noise_range, k[1], k[2],
+                                                               random_noise_angle, random_noise_tilt)
+        stat_3.append([mu_raw_data, cov_matrix])
+
+    p1_list = []
+    p2_list = []
+    p3_list = []
+    for i, j, k in zip(stat_1, stat_2, stat_3):
+        p1_list.append(return_point_from_covariance(i[1], i[0], num_samples))
+        p2_list.append(return_point_from_covariance(j[1], j[0], num_samples))
+        p3_list.append(return_point_from_covariance(k[1], k[0], num_samples))
+
+    T_I = np.identity(4)
+    T_list_1 = []
+    T_list_2 = []
+    T_list_3 = []
+    for i in range(0, num_samples):
+        p1_temp = []
+        p2_temp = []
+        p3_temp = []
+        for i0, j0, k0 in zip(p1_list, p2_list, p3_list):
+            p1_temp.append(i0[i])
+            p2_temp.append(j0[i])
+            p3_temp.append(k0[i])
+
+        points_theodolite_1 = np.array(p1_temp).T
+        points_theodolite_2 = np.array(p2_temp).T
+        points_theodolite_3 = np.array(p3_temp).T
+
+        T_12 = point_to_point_minimization(points_theodolite_2, points_theodolite_1)
+        T_13 = point_to_point_minimization(points_theodolite_3, points_theodolite_1)
+        error1 = return_error_marker(points_theodolite_1, points_theodolite_2, points_theodolite_3, T_I, T_12,
+                                              T_13)
+        T_list_1.append([T_I, T_12, T_13, error1])
+
+        T_21 = point_to_point_minimization(points_theodolite_1, points_theodolite_2)
+        T_23 = point_to_point_minimization(points_theodolite_3, points_theodolite_2)
+        error2 = return_error_marker(points_theodolite_1, points_theodolite_2, points_theodolite_3, T_21, T_I,
+                                              T_23)
+        T_list_2.append([T_21, T_I, T_23, error2])
+
+        T_31 = point_to_point_minimization(points_theodolite_1, points_theodolite_3)
+        T_32 = point_to_point_minimization(points_theodolite_2, points_theodolite_3)
+        error3 = return_error_marker(points_theodolite_1, points_theodolite_2, points_theodolite_3, T_31, T_32,
+                                              T_I)
+        T_list_3.append([T_31, T_32, T_I, error3])
+
+    min_list = [np.min(np.array([np.median(i[3]) for i in T_list_1])),
+                np.min(np.array([np.median(i[3]) for i in T_list_2])),
+                np.min(np.array([np.median(i[3]) for i in T_list_3]))]
+
+    ts_chosen = np.where(min_list == np.min(min_list))[0][0]
+    T1_simulate = []
+    T2_simulate = []
+    T3_simulate = []
+    if (ts_chosen == 0):
+        for i in T_list_1:
+            T1_simulate.append(i[0])
+            T2_simulate.append(i[1])
+            T3_simulate.append(i[2])
+        return ts_chosen+1,T1_simulate, T2_simulate, T3_simulate
+    if (ts_chosen == 1):
+        for i in T_list_2:
+            T1_simulate.append(i[0])
+            T2_simulate.append(i[1])
+            T3_simulate.append(i[2])
+        return ts_chosen+1,T1_simulate, T2_simulate, T3_simulate
+    if (ts_chosen == 2):
+        for i in T_list_3:
+            T1_simulate.append(i[0])
+            T2_simulate.append(i[1])
+            T3_simulate.append(i[2])
+        return ts_chosen+1,T1_simulate, T2_simulate, T3_simulate
+
