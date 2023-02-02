@@ -3591,4 +3591,3 @@ def save_to_VTK_uncertainty(sigma_plot, MC_sorted,output):
     writer.SetInputConnection(appended.GetOutputPort())
     writer.Write()
     print("Wrote file")
-
