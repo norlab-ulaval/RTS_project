@@ -10,6 +10,7 @@ from scipy.spatial.transform import Rotation as R_scipy
 from os.path import exists
 import vtk
 
+
 # import rosbag
 # import csv
 # import random
@@ -2726,6 +2727,7 @@ def research_index_for_time(time_trimble, time_interval, limit_search):
 # 	return index
 #
 #
+
 # Returns element closest to target in an array
 # Input:
 # - arr: array of data 1xN, timestamp (s)
@@ -3589,3 +3591,4 @@ def save_to_VTK_uncertainty(sigma_plot, MC_sorted,output):
     writer.SetInputConnection(appended.GetOutputPort())
     writer.Write()
     print("Wrote file")
+

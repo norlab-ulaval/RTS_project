@@ -292,7 +292,11 @@ def edm_noise(measured_edm, lambda_edm, Measured_values, Nominal_values, noise_t
     ppm = (N_o - N_l)/(1+N_l*10**(-6))
     return measured_edm*(1+ppm*10**(-6))
 
+<<<<<<< HEAD
 def get_cov_ellipsoid_bis(cov, mu=np.zeros((3)), nstd=3):
+=======
+def get_cov_ellipsoid(cov, mu=np.zeros((3)), nstd=3):
+>>>>>>> 8d0817d6876773cb35320bd55f9180bc16fcc145
     """
     Return the 3d points representing the covariance matrix
     cov centred at mu and scaled by the factor nstd.
@@ -546,6 +550,7 @@ def MC_raw_data_only(num_samples, range_value, random_noise_range, true_azimuth,
 
     return mu_raw_data, mu_points_simulated, cov_matrix_simulated
 
+<<<<<<< HEAD
 def MC_raw_data(num_samples, range_value, random_noise_range, true_azimuth, true_elevation, random_noise_angle, random_noise_tilt, Tf_mean, T_corrected,
                 data_weather, time_data, model_chosen):
     # Check if atmospheric correction model
@@ -615,6 +620,35 @@ def MC_raw_data(num_samples, range_value, random_noise_range, true_azimuth, true
             mu_points_simulated = np.mean(points_simulated.T[0:3, :], axis=1)
             mu_raw_data = Tf_mean @ give_points(range_value, true_azimuth, true_elevation, 2)
             return mu_raw_data, mu_points_simulated, cov_matrix_simulated
+=======
+def MC_raw_data(num_samples, range_value, random_noise_range, true_azimuth, true_elevation, random_noise_angle, random_noise_tilt, Tf_mean, T_corrected):
+
+    # ## Atmospheric corrections
+    # measured_edm = 20
+    # lambda_edm =  0.905  # In micro-meter
+    # Nominal_values = [1013.25, 0, 0]    # Nominal values for the TS (Pressure [hPa], temperature [C], humidity [%])
+    # Measured_values = [1020, 5, 15]     # Pressure [hPa], temperature [C], humidity [%]
+    # noise_temp = [0, 0.1]
+    # noise_pressure = [0, 10]
+    # noise_humidity = [0, 2]
+    # edm_range = theodo_g.edm_noise(measured_edm, lambda_edm, Measured_values, Nominal_values, noise_temp, noise_pressure, noise_humidity, num_samples)
+
+    dist = range_noise(range_value, random_noise_range, num_samples)
+    elevation = elevation_noise(true_elevation, random_noise_angle, random_noise_tilt, num_samples)
+    azimuth = azimuth_noise(true_azimuth, elevation, random_noise_angle, random_noise_tilt, num_samples)
+
+    points_simulated = []
+    for i, j, k , l in zip(dist, azimuth, elevation, T_corrected):
+        point = give_points(i, j, k, 2)
+        points_simulated.append(l@point)
+    points_simulated = np.array(points_simulated)
+
+    cov_matrix_simulated = np.cov(points_simulated.T[0:3, :])
+    mu_points_simulated = np.mean(points_simulated.T[0:3, :], axis=1)
+    mu_raw_data = Tf_mean@give_points(range_value, true_azimuth,true_elevation, 2)
+
+    return mu_raw_data, mu_points_simulated, cov_matrix_simulated
+>>>>>>> 8d0817d6876773cb35320bd55f9180bc16fcc145
 
 def list_static_points(trimble_used, limit_speed, limit_number):
 
@@ -811,6 +845,7 @@ def plot_frame(ax, T_ri=np.eye(4), length=1, **kwargs):
   ax.plot(*zip(T_ri[:3, 3], axes[:3, 2]), color='b', **kwargs)
 
 def get_cov_ellipsoid(ax, mu, cov, nstd=3, **kwargs):
+<<<<<<< HEAD
     assert mu.shape == (3,) and cov.shape == (3, 3)
 
     # Find and sort eigenvalues to correspond to the covariance matrix
@@ -848,6 +883,45 @@ def get_cov_ellipsoid(ax, mu, cov, nstd=3, **kwargs):
     Z = Z + mu[2]
 
     return ax.plot_wireframe(X, Y, Z, **kwargs)
+=======
+  assert mu.shape == (3,) and cov.shape == (3, 3)
+
+  # Find and sort eigenvalues to correspond to the covariance matrix
+  eigvals, eigvecs = np.linalg.eigh(cov)
+  idx = np.sum(cov, axis=0).argsort()
+  eigvals_temp = eigvals[idx]
+  idx = eigvals_temp.argsort()
+  eigvals = eigvals[idx]
+  eigvecs = eigvecs[:, idx]
+
+  # Set of all spherical angles to draw our ellipsoid
+  n_points = 100
+  theta = np.linspace(0, 2 * np.pi, n_points)
+  phi = np.linspace(0, np.pi, n_points)
+
+  # Width, height and depth of ellipsoid
+  rx, ry, rz = nstd * np.sqrt(eigvals)
+
+  # Get the xyz points for plotting
+  # Cartesian coordinates that correspond to the spherical angles:
+  X = rx * np.outer(np.cos(theta), np.sin(phi))
+  Y = ry * np.outer(np.sin(theta), np.sin(phi))
+  Z = rz * np.outer(np.ones_like(theta), np.cos(phi))
+
+  # Rotate ellipsoid for off axis alignment
+  old_shape = X.shape
+  # Flatten to vectorise rotation
+  X, Y, Z = X.flatten(), Y.flatten(), Z.flatten()
+  X, Y, Z = np.matmul(eigvecs, np.array([X, Y, Z]))
+  X, Y, Z = X.reshape(old_shape), Y.reshape(old_shape), Z.reshape(old_shape)
+
+  # Add in offsets for the mean
+  X = X + mu[0]
+  Y = Y + mu[1]
+  Z = Z + mu[2]
+
+  return ax.plot_wireframe(X, Y, Z, **kwargs)
+>>>>>>> 8d0817d6876773cb35320bd55f9180bc16fcc145
 
 def set_axes_equal(ax):
     '''Make axes of 3D plot have equal scale so that spheres appear as spheres,
