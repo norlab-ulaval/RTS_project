@@ -8,6 +8,7 @@ from rosbags.typesys import get_types_from_msg, register_types
 from tqdm import tqdm
 from scipy.spatial.transform import Rotation as R_scipy
 from os.path import exists
+import vtk
 
 # import rosbag
 # import csv
@@ -1237,6 +1238,18 @@ def read_icp_odom_file(file_name):
 	file.close()
 	return data
 
+def read_weather_data(file_name):
+	data = []
+	# Read text file
+	file = open(file_name, "r")
+	line = file.readline()
+	while line:
+		item = line.split(" ")
+		data.append([float(str(item[0])),float(str(item[1])),float(str(item[2])),float(str(item[3])),str(item[4])])
+		line = file.readline()
+	file.close()
+	return data
+
 # Function which convert interpolated data pose into a specific format to use evo library
 # Input:
 # - interpolated_time: list of timestamp of the pose
@@ -1432,6 +1445,23 @@ def save_MC_interpolated_sorted(MC_sorted, output):
         MC_file.write("\n")
     MC_file.close()
     print("Conversion done !")
+
+def save_weather_data(data, output):
+	file = open(output,"w+")
+	for i in data:
+		file.write(str(i[0]))
+		file.write(" ")
+		file.write(str(i[1]))
+		file.write(" ")
+		file.write(str(i[2]))
+		file.write(" ")
+		file.write(str(i[3]))
+		file.write(" ")
+		file.write(str(i[4]))
+		file.write(" ")
+		file.write("\n")
+	file.close()
+	print("Conversion done !")
 
 # def grountruth_GP_gps_convert_for_eval2(Pose_gps, output):
 # 	groundtruth_file = open(output,"w+")
@@ -2696,57 +2726,57 @@ def research_index_for_time(time_trimble, time_interval, limit_search):
 # 	return index
 #
 #
-# # Returns element closest to target in an array
-# # Input:
-# # - arr: array of data 1xN, timestamp (s)
-# # - target: timestamp to find in arr (s)
-# # Output:
-# # - index: return the closest index found in arr and the value
-# def findClosest(arr, target):
-# 	n = len(arr)
-# 	# Corner cases
-# 	if (target <= arr[0]):
-# 		return 0, arr[0]
-# 	if (target >= arr[n - 1]):
-# 		return n - 1, arr[n - 1]
-#
-# 	# Doing binary search
-# 	i = 0
-# 	j = n
-# 	mid = 0
-# 	while (i < j):
-# 		mid = (i + j) // 2
-# 		if (arr[mid] == target):
-# 			return mid, arr[mid]
-# 		# If target is less than array
-# 		# element, then search in left
-# 		if (target < arr[mid]):
-# 			# If target is greater than previous
-# 			# to mid, return closest of two
-# 			if (mid > 0 and target > arr[mid - 1]):
-# 				return mid, getClosest(arr[mid - 1], arr[mid], target)
-# 			# Repeat for left half
-# 			j = mid
-# 		# If target is greater than mid
-# 		else:
-# 			if (mid < n - 1 and target < arr[mid + 1]):
-# 				return mid, getClosest(arr[mid], arr[mid + 1], target)
-# 			# update i
-# 			i = mid + 1
-# 	# Only single element left after search
-# 	return mid, arr[mid]
-#
-# # Method to compare which one is the more close.
-# # We find the closest by taking the difference
-# # between the target and both values. It assumes
-# # that val2 is greater than val1 and target lies
-# # between these two.
-# def getClosest(val1, val2, target):
-# 	if (target - val1 >= val2 - target):
-# 		return val2
-# 	else:
-# 		return val1
-#
+# Returns element closest to target in an array
+# Input:
+# - arr: array of data 1xN, timestamp (s)
+# - target: timestamp to find in arr (s)
+# Output:
+# - index: return the closest index found in arr and the value
+def findClosest(arr, target):
+	n = len(arr)
+	# Corner cases
+	if (target <= arr[0]):
+		return 0, arr[0]
+	if (target >= arr[n - 1]):
+		return n - 1, arr[n - 1]
+
+	# Doing binary search
+	i = 0
+	j = n
+	mid = 0
+	while (i < j):
+		mid = (i + j) // 2
+		if (arr[mid] == target):
+			return mid, arr[mid]
+		# If target is less than array
+		# element, then search in left
+		if (target < arr[mid]):
+			# If target is greater than previous
+			# to mid, return closest of two
+			if (mid > 0 and target > arr[mid - 1]):
+				return mid, getClosest(arr[mid - 1], arr[mid], target)
+			# Repeat for left half
+			j = mid
+		# If target is greater than mid
+		else:
+			if (mid < n - 1 and target < arr[mid + 1]):
+				return mid, getClosest(arr[mid], arr[mid + 1], target)
+			# update i
+			i = mid + 1
+	# Only single element left after search
+	return mid, arr[mid]
+
+# Method to compare which one is the more close.
+# We find the closest by taking the difference
+# between the target and both values. It assumes
+# that val2 is greater than val1 and target lies
+# between these two.
+def getClosest(val1, val2, target):
+	if (target - val1 >= val2 - target):
+		return val2
+	else:
+		return val1
+
 # # Function to compute the cluster of not moving points from the prisms according to the spacial and time distance
 # # Input:
 # # - trimble_1, trimble_2, trimble_3: list of prism positions for each theodolite
@@ -3480,3 +3510,82 @@ def split_angle_form_index_list(angle_used, index_list):
 		mean_list = np.mean(angle_used[i])
 		angle_list.append(angle_used[i]-mean_list)
 	return angle_list
+
+def str_to_float_value(str_value):
+	array = str_value.strip().split(",")
+	if(len(array)<=1):
+		value = float(array[0])
+	else:
+		if(array[0][0]=="-"):
+			value = round(float(array[0])-float(array[1])*0.1,2)
+		else:
+			value = round(float(array[0])+float(array[1])*0.1,2)
+	return value
+
+def simple_interpolation(time, value, target):
+	diff_time = float(time[1])-float(time[0])
+	diff_value = float(value[1])-float(value[0])
+	h = diff_value/diff_time
+	return round(float(value[0])+h*(target-float(time[0])),2)
+
+def interpolation_weather_data(Timestamp_to_find, data_weather, index):
+	if Timestamp_to_find == float(data_weather[index, 0]):
+		temperature = float(data_weather[index, 1])
+		humidity = float(data_weather[index, 2])
+		pressure = float(data_weather[index, 3])
+		return temperature, humidity, pressure
+	else:
+		if Timestamp_to_find - float(data_weather[index, 0]) < 0:
+			index_before = index - 1
+			index_after = index
+		if Timestamp_to_find - float(data_weather[index, 0]) > 0:
+			index_before = index
+			index_after = index + 1
+		temperature = simple_interpolation([data_weather[index_before, 0], data_weather[index_after, 0]],
+													[data_weather[index_before, 1], data_weather[index_after, 1]],
+													Timestamp_to_find)
+		humidity = simple_interpolation([data_weather[index_before, 0], data_weather[index_after, 0]],
+												 [data_weather[index_before, 2], data_weather[index_after, 2]],
+												 Timestamp_to_find)
+		pressure = simple_interpolation([data_weather[index_before, 0], data_weather[index_after, 0]],
+												 [data_weather[index_before, 3], data_weather[index_after, 3]],
+												 Timestamp_to_find)
+		return temperature, humidity, pressure
+
+def save_to_VTK_uncertainty(sigma_plot, MC_sorted,output):
+
+    appended = vtk.vtkAppendPolyData()
+    appended.UserManagedInputsOn()
+    idx = 0
+    for info in MC_sorted:
+        mu1= info[1]
+        cov1 = info[2][0:3,0:3]
+        W, V = np.linalg.eig(cov1)
+        ellipsoid = vtk.vtkParametricEllipsoid()
+        [x,y,z] = [mu1[0], mu1[1], mu1[2]]
+        [Sx,Sy,Sz] = [sigma_plot*(W[0])**0.5, sigma_plot*(W[1])**0.5, sigma_plot*(W[2])**0.5]
+        ellipsoid.SetXRadius(Sx)
+        ellipsoid.SetYRadius(Sy)
+        ellipsoid.SetZRadius(Sz)
+        parametricFunctionSource = vtk.vtkParametricFunctionSource()
+        parametricFunctionSource.SetParametricFunction(ellipsoid)
+        r = R_scipy.from_matrix(V)
+        rotation = r.as_rotvec()
+        angle_rotation = np.linalg.norm(rotation)
+        transform = vtk.vtkTransform()
+        transformFilter = vtk.vtkTransformFilter()
+        transformFilter.SetTransform(transform)
+        transformFilter.SetInputConnection(parametricFunctionSource.GetOutputPort())
+        transform.Identity()
+        transform.Translate(x,y,z)
+        if angle_rotation != 0:
+            unit_rotation_axis = rotation/angle_rotation
+            transform.RotateWXYZ(angle_rotation,unit_rotation_axis[0],unit_rotation_axis[1],unit_rotation_axis[2])
+        transformFilter.Update()
+        appended.SetInputDataByNumber(idx, transformFilter.GetOutput())
+        idx = idx + 1
+    writer = vtk.vtkDataSetWriter()
+    writer.SetFileName(output)
+    writer.SetInputConnection(appended.GetOutputPort())
+    writer.Write()
+    print("Wrote file")
