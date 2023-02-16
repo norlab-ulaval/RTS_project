@@ -11,7 +11,7 @@ from pysteam.evaluable.p2p import P2PErrorEvaluator
 from pysteam.trajectory import Time
 from pysteam.trajectory.const_vel import Interface as TrajectoryInterface
 from pysteam.problem import OptimizationProblem, StaticNoiseModel, L2LossFunc, WeightedLeastSquareCostTerm, DynamicNoiseModel
-from pysteam.solver import GaussNewtonSolver
+from pysteam.solver import GaussNewtonSolver, DoglegGaussNewtonSolver, LevMarqGaussNewtonSolver
 from pysteam.solver import Covariance
 
 def pipeline_groundtruth(path, Sensor, path_sensor_file, parameters, file, output, path_sensor_file_synch_time, Gps_reference_chosen):
@@ -749,7 +749,7 @@ def STEAM_interpolation_with_covariance(Time_RTS, Time_sensor, MC_data):
               range(num_states)]
     # wrap states with corresponding steam state variables (no copying!)
     state_vars = [(t, SE3StateVar(T_vi), VSpaceStateVar(w_iv_inv)) for t, T_vi, w_iv_inv in states]
-    qcd = np.ones(6)
+    qcd = 1*np.ones(6)   # No smoothing, diagonal of Qc (covariance of prior)
     traj = TrajectoryInterface(qcd=qcd)
     for t, T_vi, w_iv_inv in state_vars:
         traj.add_knot(time=Time(t), T_k0=T_vi, w_0k_ink=w_iv_inv)
@@ -769,7 +769,9 @@ def STEAM_interpolation_with_covariance(Time_RTS, Time_sensor, MC_data):
         opt_prob.add_state_var(*[v for state_var in state_vars for v in state_var[1:]])
         opt_prob.add_cost_term(*traj.get_prior_cost_terms())
         opt_prob.add_cost_term(*cost_terms)
-        solver = GaussNewtonSolver(opt_prob, verbose=False)
+        #solver = GaussNewtonSolver(opt_prob, verbose=False)
+        #solver = DoglegGaussNewtonSolver(opt_prob, verbose=True)
+        solver = LevMarqGaussNewtonSolver(opt_prob, verbose=False)
         solver.optimize()
     except:
         print("Exception interpolation !")
@@ -783,6 +785,7 @@ def STEAM_interpolation_with_covariance(Time_RTS, Time_sensor, MC_data):
                 traj.get_pose_interpolator(Time(i)).evaluate().matrix() for i in time_interpolated
             ]
             T_0k_interp = np.array([np.linalg.inv(x) for x in T_k0_interp0])
+
             covariance = Covariance(opt_prob)
             T_k0_interp1 = [
                 traj.get_covariance(covariance, Time(i)) for i in time_interpolated
@@ -795,6 +798,7 @@ def STEAM_interpolation_with_covariance(Time_RTS, Time_sensor, MC_data):
             Error_STEAM = True
 
         if Error_STEAM == False:
+            print("Interpolation MC done !")
             return MC_interpolated
         else:
             return []
@@ -1027,3 +1031,40 @@ def extrinsic_calibration_noise(file_name, random_noise_range, random_noise_angl
             T3_simulate.append(i[2])
         return ts_chosen+1,T1_simulate, T2_simulate, T3_simulate
 
+from matplotlib.patches import Ellipse
+import matplotlib.transforms as transforms
+import matplotlib.colors as colors
+def plot_ellipse(ax, mean, cov, n_std=2, color="tab:red", alpha=.2, border=False, **kwargs):
+    if cov[0,0] < 1e-5**2 or cov[1,1] < 1e-5**2:
+        return
+    pearson = cov[0, 1]/np.sqrt(cov[0, 0] * cov[1, 1])
+    # Using a special case to obtain the eigenvalues of this
+    # two-dimensionl dataset.
+    ell_radius_x = np.sqrt(1 + pearson)
+    ell_radius_y = np.sqrt(1 - pearson)
+    ellipse = Ellipse((0, 0),
+        width=ell_radius_x * 2,
+        height=ell_radius_y * 2,
+        facecolor= (colors.to_rgba(color, alpha) if border==False else (0,0,0,0)),
+        edgecolor= (colors.to_rgba(color, alpha) if border==True else (0,0,0,0)),
+        **kwargs)
+
+    # Calculating the stdandard deviation of x from
+    # the squareroot of the variance and multiplying
+    # with the given number of standard deviations.
+    scale_x = np.sqrt(cov[0, 0]) * n_std
+    mean_x = mean[0]
+
+    # calculating the stdandard deviation of y ...
+    scale_y = np.sqrt(cov[1, 1]) * n_std
+    mean_y = mean[1]
+
+    transf = transforms.Affine2D() \
+        .rotate_deg(45) \
+        .scale(scale_x, scale_y) \
+        .translate(mean_x, mean_y)
+
+    ellipse.set_transform(transf + ax.transData)
+
+    # ax.scatter(*mean, marker='x', color=color)
+    return ax.add_patch(ellipse)
