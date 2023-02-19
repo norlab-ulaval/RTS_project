@@ -285,9 +285,9 @@ def azimuth_noise(true_value, elevation_value, random_noise_precision, random_no
 
 def edm_noise(measured_edm, lambda_edm, Measured_values, Nominal_values, noise_temp, noise_pressure, noise_humidity, num_samples):
     N_gr = 287.6155 + 4.88660/(lambda_edm)**2 + 0.06800/(lambda_edm)**4
-    x = 7.5*(Measured_values[1]+np.random.normal(noise_temp[0], noise_temp[1], num_samples))/(237.3+Measured_values[1]+np.random.normal(noise_temp[0], noise_temp[1], num_samples))+0.7857
-    e = (Measured_values[2]+np.random.normal(noise_humidity[0], noise_humidity[1], num_samples))*(10**x)/100
-    N_l = (273.15/1013.25)*(N_gr*(Measured_values[0]+np.random.normal(noise_pressure[0], noise_pressure[1], num_samples))/(273.15+Measured_values[1]+np.random.normal(noise_temp[0], noise_pressure[1], num_samples)))-11.27*e/(273.15+Measured_values[1]+np.random.normal(noise_temp[0], noise_pressure[1], num_samples))
+    x = 7.5*(Measured_values[1]+np.random.uniform(noise_temp[0], noise_temp[1], num_samples))/(237.3+Measured_values[1]+np.random.uniform(noise_temp[0], noise_temp[1], num_samples))+0.7857
+    e = (Measured_values[2]+np.random.uniform(noise_humidity[0], noise_humidity[1], num_samples))*(10**x)/100
+    N_l = (273.15/1013.25)*(N_gr*(Measured_values[0]+np.random.uniform(noise_pressure[0], noise_pressure[1], num_samples))/(273.15+Measured_values[1]+np.random.uniform(noise_temp[0], noise_pressure[1], num_samples)))-11.27*e/(273.15+Measured_values[1]+np.random.uniform(noise_temp[0], noise_pressure[1], num_samples))
     N_o = (273.15/1013.25)*(N_gr*Nominal_values[0]/(273.15+Nominal_values[1]))-11.27*Nominal_values[2]/(273.15+Nominal_values[1])
     ppm = (N_o - N_l)/(1+N_l*10**(-6))
     return measured_edm*(1+ppm*10**(-6))
@@ -549,10 +549,10 @@ def MC_raw_data_only(num_samples, range_value, random_noise_range, true_azimuth,
 def MC_raw_data(num_samples, range_value, random_noise_range, true_azimuth, true_elevation, random_noise_angle, random_noise_tilt, Tf_mean, T_corrected,
                 data_weather, time_data, model_chosen):
     # Check if atmospheric correction model
-    if model_chosen[0]==1:
+    if model_chosen[1]==1:
         ## Atmospheric corrections
         lambda_edm =  0.905  # In micro-meter
-        Nominal_values = [1013.25, 0, 0]    # Nominal values for the TS (Pressure [hPa], temperature [C], humidity [%])
+        Nominal_values = [1013.25, 20, 60]    # Nominal values for the TS (Pressure [hPa], temperature [C], humidity [%])
         time_weather = data_weather[:, 0].astype(np.float64)
         index, _ = findClosest(time_weather, time_data)
         temperature, humidity, pressure = interpolation_weather_data(time_data, data_weather, index)
@@ -566,7 +566,7 @@ def MC_raw_data(num_samples, range_value, random_noise_range, true_azimuth, true
         elevation = elevation_noise(true_elevation, random_noise_angle, random_noise_tilt, num_samples)
         azimuth = azimuth_noise(true_azimuth, elevation, random_noise_angle, random_noise_tilt, num_samples)
 
-        if model_chosen[1]==1:
+        if model_chosen[2]==1:
             points_simulated = []
             for i, j, k , l in zip(dist, azimuth, elevation, T_corrected):
                 point = give_points(i, j, k, 2)
@@ -593,7 +593,7 @@ def MC_raw_data(num_samples, range_value, random_noise_range, true_azimuth, true
         elevation = elevation_noise(true_elevation, random_noise_angle, random_noise_tilt, num_samples)
         azimuth = azimuth_noise(true_azimuth, elevation, random_noise_angle, random_noise_tilt, num_samples)
         # Check if extrinsic calibration noise model
-        if model_chosen[1] == 1:
+        if model_chosen[2] == 1:
             points_simulated = []
             for i, j, k, l in zip(dist, azimuth, elevation, T_corrected):
                 point = give_points(i, j, k, 2)
@@ -1068,3 +1068,35 @@ def plot_ellipse(ax, mean, cov, n_std=2, color="tab:red", alpha=.2, border=False
 
     # ax.scatter(*mean, marker='x', color=color)
     return ax.add_patch(ellipse)
+
+def distance_dc_comparison(MC1_0,MC2_0,MC3_0,MC1_1,MC2_1,MC3_1):
+    Distance_DC = []
+    for i1,j1,k1,i2,j2,k2 in zip(MC1_0,MC2_0,MC3_0,MC1_1,MC2_1,MC3_1):
+        Dc = Bhattacharyya_distance(i1[1][0:3], i2[1][0:3], i1[2], i2[2])
+        Distance_DC.append(Dc)
+        Dc = Bhattacharyya_distance(j1[1][0:3], j2[1][0:3], j1[2], j2[2])
+        Distance_DC.append(Dc)
+        Dc = Bhattacharyya_distance(k1[1][0:3], k2[1][0:3], k1[2], k2[2])
+        Distance_DC.append(Dc)
+    return Distance_DC
+def distance_h_comparison(MC1_0,MC2_0,MC3_0,MC1_1,MC2_1,MC3_1):
+    Distance_H = []
+    for i1,j1,k1,i2,j2,k2 in zip(MC1_0,MC2_0,MC3_0,MC1_1,MC2_1,MC3_1):
+        Dc = Hellinger_distance_square(i1[1][0:3], i2[1][0:3], i1[2], i2[2])
+        Distance_H.append(Dc)
+        Dc = Hellinger_distance_square(j1[1][0:3], j2[1][0:3], j1[2], j2[2])
+        Distance_H.append(Dc)
+        Dc = Hellinger_distance_square(k1[1][0:3], k2[1][0:3], k1[2], k2[2])
+        Distance_H.append(Dc)
+    return Distance_H
+
+def distance_F_comparison(MC1_0,MC2_0,MC3_0,MC1_1,MC2_1,MC3_1):
+    Distance_F = []
+    for i1,j1,k1,i2,j2,k2 in zip(MC1_0,MC2_0,MC3_0,MC1_1,MC2_1,MC3_1):
+        Dc = np.sqrt(Frobenius_norm(i1[2], i2[2]))  # Square to have the results in meter !
+        Distance_F.append(Dc)
+        Dc = np.sqrt(Frobenius_norm(j1[2], j2[2]))  # Square to have the results in meter !
+        Distance_F.append(Dc)
+        Dc = np.sqrt(Frobenius_norm(k1[2], k2[2]))  # Square to have the results in meter !
+        Distance_F.append(Dc)
+    return Distance_F

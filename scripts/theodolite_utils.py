@@ -1241,12 +1241,30 @@ def read_icp_odom_file(file_name):
 
 def read_weather_data(file_name):
 	data = []
+	print(file_name)
 	# Read text file
 	file = open(file_name, "r")
 	line = file.readline()
 	while line:
 		item = line.split(" ")
 		data.append([float(str(item[0])),float(str(item[1])),float(str(item[2])),float(str(item[3])),str(item[4])])
+		line = file.readline()
+	file.close()
+	return data
+
+def read_point_uncertainty_csv_file(file_name):
+	data = []
+	# Read text file
+	file = open(file_name, "r")
+	line = file.readline()
+	while line:
+		item = line.split(" ")
+		Time = float(item[0])
+		array_point = np.array([float(item[1]), float(item[2]), float(item[3]), 1], dtype=float)
+		C = np.array([[float(item[4]),float(item[5]),float(item[6])],
+					 [float(item[7]),float(item[8]),float(item[9])],
+					 [float(item[10]),float(item[11]),float(item[12])]], dtype=float)
+		data.append([Time, array_point, C])
 		line = file.readline()
 	file.close()
 	return data
@@ -3591,3 +3609,28 @@ def save_to_VTK_uncertainty(sigma_plot, MC_sorted,output):
     writer.SetInputConnection(appended.GetOutputPort())
     writer.Write()
     print("Wrote file")
+
+def Bhattacharyya_distance(Mu_1, Mu_2, C1, C2):
+	# Bhattacharyya distance ## https://en.wikipedia.org/wiki/Bhattacharyya_distance
+	Sigma = (C1 + C2) / 2
+	A = 1 / 8 * (Mu_1 - Mu_2).T @ np.linalg.inv(Sigma) @ (Mu_1 - Mu_2)
+	B = np.linalg.det(Sigma) / np.sqrt(np.linalg.det(C1) * np.linalg.det(C2))
+	DC = A + 0.5 * np.log(B)
+	return DC
+
+def Hellinger_distance_square(Mu_1, Mu_2, C1, C2):
+	# Hellinger distance ## https://en.wikipedia.org/wiki/Hellinger_distance
+	Sigma = (C1 + C2) / 2
+	A = 1 / 8 * (Mu_1 - Mu_2).T @ np.linalg.inv(Sigma) @ (Mu_1 - Mu_2)
+	H2 = 1 - ((np.linalg.det(C1) ** 0.25) * (np.linalg.det(C2) ** 0.25) / (np.linalg.det(Sigma) ** 0.5)) * np.exp(-A)
+	return H2
+
+def Hellinger_distance_square(Mu_1, Mu_2, C1, C2):
+	# Hellinger distance ## https://en.wikipedia.org/wiki/Hellinger_distance
+	Sigma = (C1 + C2) / 2
+	A = 1 / 8 * (Mu_1 - Mu_2).T @ np.linalg.inv(Sigma) @ (Mu_1 - Mu_2)
+	H2 = 1 - ((np.linalg.det(C1) ** 0.25) * (np.linalg.det(C2) ** 0.25) / (np.linalg.det(Sigma) ** 0.5)) * np.exp(-A)
+	return H2
+
+def Frobenius_norm(C1, C2):
+	return np.sqrt(np.matrix.trace((C1-C2).T@(C1-C2)))
