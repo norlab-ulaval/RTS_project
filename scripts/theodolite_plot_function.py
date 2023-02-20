@@ -122,8 +122,99 @@ def plot_trajectories_prism(number_data, trimble_1, trimble_2, trimble_3, T_1_ra
             ax.scatter(trimble_3[0], trimble_3[1], c='g', marker='.', label="Prism with rasp 3")
         ax.set_xlabel('x[m]')
         ax.set_ylabel('y[m]')
+        #ax.legend(loc='best')
+        if(plot_equal==1):
+            ax.set_aspect('equal')
+
+        # # Theodolite positions in theodolite 1 frame
+        # ax.scatter(T_1_rasp[1, 3], T_1_rasp[0, 3], c='red', marker='*', s=200, label="Theodolite 1")
+        # if (number_data > 1):
+        #     ax.scatter(T_12_rasp[1, 3], T_12_rasp[0, 3], c='blue', marker='*', s=200, label="Theodolite 2")
+        # if (number_data > 2):
+        #     ax.scatter(T_13_rasp[1, 3], T_13_rasp[0, 3], c='green', marker='*', s=200, label="Theodolite 3")
+        # # Prisms trajectories in theodolite 1 frame
+        # ax.scatter(trimble_1[1], trimble_1[0], c='r', marker='.', label="Prism with rasp 1")
+        # if (number_data > 1):
+        #     ax.scatter(trimble_2[1], trimble_2[0], c='b', marker='.', label="Prism with rasp 2")
+        # if (number_data > 2):
+        #     ax.scatter(trimble_3[1], trimble_3[0], c='g', marker='.', label="Prism with rasp 3")
+        # ax.set_xlabel('y[m]')
+        # ax.set_ylabel('x[m]')
+        # #ax.legend(loc='best')
+        # if (plot_equal == 1):
+        #     ax.set_aspect('equal')
+    plt.show()
+    #plt.gca().set_aspect('equal', adjustable='box')
+    fig.tight_layout()
+    if save_pdf == 1:
+        if plot_3d == 1:
+            fig.savefig(file_pdf, bbox_inches='tight', transparent=True)
+        else:
+            fig.savefig(file_pdf, bbox_inches='tight', transparent=True)
+
+
+def plot_trajectories_prism_GCP(number_data, trimble_1, trimble_2, trimble_3, T_1_rasp, T_12_rasp, T_13_rasp, GCP, plot_3d, save_pdf, file_pdf, plot_equal):
+    fig = plt.figure(figsize=(10,7))
+    if(plot_3d == 1):
+        ax = fig.add_subplot(111, projection='3d')
+        # Calibration points in theodolite 1 frame
+        #ax.scatter(x1, y1, z1, c='black', marker='o', s=200, label="Markers frame 1")
+        # Theodolite positions in theodolite 1 frame
+        ax.scatter(T_1_rasp[0,3], T_1_rasp[1,3], T_1_rasp[2,3], c='red', marker='*', s=200, label="Theodolite 1")
+        if(number_data>1):
+            ax.scatter(T_12_rasp[0,3], T_12_rasp[1,3], T_12_rasp[2,3], c='blue', marker='*', s=200, label="Theodolite 2")
+        if(number_data>2):
+            ax.scatter(T_13_rasp[0,3], T_13_rasp[1,3], T_13_rasp[2,3], c='green', marker='*', s=200, label="Theodolite 3")
+        # Prisms trajectories in theodolite 1 frame
+        ax.scatter(trimble_1[0], trimble_1[1], trimble_1[2], c='r', marker='.', label="Prism with rasp 1")
+        if(number_data>1):
+            ax.scatter(trimble_2[0], trimble_2[1], trimble_2[2], c='b', marker='.', label="Prism with rasp 2")
+        if(number_data>2):
+            ax.scatter(trimble_3[0], trimble_3[1], trimble_3[2], c='g', marker='.', label="Prism with rasp 3")
+        ax.set_xlabel('x[m]')
+        ax.set_ylabel('y[m]')
+        ax.set_zlabel('Z Label')
         ax.legend(loc='best')
         if(plot_equal==1):
+            ax.set_aspect('equal')
+    if(plot_3d == 0):
+        ax = fig.add_subplot(111)
+        # Theodolite positions in theodolite 1 frame
+        # ax.scatter(T_1_rasp[0,3], T_1_rasp[1,3], c='red', marker='*', s=200, label="Theodolite 1")
+        # if(number_data>1):
+        #     ax.scatter(T_12_rasp[0,3], T_12_rasp[1,3], c='blue', marker='*', s=200, label="Theodolite 2")
+        # if(number_data>2):
+        #     ax.scatter(T_13_rasp[0,3], T_13_rasp[1,3], c='green', marker='*', s=200, label="Theodolite 3")
+        # # Prisms trajectories in theodolite 1 frame
+        # ax.scatter(trimble_1[0], trimble_1[1], c='r', marker='.', label="Prism with rasp 1")
+        # if(number_data>1):
+        #     ax.scatter(trimble_2[0], trimble_2[1], c='b', marker='.', label="Prism with rasp 2")
+        # if(number_data>2):
+        #     ax.scatter(trimble_3[0], trimble_3[1], c='g', marker='.', label="Prism with rasp 3")
+        # ax.scatter(GCP[0, :], GCP[1, :], c='black', marker='.', s=200, label="GCP")
+        # ax.set_xlabel('x[m]')
+        # ax.set_ylabel('y[m]')
+        # #ax.legend(loc='best')
+        # if(plot_equal==1):
+        #     ax.set_aspect('equal')
+
+        # Theodolite positions in theodolite 1 frame
+        ax.scatter(T_1_rasp[1, 3], T_1_rasp[0, 3], c='red', marker='*', s=200, label="Robotic Total \nStation 1")
+        if (number_data > 1):
+            ax.scatter(T_12_rasp[1, 3], T_12_rasp[0, 3], c='blue', marker='*', s=200, label="Robotic Total \nStation 2")
+        if (number_data > 2):
+            ax.scatter(T_13_rasp[1, 3], T_13_rasp[0, 3], c='green', marker='*', s=200, label="Robotic Total \nStation 3")
+        # Prisms trajectories in theodolite 1 frame
+        ax.scatter(trimble_1[1], trimble_1[0], c='r', marker='.', label="Prism 1")
+        if (number_data > 1):
+            ax.scatter(trimble_2[1], trimble_2[0], c='b', marker='.', label="Prism 2")
+        if (number_data > 2):
+            ax.scatter(trimble_3[1], trimble_3[0], c='g', marker='.', label="Prism 3")
+        ax.scatter(GCP[1, :], GCP[0, :], c='black', marker='.', s=200, label="Ground control \npoints")
+        ax.set_xlabel('y[m]')
+        ax.set_ylabel('x[m]')
+        ax.legend(loc='best')
+        if (plot_equal == 1):
             ax.set_aspect('equal')
     plt.show()
     #plt.gca().set_aspect('equal', adjustable='box')

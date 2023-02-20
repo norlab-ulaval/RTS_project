@@ -8,6 +8,8 @@ from rosbags.typesys import get_types_from_msg, register_types
 from tqdm import tqdm
 from scipy.spatial.transform import Rotation as R_scipy
 from os.path import exists
+import vtk
+
 
 # import rosbag
 # import csv
@@ -1025,39 +1027,45 @@ def read_saved_tf(file_name):
 
 	return Tf
 #
-# # Function which read a rosbag of odometry data and return the lists of the speed and acceleration data
-# # Input:
-# # - filename: name of the rosbag to open
-# # - wheel: option to select the topic to read (True:/warthog_velocity_controller/odom, False:/imu_and_wheel_odom)
-# # Output:
-# # - speed: list of 1x2 matrix which contain the timestamp [0] and the speed [1] for each data
-# # - accel: list of 1x2 matrix which contain the timestamp [0] and the accel [1] for each data
-# # def read_rosbag_imu_node(filename, wheel):
-# # 	bag = rosbag.Bag(filename)
-# # 	speed = []
-# # 	speed_only = []
-# # 	time_only = []
-# # 	accel = []
-# # 	accel_only = []
-# # 	if(wheel==True):
-# # 		topic_name = '/warthog_velocity_controller/odom'
-# # 	else:
-# # 		topic_name = '/imu_and_wheel_odom'
-# # 	for _, msg, t in bag.read_messages(topics=[topic_name]):
-# # 		odom = Odometry(msg.header, msg.child_frame_id, msg.pose, msg.twist)
-# # 		time = second_nsecond(odom.header.stamp.secs, odom.header.stamp.nsecs)
-# # 		vitesse_lineaire = odom.twist.twist.linear.x
-# # 		speed.append(np.array([time,vitesse_lineaire]))
-# # 		speed_only.append(abs(vitesse_lineaire))
-# # 		time_only.append(time)
-# # 	speed_only_arr = np.array(speed_only)
-# # 	time_only_arr = np.array(time_only)
-# # 	diff_speed = np.diff(speed_only_arr)
-# # 	time_diff_mean = np.mean(np.diff(time_only_arr), axis=0)
-# # 	for i in range(0, len(diff_speed)):
-# # 		accel.append(np.array([time_only[i],diff_speed[i]/time_diff_mean]))
-# # 		accel_only.append(abs(diff_speed[i]/time_diff_mean))
-# # 	return speed, accel, speed_only, accel_only
+# Function which read a rosbag of odometry data and return the lists of the speed and acceleration data
+# Input:
+# - filename: name of the rosbag to open
+# - wheel: option to select the topic to read (True:/warthog_velocity_controller/odom, False:/imu_and_wheel_odom)
+# Output:
+# - speed: list of 1x2 matrix which contain the timestamp [0] and the speed [1] for each data
+# - accel: list of 1x2 matrix which contain the timestamp [0] and the accel [1] for each data
+def read_rosbag_imu_node(filename, wheel):
+	# create reader instance and open for reading
+	speed = []
+	speed_only = []
+	time_only = []
+	accel = []
+	accel_only = []
+	with Reader2(filename) as reader:
+		# iterate over messages
+		for connection, timestamp, rawdata in reader.messages():
+			if (wheel == True):
+				topic_name = '/warthog_velocity_controller/odom'
+			else:
+				topic_name = '/imu_and_wheel_odom'
+
+			if connection.topic == topic_name:
+				msg = deserialize_cdr(rawdata, connection.msgtype)
+				time = second_nsecond(msg.header.stamp.sec, msg.header.stamp.nanosec)
+				vitesse_lineaire = msg.twist.twist.linear.x
+				speed.append(np.array([time, vitesse_lineaire]))
+				speed_only.append(abs(vitesse_lineaire))
+				time_only.append(time)
+
+	speed_only_arr = np.array(speed_only)
+	time_only_arr = np.array(time_only)
+	diff_speed = np.diff(speed_only_arr)
+	time_diff_mean = np.mean(np.diff(time_only_arr), axis=0)
+	for i in range(0, len(diff_speed)):
+		accel.append(np.array([time_only[i], diff_speed[i] / time_diff_mean]))
+		accel_only.append(abs(diff_speed[i] / time_diff_mean))
+	return speed, accel, speed_only, accel_only
+
 #
 # # Function which read a rosbag of imu data and return the list of the angular velocity around Z axis
 # # Input:
@@ -1231,6 +1239,36 @@ def read_icp_odom_file(file_name):
 	file.close()
 	return data
 
+def read_weather_data(file_name):
+	data = []
+	print(file_name)
+	# Read text file
+	file = open(file_name, "r")
+	line = file.readline()
+	while line:
+		item = line.split(" ")
+		data.append([float(str(item[0])),float(str(item[1])),float(str(item[2])),float(str(item[3])),str(item[4])])
+		line = file.readline()
+	file.close()
+	return data
+
+def read_point_uncertainty_csv_file(file_name):
+	data = []
+	# Read text file
+	file = open(file_name, "r")
+	line = file.readline()
+	while line:
+		item = line.split(" ")
+		Time = float(item[0])
+		array_point = np.array([float(item[1]), float(item[2]), float(item[3]), 1], dtype=float)
+		C = np.array([[float(item[4]),float(item[5]),float(item[6])],
+					 [float(item[7]),float(item[8]),float(item[9])],
+					 [float(item[10]),float(item[11]),float(item[12])]], dtype=float)
+		data.append([Time, array_point, C])
+		line = file.readline()
+	file.close()
+	return data
+
 # Function which convert interpolated data pose into a specific format to use evo library
 # Input:
 # - interpolated_time: list of timestamp of the pose
@@ -1393,6 +1431,87 @@ def grountruth_GNSS_sorted_convert_for_eval(Index_list, name_file, time_delay, o
 		groundtruth_file.write(str(1))
 		groundtruth_file.write("\n")
 	groundtruth_file.close()
+	print("Conversion done !")
+
+def save_MC_interpolated_sorted(MC_sorted, output):
+    MC_file = open(output,"w+")
+    for i in MC_sorted:
+        MC_file.write(str(i[0]))
+        MC_file.write(" ")
+        MC_file.write(str(i[1][0]))
+        MC_file.write(" ")
+        MC_file.write(str(i[1][1]))
+        MC_file.write(" ")
+        MC_file.write(str(i[1][2]))
+        MC_file.write(" ")
+        MC_file.write(str(i[2][0][0]))
+        MC_file.write(" ")
+        MC_file.write(str(i[2][0][1]))
+        MC_file.write(" ")
+        MC_file.write(str(i[2][0][2]))
+        MC_file.write(" ")
+        MC_file.write(str(i[2][1][0]))
+        MC_file.write(" ")
+        MC_file.write(str(i[2][1][1]))
+        MC_file.write(" ")
+        MC_file.write(str(i[2][1][2]))
+        MC_file.write(" ")
+        MC_file.write(str(i[2][2][0]))
+        MC_file.write(" ")
+        MC_file.write(str(i[2][2][1]))
+        MC_file.write(" ")
+        MC_file.write(str(i[2][2][2]))
+        MC_file.write("\n")
+    MC_file.close()
+    print("Conversion done !")
+
+def save_raw_data_uncertainty(T, R, E, A, output):
+    MC_file = open(output,"w+")
+    for i in MC_sorted:
+        MC_file.write(str(i[0]))
+        MC_file.write(" ")
+        MC_file.write(str(i[1][0]))
+        MC_file.write(" ")
+        MC_file.write(str(i[1][1]))
+        MC_file.write(" ")
+        MC_file.write(str(i[1][2]))
+        MC_file.write(" ")
+        MC_file.write(str(i[2][0][0]))
+        MC_file.write(" ")
+        MC_file.write(str(i[2][0][1]))
+        MC_file.write(" ")
+        MC_file.write(str(i[2][0][2]))
+        MC_file.write(" ")
+        MC_file.write(str(i[2][1][0]))
+        MC_file.write(" ")
+        MC_file.write(str(i[2][1][1]))
+        MC_file.write(" ")
+        MC_file.write(str(i[2][1][2]))
+        MC_file.write(" ")
+        MC_file.write(str(i[2][2][0]))
+        MC_file.write(" ")
+        MC_file.write(str(i[2][2][1]))
+        MC_file.write(" ")
+        MC_file.write(str(i[2][2][2]))
+        MC_file.write("\n")
+    MC_file.close()
+    print("Conversion done !")
+
+def save_weather_data(data, output):
+	file = open(output,"w+")
+	for i in data:
+		file.write(str(i[0]))
+		file.write(" ")
+		file.write(str(i[1]))
+		file.write(" ")
+		file.write(str(i[2]))
+		file.write(" ")
+		file.write(str(i[3]))
+		file.write(" ")
+		file.write(str(i[4]))
+		file.write(" ")
+		file.write("\n")
+	file.close()
 	print("Conversion done !")
 
 # def grountruth_GP_gps_convert_for_eval2(Pose_gps, output):
@@ -2481,22 +2600,22 @@ def point_to_point_minimization(P, Q):
 	T[0:3,3] = t
 	return T
 
-# # Function to find prism not moving points according to the point just before in the array of the trajectories.
-# # The not moving point are selected because of their position proximity
-# # Input:
-# # - trimble: list of trajectory points
-# # - limit_m: proximity limit in meters to find not moving points. If the distance between two near indexed points is less than the limit,
-# # the point at the index i is selected
-# # Output: list of index of the not moving points
-# def find_not_moving_points(trimble, limit_m):
-# 	ind_not_moving = []
-# 	start_point = trimble[0:3,0]
-# 	for i in range(1,len(trimble.T)):
-# 		if(np.linalg.norm(trimble[0:3,i]-start_point)<limit_m):
-# 			ind_not_moving.append(i)
-# 		start_point = trimble[0:3,i]
-# 	return ind_not_moving
-#
+# Function to find prism not moving points according to the point just before in the array of the trajectories.
+# The not moving point are selected because of their position proximity
+# Input:
+# - trimble: list of trajectory points
+# - limit_m: proximity limit in meters to find not moving points. If the distance between two near indexed points is less than the limit,
+# the point at the index i is selected
+# Output: list of index of the not moving points
+def find_not_moving_points(trimble, limit_m):
+	ind_not_moving = []
+	start_point = trimble[0:3,0]
+	for i in range(1,len(trimble.T)):
+		if(np.linalg.norm(trimble[0:3,i]-start_point)<limit_m):
+			ind_not_moving.append(i)
+		start_point = trimble[0:3,i]
+	return ind_not_moving
+
 # # Function to find lidar interpolated not moving points
 # # Input:
 # # - pose_lidar: list of lidar pose 4x4 matrix
@@ -2658,57 +2777,58 @@ def research_index_for_time(time_trimble, time_interval, limit_search):
 # 	return index
 #
 #
-# # Returns element closest to target in an array
-# # Input:
-# # - arr: array of data 1xN, timestamp (s)
-# # - target: timestamp to find in arr (s)
-# # Output:
-# # - index: return the closest index found in arr and the value
-# def findClosest(arr, target):
-# 	n = len(arr)
-# 	# Corner cases
-# 	if (target <= arr[0]):
-# 		return 0, arr[0]
-# 	if (target >= arr[n - 1]):
-# 		return n - 1, arr[n - 1]
-#
-# 	# Doing binary search
-# 	i = 0
-# 	j = n
-# 	mid = 0
-# 	while (i < j):
-# 		mid = (i + j) // 2
-# 		if (arr[mid] == target):
-# 			return mid, arr[mid]
-# 		# If target is less than array
-# 		# element, then search in left
-# 		if (target < arr[mid]):
-# 			# If target is greater than previous
-# 			# to mid, return closest of two
-# 			if (mid > 0 and target > arr[mid - 1]):
-# 				return mid, getClosest(arr[mid - 1], arr[mid], target)
-# 			# Repeat for left half
-# 			j = mid
-# 		# If target is greater than mid
-# 		else:
-# 			if (mid < n - 1 and target < arr[mid + 1]):
-# 				return mid, getClosest(arr[mid], arr[mid + 1], target)
-# 			# update i
-# 			i = mid + 1
-# 	# Only single element left after search
-# 	return mid, arr[mid]
-#
-# # Method to compare which one is the more close.
-# # We find the closest by taking the difference
-# # between the target and both values. It assumes
-# # that val2 is greater than val1 and target lies
-# # between these two.
-# def getClosest(val1, val2, target):
-# 	if (target - val1 >= val2 - target):
-# 		return val2
-# 	else:
-# 		return val1
-#
+
+# Returns element closest to target in an array
+# Input:
+# - arr: array of data 1xN, timestamp (s)
+# - target: timestamp to find in arr (s)
+# Output:
+# - index: return the closest index found in arr and the value
+def findClosest(arr, target):
+	n = len(arr)
+	# Corner cases
+	if (target <= arr[0]):
+		return 0, arr[0]
+	if (target >= arr[n - 1]):
+		return n - 1, arr[n - 1]
+
+	# Doing binary search
+	i = 0
+	j = n
+	mid = 0
+	while (i < j):
+		mid = (i + j) // 2
+		if (arr[mid] == target):
+			return mid, arr[mid]
+		# If target is less than array
+		# element, then search in left
+		if (target < arr[mid]):
+			# If target is greater than previous
+			# to mid, return closest of two
+			if (mid > 0 and target > arr[mid - 1]):
+				return mid, getClosest(arr[mid - 1], arr[mid], target)
+			# Repeat for left half
+			j = mid
+		# If target is greater than mid
+		else:
+			if (mid < n - 1 and target < arr[mid + 1]):
+				return mid, getClosest(arr[mid], arr[mid + 1], target)
+			# update i
+			i = mid + 1
+	# Only single element left after search
+	return mid, arr[mid]
+
+# Method to compare which one is the more close.
+# We find the closest by taking the difference
+# between the target and both values. It assumes
+# that val2 is greater than val1 and target lies
+# between these two.
+def getClosest(val1, val2, target):
+	if (target - val1 >= val2 - target):
+		return val2
+	else:
+		return val1
+
 # # Function to compute the cluster of not moving points from the prisms according to the spacial and time distance
 # # Input:
 # # - trimble_1, trimble_2, trimble_3: list of prism positions for each theodolite
@@ -3388,3 +3508,161 @@ def read_and_compute_drop_outliers_filters_results(param,path, path_option):
 		mpooewo_r.append(np.sum(result_5))
 		mpooewo_r.append(np.sum(result_6))
 	return mpi_r,mpoo_r,mpof_r,mpofo_r,mpooewo_r
+
+def split_static_distance(distance_used, threshold_distance, threshold_number):
+	Groupe_index_list = []
+	Mean_list = []
+	start = distance_used[0]
+	list = []
+	list_index = []
+	list_index_global = []
+	index = 0
+	for i in distance_used:
+		if np.linalg.norm(start - i) < threshold_distance:
+			list.append(i)
+			list_index.append(index)
+		else:
+			if (len(list) > threshold_number):
+				mean_list = np.mean(list)
+				Mean_list.append(int(mean_list))
+				Groupe_index_list.append((list - mean_list) * 1000)
+				list_index_global.append(list_index)
+			list = []
+			list_index = []
+			start = i
+		index = index + 1
+	if len(list) > threshold_number:
+		mean_list = np.mean(list)
+		Mean_list.append(int(mean_list))
+		Groupe_index_list.append((list - mean_list) * 1000)
+		list_index_global.append(list_index)
+	return Groupe_index_list, Mean_list, list_index_global
+
+def split_static_angle(angle_used, threshold_distance, threshold_number):
+	Groupe_index_list = []
+	start = angle_used[0]
+	list = []
+	for i in angle_used:
+		if np.linalg.norm(start - i) < threshold_distance:
+			list.append(i)
+		else:
+			if (len(list) > threshold_number):
+				mean_list = np.mean(list)
+				Groupe_index_list.append((list - mean_list))
+			list = []
+			start = i
+	if len(list) > threshold_number:
+		mean_list = np.mean(list)
+		Groupe_index_list.append((list - mean_list))
+	return Groupe_index_list
+
+def split_angle_form_index_list(angle_used, index_list):
+	angle_list = []
+	for i in index_list:
+		mean_list = np.mean(angle_used[i])
+		angle_list.append(angle_used[i]-mean_list)
+	return angle_list
+
+def str_to_float_value(str_value):
+	array = str_value.strip().split(",")
+	if(len(array)<=1):
+		value = float(array[0])
+	else:
+		if(array[0][0]=="-"):
+			value = round(float(array[0])-float(array[1])*0.1,2)
+		else:
+			value = round(float(array[0])+float(array[1])*0.1,2)
+	return value
+
+def simple_interpolation(time, value, target):
+	diff_time = float(time[1])-float(time[0])
+	diff_value = float(value[1])-float(value[0])
+	h = diff_value/diff_time
+	return round(float(value[0])+h*(target-float(time[0])),2)
+
+def interpolation_weather_data(Timestamp_to_find, data_weather, index):
+	if Timestamp_to_find == float(data_weather[index, 0]):
+		temperature = float(data_weather[index, 1])
+		humidity = float(data_weather[index, 2])
+		pressure = float(data_weather[index, 3])
+		return temperature, humidity, pressure
+	else:
+		if Timestamp_to_find - float(data_weather[index, 0]) < 0:
+			index_before = index - 1
+			index_after = index
+		if Timestamp_to_find - float(data_weather[index, 0]) > 0:
+			index_before = index
+			index_after = index + 1
+		temperature = simple_interpolation([data_weather[index_before, 0], data_weather[index_after, 0]],
+													[data_weather[index_before, 1], data_weather[index_after, 1]],
+													Timestamp_to_find)
+		humidity = simple_interpolation([data_weather[index_before, 0], data_weather[index_after, 0]],
+												 [data_weather[index_before, 2], data_weather[index_after, 2]],
+												 Timestamp_to_find)
+		pressure = simple_interpolation([data_weather[index_before, 0], data_weather[index_after, 0]],
+												 [data_weather[index_before, 3], data_weather[index_after, 3]],
+												 Timestamp_to_find)
+		return temperature, humidity, pressure
+
+def save_to_VTK_uncertainty(sigma_plot, MC_sorted,output):
+
+    appended = vtk.vtkAppendPolyData()
+    appended.UserManagedInputsOn()
+    idx = 0
+    for info in MC_sorted:
+        mu1= info[1]
+        cov1 = info[2][0:3,0:3]
+        W, V = np.linalg.eig(cov1)
+        ellipsoid = vtk.vtkParametricEllipsoid()
+        [x,y,z] = [mu1[0], mu1[1], mu1[2]]
+        [Sx,Sy,Sz] = [sigma_plot*(W[0])**0.5, sigma_plot*(W[1])**0.5, sigma_plot*(W[2])**0.5]
+        ellipsoid.SetXRadius(Sx)
+        ellipsoid.SetYRadius(Sy)
+        ellipsoid.SetZRadius(Sz)
+        parametricFunctionSource = vtk.vtkParametricFunctionSource()
+        parametricFunctionSource.SetParametricFunction(ellipsoid)
+        r = R_scipy.from_matrix(V)
+        rotation = r.as_rotvec()
+        angle_rotation = np.linalg.norm(rotation)
+        transform = vtk.vtkTransform()
+        transformFilter = vtk.vtkTransformFilter()
+        transformFilter.SetTransform(transform)
+        transformFilter.SetInputConnection(parametricFunctionSource.GetOutputPort())
+        transform.Identity()
+        transform.Translate(x,y,z)
+        if angle_rotation != 0:
+            unit_rotation_axis = rotation/angle_rotation
+            transform.RotateWXYZ(angle_rotation,unit_rotation_axis[0],unit_rotation_axis[1],unit_rotation_axis[2])
+        transformFilter.Update()
+        appended.SetInputDataByNumber(idx, transformFilter.GetOutput())
+        idx = idx + 1
+    writer = vtk.vtkDataSetWriter()
+    writer.SetFileName(output)
+    writer.SetInputConnection(appended.GetOutputPort())
+    writer.Write()
+    print("Wrote file")
+
+def Bhattacharyya_distance(Mu_1, Mu_2, C1, C2):
+	# Bhattacharyya distance ## https://en.wikipedia.org/wiki/Bhattacharyya_distance
+	Sigma = (C1 + C2) / 2
+	A = 1 / 8 * (Mu_1 - Mu_2).T @ np.linalg.inv(Sigma) @ (Mu_1 - Mu_2)
+	B = np.linalg.det(Sigma) / np.sqrt(np.linalg.det(C1) * np.linalg.det(C2))
+	DC = A + 0.5 * np.log(B)
+	return DC
+
+def Hellinger_distance_square(Mu_1, Mu_2, C1, C2):
+	# Hellinger distance ## https://en.wikipedia.org/wiki/Hellinger_distance
+	Sigma = (C1 + C2) / 2
+	A = 1 / 8 * (Mu_1 - Mu_2).T @ np.linalg.inv(Sigma) @ (Mu_1 - Mu_2)
+	H2 = 1 - ((np.linalg.det(C1) ** 0.25) * (np.linalg.det(C2) ** 0.25) / (np.linalg.det(Sigma) ** 0.5)) * np.exp(-A)
+	return H2
+
+def Hellinger_distance_square(Mu_1, Mu_2, C1, C2):
+	# Hellinger distance ## https://en.wikipedia.org/wiki/Hellinger_distance
+	Sigma = (C1 + C2) / 2
+	A = 1 / 8 * (Mu_1 - Mu_2).T @ np.linalg.inv(Sigma) @ (Mu_1 - Mu_2)
+	H2 = 1 - ((np.linalg.det(C1) ** 0.25) * (np.linalg.det(C2) ** 0.25) / (np.linalg.det(Sigma) ** 0.5)) * np.exp(-A)
+	return H2
+
+def Frobenius_norm(C1, C2):
+	return np.sqrt(np.matrix.trace((C1-C2).T@(C1-C2)))
