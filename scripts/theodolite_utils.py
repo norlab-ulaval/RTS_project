@@ -1241,7 +1241,6 @@ def read_icp_odom_file(file_name):
 
 def read_weather_data(file_name):
 	data = []
-	print(file_name)
 	# Read text file
 	file = open(file_name, "r")
 	line = file.readline()
@@ -1265,6 +1264,23 @@ def read_point_uncertainty_csv_file(file_name):
 					 [float(item[7]),float(item[8]),float(item[9])],
 					 [float(item[10]),float(item[11]),float(item[12])]], dtype=float)
 		data.append([Time, array_point, C])
+		line = file.readline()
+	file.close()
+	return data
+
+def read_raw_data_uncertainty(file_name):
+	data = []
+	# Read text file
+	file = open(file_name, "r")
+	line = file.readline()
+	while line:
+		line = line.split(" ")
+		Time = float(line[0])
+		D = float(line[1])
+		E = float(line[2])
+		A = float(line[3])
+		array_point = np.array([Time, D, A, E])
+		data.append(array_point)
 		line = file.readline()
 	file.close()
 	return data
@@ -1466,35 +1482,17 @@ def save_MC_interpolated_sorted(MC_sorted, output):
     print("Conversion done !")
 
 def save_raw_data_uncertainty(T, R, E, A, output):
-    MC_file = open(output,"w+")
-    for i in MC_sorted:
-        MC_file.write(str(i[0]))
-        MC_file.write(" ")
-        MC_file.write(str(i[1][0]))
-        MC_file.write(" ")
-        MC_file.write(str(i[1][1]))
-        MC_file.write(" ")
-        MC_file.write(str(i[1][2]))
-        MC_file.write(" ")
-        MC_file.write(str(i[2][0][0]))
-        MC_file.write(" ")
-        MC_file.write(str(i[2][0][1]))
-        MC_file.write(" ")
-        MC_file.write(str(i[2][0][2]))
-        MC_file.write(" ")
-        MC_file.write(str(i[2][1][0]))
-        MC_file.write(" ")
-        MC_file.write(str(i[2][1][1]))
-        MC_file.write(" ")
-        MC_file.write(str(i[2][1][2]))
-        MC_file.write(" ")
-        MC_file.write(str(i[2][2][0]))
-        MC_file.write(" ")
-        MC_file.write(str(i[2][2][1]))
-        MC_file.write(" ")
-        MC_file.write(str(i[2][2][2]))
-        MC_file.write("\n")
-    MC_file.close()
+    file = open(output,"w+")
+    for i,j,k,l in zip(T, R, E, A):
+        file.write(str(i))
+        file.write(" ")
+        file.write(str(j))
+        file.write(" ")
+        file.write(str(k))
+        file.write(" ")
+        file.write(str(l))
+        file.write("\n")
+    file.close()
     print("Conversion done !")
 
 def save_weather_data(data, output):
