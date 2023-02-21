@@ -548,6 +548,11 @@ def MC_raw_data_only(num_samples, range_value, random_noise_range, true_azimuth,
 
 def MC_raw_data(num_samples, range_value, random_noise_range, true_azimuth, true_elevation, random_noise_angle, random_noise_tilt, Tf_mean, T_corrected,
                 data_weather, time_data, model_chosen):
+    # Check if tilt correction applied
+    if model_chosen[0]==0:
+        random_noise_tilt_chosen = [0 , 0]
+    else:
+        random_noise_tilt_chosen = random_noise_tilt
     # Check if atmospheric correction model
     if model_chosen[1]==1:
         ## Atmospheric corrections
@@ -563,8 +568,8 @@ def MC_raw_data(num_samples, range_value, random_noise_range, true_azimuth, true
         edm_range = edm_noise(range_value, lambda_edm, Measured_values, Nominal_values, noise_temp, noise_pressure, noise_humidity, num_samples)
 
         dist = range_noise(edm_range, random_noise_range, num_samples)
-        elevation = elevation_noise(true_elevation, random_noise_angle, random_noise_tilt, num_samples)
-        azimuth = azimuth_noise(true_azimuth, elevation, random_noise_angle, random_noise_tilt, num_samples)
+        elevation = elevation_noise(true_elevation, random_noise_angle, random_noise_tilt_chosen, num_samples)
+        azimuth = azimuth_noise(true_azimuth, elevation, random_noise_angle, random_noise_tilt_chosen, num_samples)
 
         if model_chosen[2]==1:
             points_simulated = []
@@ -590,8 +595,8 @@ def MC_raw_data(num_samples, range_value, random_noise_range, true_azimuth, true
             return mu_raw_data, mu_points_simulated, cov_matrix_simulated
     else:
         dist = range_noise(range_value, random_noise_range, num_samples)
-        elevation = elevation_noise(true_elevation, random_noise_angle, random_noise_tilt, num_samples)
-        azimuth = azimuth_noise(true_azimuth, elevation, random_noise_angle, random_noise_tilt, num_samples)
+        elevation = elevation_noise(true_elevation, random_noise_angle, random_noise_tilt_chosen, num_samples)
+        azimuth = azimuth_noise(true_azimuth, elevation, random_noise_angle, random_noise_tilt_chosen, num_samples)
         # Check if extrinsic calibration noise model
         if model_chosen[2] == 1:
             points_simulated = []
