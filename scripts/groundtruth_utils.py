@@ -290,7 +290,8 @@ def edm_noise(measured_edm, lambda_edm, Measured_values, Nominal_values, noise_t
     N_l = (273.15/1013.25)*(N_gr*(Measured_values[0]+np.random.uniform(noise_pressure[0], noise_pressure[1], num_samples))/(273.15+Measured_values[1]+np.random.uniform(noise_temp[0], noise_pressure[1], num_samples)))-11.27*e/(273.15+Measured_values[1]+np.random.uniform(noise_temp[0], noise_pressure[1], num_samples))
     N_o = (273.15/1013.25)*(N_gr*Nominal_values[0]/(273.15+Nominal_values[1]))-11.27*Nominal_values[2]/(273.15+Nominal_values[1])
     ppm = (N_o - N_l)/(1+N_l*10**(-6))
-    return measured_edm*(1+ppm*10**(-6))
+    nl = (N_l*10**-6)+1
+    return measured_edm*(1+ppm*10**(-6)), nl
 
 def get_cov_ellipsoid_bis(cov, mu=np.zeros((3)), nstd=3):
     """
