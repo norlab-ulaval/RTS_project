@@ -1241,7 +1241,6 @@ def read_icp_odom_file(file_name):
 
 def read_weather_data(file_name):
 	data = []
-	print(file_name)
 	# Read text file
 	file = open(file_name, "r")
 	line = file.readline()
@@ -1265,6 +1264,23 @@ def read_point_uncertainty_csv_file(file_name):
 					 [float(item[7]),float(item[8]),float(item[9])],
 					 [float(item[10]),float(item[11]),float(item[12])]], dtype=float)
 		data.append([Time, array_point, C])
+		line = file.readline()
+	file.close()
+	return data
+
+def read_raw_data_uncertainty(file_name):
+	data = []
+	# Read text file
+	file = open(file_name, "r")
+	line = file.readline()
+	while line:
+		line = line.split(" ")
+		Time = float(line[0])
+		D = float(line[1])
+		E = float(line[2])
+		A = float(line[3])
+		array_point = np.array([Time, D, A, E])
+		data.append(array_point)
 		line = file.readline()
 	file.close()
 	return data
