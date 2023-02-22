@@ -1245,7 +1245,7 @@ def read_weather_data(file_name):
 	file = open(file_name, "r")
 	line = file.readline()
 	while line:
-		item = line.split(" ")
+		item = line.split(";")
 		data.append([float(str(item[0])),float(str(item[1])),float(str(item[2])),float(str(item[3])),str(item[4])])
 		line = file.readline()
 	file.close()
@@ -1499,15 +1499,15 @@ def save_weather_data(data, output):
 	file = open(output,"w+")
 	for i in data:
 		file.write(str(i[0]))
-		file.write(" ")
+		file.write(";")
 		file.write(str(i[1]))
-		file.write(" ")
+		file.write(";")
 		file.write(str(i[2]))
-		file.write(" ")
+		file.write(";")
 		file.write(str(i[3]))
-		file.write(" ")
+		file.write(";")
 		file.write(str(i[4]))
-		file.write(" ")
+		file.write(";")
 		file.write("\n")
 	file.close()
 	print("Conversion done !")
@@ -3583,7 +3583,8 @@ def interpolation_weather_data(Timestamp_to_find, data_weather, index):
 		temperature = float(data_weather[index, 1])
 		humidity = float(data_weather[index, 2])
 		pressure = float(data_weather[index, 3])
-		return temperature, humidity, pressure
+		weather = str(data_weather[index,4])
+		return temperature, humidity, pressure, weather
 	else:
 		if Timestamp_to_find - float(data_weather[index, 0]) < 0:
 			index_before = index - 1
@@ -3600,7 +3601,11 @@ def interpolation_weather_data(Timestamp_to_find, data_weather, index):
 		pressure = simple_interpolation([data_weather[index_before, 0], data_weather[index_after, 0]],
 												 [data_weather[index_before, 3], data_weather[index_after, 3]],
 												 Timestamp_to_find)
-		return temperature, humidity, pressure
+		if abs(Timestamp_to_find - float(data_weather[index_before, 0])) < abs(Timestamp_to_find - float(data_weather[index_after, 0])) :
+			weather = str(data_weather[index_before,4])
+		else:
+			weather = str(data_weather[index_after,4])
+	return temperature, humidity, pressure, weather
 
 def save_to_VTK_uncertainty(sigma_plot, MC_sorted,output):
 

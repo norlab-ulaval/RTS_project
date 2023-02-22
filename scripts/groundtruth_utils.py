@@ -291,7 +291,7 @@ def edm_noise(measured_edm, lambda_edm, Measured_values, Nominal_values, noise_t
     N_o = (273.15/1013.25)*(N_gr*Nominal_values[0]/(273.15+Nominal_values[1]))-11.27*Nominal_values[2]/(273.15+Nominal_values[1])
     ppm = (N_o - N_l)/(1+N_l*10**(-6))
     nl = (N_l*10**-6)+1
-    return measured_edm*(1+ppm*10**(-6)), nl
+    return measured_edm*(1+ppm*10**(-6)), nl, ppm
 
 def get_cov_ellipsoid_bis(cov, mu=np.zeros((3)), nstd=3):
     """
@@ -566,8 +566,7 @@ def MC_raw_data(num_samples, range_value, random_noise_range, true_azimuth, true
         noise_temp = [0, 1]
         noise_pressure = [0, 10]
         noise_humidity = [0, 2]
-        edm_range = edm_noise(range_value, lambda_edm, Measured_values, Nominal_values, noise_temp, noise_pressure, noise_humidity, num_samples)
-
+        edm_range, _ = edm_noise(range_value, lambda_edm, Measured_values, Nominal_values, noise_temp, noise_pressure, noise_humidity, num_samples)
         dist = range_noise(edm_range, random_noise_range, num_samples)
         elevation = elevation_noise(true_elevation, random_noise_angle, random_noise_tilt_chosen, num_samples)
         azimuth = azimuth_noise(true_azimuth, elevation, random_noise_angle, random_noise_tilt_chosen, num_samples)
