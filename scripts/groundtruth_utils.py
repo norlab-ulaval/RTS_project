@@ -561,12 +561,12 @@ def MC_raw_data(num_samples, range_value, random_noise_range, true_azimuth, true
         Nominal_values = [1013.25, 20, 60]    # Nominal values for the TS (Pressure [hPa], temperature [C], humidity [%])
         time_weather = data_weather[:, 0].astype(np.float64)
         index, _ = findClosest(time_weather, time_data)
-        temperature, humidity, pressure = interpolation_weather_data(time_data, data_weather, index)
+        temperature, humidity, pressure, weather = interpolation_weather_data(time_data, data_weather, index)
         Measured_values = [pressure, temperature, humidity]     # Pressure [hPa], temperature [C], humidity [%]
         noise_temp = [0, 1]
         noise_pressure = [0, 10]
         noise_humidity = [0, 2]
-        edm_range, _ = edm_noise(range_value, lambda_edm, Measured_values, Nominal_values, noise_temp, noise_pressure, noise_humidity, num_samples)
+        edm_range, _, _ = edm_noise(range_value, lambda_edm, Measured_values, Nominal_values, noise_temp, noise_pressure, noise_humidity, num_samples)
         dist = range_noise(edm_range, random_noise_range, num_samples)
         elevation = elevation_noise(true_elevation, random_noise_angle, random_noise_tilt_chosen, num_samples)
         azimuth = azimuth_noise(true_azimuth, elevation, random_noise_angle, random_noise_tilt_chosen, num_samples)
