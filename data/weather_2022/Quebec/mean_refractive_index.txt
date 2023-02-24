@@ -1,15 +1,15 @@
     experiment id     weather condition  refractive index  temperature  humidity  pressure
-44             44      Orages,Poussière          1.000260        24.54      83.0     994.0
-40             40  Généralement nuageux          1.000260        24.95      75.0     996.0
-43             43  Généralement nuageux          1.000260        25.02      74.0     995.0
-39             39  Généralement nuageux          1.000260        24.93      75.0     996.0
 42             42  Généralement nuageux          1.000260        24.99      74.0     995.0
+38             38  Généralement nuageux          1.000260        24.92      75.0     996.0
+44             44      Orages,Poussière          1.000260        24.54      83.0     994.0
+43             43  Généralement nuageux          1.000260        25.02      74.0     995.0
 41             41  Généralement nuageux          1.000260        24.98      74.0     995.0
-38             38  Généralement nuageux          1.000261        24.92      75.0     996.0
+39             39  Généralement nuageux          1.000260        24.93      75.0     996.0
+40             40  Généralement nuageux          1.000261        24.95      75.0     996.0
 45             45      Orages,Poussière          1.000261        24.31      86.0     995.0
 46             46      Orages,Poussière          1.000261        24.13      88.0     995.0
-31             31   Généralement dégagé          1.000273        15.99      86.0    1012.0
 30             30   Généralement dégagé          1.000273        15.81      87.0    1012.0
+31             31   Généralement dégagé          1.000273        15.99      86.0    1012.0
 29             29   Généralement dégagé          1.000273        15.72      87.0    1012.0
 14             14   Généralement dégagé          1.000274        30.09      34.0    1063.0
 15             15   Généralement dégagé          1.000274        29.24      35.0    1062.0
@@ -22,25 +22,25 @@
 11             11  Généralement nuageux          1.000282        15.83      52.0    1042.0
 25             25  Généralement nuageux          1.000282        13.75      86.0    1038.0
 26             26  Généralement nuageux          1.000283        14.21      84.0    1042.0
-9               9  Généralement nuageux          1.000283        15.63      74.0    1049.0
+9               9  Généralement nuageux          1.000284        15.63      74.0    1049.0
 28             28                Dégagé          1.000284        22.89      59.0    1078.0
 10             10  Généralement nuageux          1.000284        15.21      76.0    1050.0
 27             27                Dégagé          1.000285        22.59      60.0    1079.0
 53             53                 Pluie          1.000287         4.03      90.0    1017.0
 32             32                Dégagé          1.000291        21.64      70.0    1098.0
 2               2                 Neige          1.000292        -3.81      94.0    1006.0
-18             18  Généralement nuageux          1.000292        13.19      39.0    1070.0
+20             20  Généralement nuageux          1.000292        13.18      40.0    1070.0
 19             19  Généralement nuageux          1.000292        13.13      40.0    1070.0
 36             36  Généralement nuageux          1.000292        13.16      40.0    1070.0
+18             18  Généralement nuageux          1.000292        13.19      39.0    1070.0
 37             37  Généralement nuageux          1.000292        13.17      40.0    1070.0
-20             20  Généralement nuageux          1.000292        13.18      40.0    1070.0
 17             17  Généralement nuageux          1.000292        12.91      43.0    1070.0
 35             35  Généralement nuageux          1.000292        12.93      43.0    1070.0
-34             34  Généralement nuageux          1.000293        12.65      46.0    1071.0
-49             49                    ND          1.000293         5.65      85.0    1045.0
-33             33  Généralement nuageux          1.000293        12.59      47.0    1071.0
-48             48                    ND          1.000293         5.65      85.0    1045.0
+33             33  Généralement nuageux          1.000292        12.59      47.0    1071.0
 47             47                    ND          1.000293         5.66      85.0    1045.0
+49             49                    ND          1.000293         5.65      85.0    1045.0
+48             48                    ND          1.000293         5.65      85.0    1045.0
+34             34  Généralement nuageux          1.000293        12.65      46.0    1071.0
 22             22   Généralement dégagé          1.000297        16.46      53.0    1100.0
 1               1                 Neige          1.000298        -0.44      92.0    1041.0
 55             55  Généralement nuageux          1.000299        -0.97      51.0    1043.0
