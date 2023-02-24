@@ -9,7 +9,7 @@ from tqdm import tqdm
 from scipy.spatial.transform import Rotation as R_scipy
 from os.path import exists
 import vtk
-from typing import Optional
+from typing import Optional, Tuple
 
 
 # import rosbag
@@ -3281,17 +3281,17 @@ def research_index_for_time(time_trimble, time_interval, limit_search):
 #
 
 
-def findClosest(arr: np.ndarray, target):
+def findClosest(arr: np.ndarray, target: np.float64) -> Tuple[np.int64, np.float64]:
     """Returns element closest to target in an array
 
     Args:
         arr (np.ndarray): array of data 1xN, timestamp (s)
-        target (_type_): timestamp to find in arr (s)
+        target (np.float64): timestamp to find in arr (s)
 
     Returns:
-        tuple: return the closest index found in arr and the value
+        Tuple[np.int64, np.float64]: return the closest index found in arr and the value
     """
-    best_idx = (arr - target).abs().argmin()
+    best_idx = np.absolute(arr - target).argmin()
     return best_idx, arr[best_idx]
     # n = len(arr)
     # # Corner cases
