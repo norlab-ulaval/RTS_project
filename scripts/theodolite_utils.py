@@ -3281,15 +3281,18 @@ def research_index_for_time(time_trimble, time_interval, limit_search):
 #
 
 
-# Returns element closest to target in an array
-# Input:
-# - arr: array of data 1xN, timestamp (s)
-# - target: timestamp to find in arr (s)
-# Output:
-# - index: return the closest index found in arr and the value
 def findClosest(arr: np.ndarray, target):
+    """Returns element closest to target in an array
+
+    Args:
+        arr (np.ndarray): array of data 1xN, timestamp (s)
+        target (_type_): timestamp to find in arr (s)
+
+    Returns:
+        tuple: return the closest index found in arr and the value
+    """
     best_idx = (arr - target).abs().argmin()
-    return best_idx, arr[bestidx]
+    return best_idx, arr[best_idx]
     # n = len(arr)
     # # Corner cases
     # if (target <= arr[0]):
