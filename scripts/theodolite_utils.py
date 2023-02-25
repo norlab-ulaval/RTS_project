@@ -1296,6 +1296,25 @@ def read_raw_data_uncertainty(file_name):
 	file.close()
 	return data
 
+def read_raw_data_uncertainty_speed(file_name):
+	data = []
+	# Read text file
+	file = open(file_name, "r")
+	line = file.readline()
+	while line:
+		line = line.split(" ")
+		Time = float(line[0])
+		D = float(line[1])
+		E = float(line[2])
+		A = float(line[3])
+		Speed = np.array([float(line[4]), float(line[5]), float(line[6])])
+		Speed_sigma = np.array([float(line[7]), float(line[8]), float(line[9])])
+		array_point = np.array([Time, D, A, E, Speed, Speed_sigma])
+		data.append(array_point)
+		line = file.readline()
+	file.close()
+	return data
+
 # Function which convert interpolated data pose into a specific format to use evo library
 # Input:
 # - interpolated_time: list of timestamp of the pose

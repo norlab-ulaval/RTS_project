@@ -547,7 +547,8 @@ def MC_raw_data_only(num_samples, range_value, random_noise_range, true_azimuth,
     return mu_raw_data, mu_points_simulated, cov_matrix_simulated
 
 def MC_raw_data(num_samples, range_value, random_noise_range, true_azimuth, true_elevation, random_noise_angle, random_noise_tilt, Tf_mean, T_corrected,
-                data_weather, time_data, model_chosen):
+                data_weather, time_data, speed, speed_std, time_error_synch_mean, time_error_synch_std, model_chosen):
+    sigma_speed = abs(time_error_synch_mean ** 2 * speed_std + np.diag([time_error_synch_std, time_error_synch_std, time_error_synch_std]) @ speed)
     # Check if tilt correction applied
     if model_chosen[0]==0:
         random_noise_tilt_chosen = [0 , 0]
@@ -570,55 +571,110 @@ def MC_raw_data(num_samples, range_value, random_noise_range, true_azimuth, true
         elevation = elevation_noise(true_elevation, random_noise_angle, random_noise_tilt_chosen, num_samples)
         azimuth = azimuth_noise(true_azimuth, elevation, random_noise_angle, random_noise_tilt_chosen, num_samples)
 
-        if model_chosen[2]==1:
-            points_simulated = []
-            for i, j, k , l in zip(dist, azimuth, elevation, T_corrected):
-                point = give_points(i, j, k, 2)
-                points_simulated.append(l@point)
-            points_simulated = np.array(points_simulated)
+        if model_chosen[3]==1:
+            if model_chosen[2]==1:
+                points_simulated = []
+                for i, j, k , l in zip(dist, azimuth, elevation, T_corrected):
+                    time_error = np.array([np.random.normal(0, sigma_speed[0]), np.random.normal(0, sigma_speed[1]),
+                                           np.random.normal(0, sigma_speed[2]), 0])
+                    point = give_points(i, j, k, 2) + time_error
+                    points_simulated.append(l@point)
+                points_simulated = np.array(points_simulated)
 
-            cov_matrix_simulated = np.cov(points_simulated.T[0:3, :])
-            mu_points_simulated = np.mean(points_simulated.T[0:3, :], axis=1)
-            mu_raw_data = Tf_mean@give_points(range_value, true_azimuth,true_elevation, 2)
-            return mu_raw_data, mu_points_simulated, cov_matrix_simulated
+                cov_matrix_simulated = np.cov(points_simulated.T[0:3, :])
+                mu_points_simulated = np.mean(points_simulated.T[0:3, :], axis=1)
+                mu_raw_data = Tf_mean@give_points(range_value, true_azimuth,true_elevation, 2)
+                return mu_raw_data, mu_points_simulated, cov_matrix_simulated
+            else:
+                points_simulated = []
+                for i, j, k in zip(dist, azimuth, elevation):
+                    time_error = np.array([np.random.normal(0, sigma_speed[0]), np.random.normal(0, sigma_speed[1]),
+                                           np.random.normal(0, sigma_speed[2]), 0])
+                    point = give_points(i, j, k, 2) + time_error
+                    points_simulated.append(Tf_mean @ point)
+                points_simulated = np.array(points_simulated)
+
+                cov_matrix_simulated = np.cov(points_simulated.T[0:3, :])
+                mu_points_simulated = np.mean(points_simulated.T[0:3, :], axis=1)
+                mu_raw_data = Tf_mean @ give_points(range_value, true_azimuth, true_elevation, 2)
+                return mu_raw_data, mu_points_simulated, cov_matrix_simulated
         else:
-            points_simulated = []
-            for i, j, k in zip(dist, azimuth, elevation):
-                point = give_points(i, j, k, 2)
-                points_simulated.append(Tf_mean @ point)
-            points_simulated = np.array(points_simulated)
+            if model_chosen[2] == 1:
+                points_simulated = []
+                for i, j, k, l in zip(dist, azimuth, elevation, T_corrected):
+                    point = give_points(i, j, k, 2)
+                    points_simulated.append(l @ point)
+                points_simulated = np.array(points_simulated)
 
-            cov_matrix_simulated = np.cov(points_simulated.T[0:3, :])
-            mu_points_simulated = np.mean(points_simulated.T[0:3, :], axis=1)
-            mu_raw_data = Tf_mean @ give_points(range_value, true_azimuth, true_elevation, 2)
-            return mu_raw_data, mu_points_simulated, cov_matrix_simulated
+                cov_matrix_simulated = np.cov(points_simulated.T[0:3, :])
+                mu_points_simulated = np.mean(points_simulated.T[0:3, :], axis=1)
+                mu_raw_data = Tf_mean @ give_points(range_value, true_azimuth, true_elevation, 2)
+                return mu_raw_data, mu_points_simulated, cov_matrix_simulated
+            else:
+                points_simulated = []
+                for i, j, k in zip(dist, azimuth, elevation):
+                    point = give_points(i, j, k, 2)
+                    points_simulated.append(Tf_mean @ point)
+                points_simulated = np.array(points_simulated)
+
+                cov_matrix_simulated = np.cov(points_simulated.T[0:3, :])
+                mu_points_simulated = np.mean(points_simulated.T[0:3, :], axis=1)
+                mu_raw_data = Tf_mean @ give_points(range_value, true_azimuth, true_elevation, 2)
+                return mu_raw_data, mu_points_simulated, cov_matrix_simulated
     else:
         dist = range_noise(range_value, random_noise_range, num_samples)
         elevation = elevation_noise(true_elevation, random_noise_angle, random_noise_tilt_chosen, num_samples)
         azimuth = azimuth_noise(true_azimuth, elevation, random_noise_angle, random_noise_tilt_chosen, num_samples)
         # Check if extrinsic calibration noise model
-        if model_chosen[2] == 1:
-            points_simulated = []
-            for i, j, k, l in zip(dist, azimuth, elevation, T_corrected):
-                point = give_points(i, j, k, 2)
-                points_simulated.append(l @ point)
-            points_simulated = np.array(points_simulated)
+        if model_chosen[3] == 1:
+            if model_chosen[2] == 1:
+                points_simulated = []
+                for i, j, k, l in zip(dist, azimuth, elevation, T_corrected):
+                    time_error = np.array([np.random.normal(0, sigma_speed[0]), np.random.normal(0, sigma_speed[1]),
+                                           np.random.normal(0, sigma_speed[2]), 0])
+                    point = give_points(i, j, k, 2) + time_error
+                    points_simulated.append(l @ point)
+                points_simulated = np.array(points_simulated)
 
-            cov_matrix_simulated = np.cov(points_simulated.T[0:3, :])
-            mu_points_simulated = np.mean(points_simulated.T[0:3, :], axis=1)
-            mu_raw_data = Tf_mean @ give_points(range_value, true_azimuth, true_elevation, 2)
-            return mu_raw_data, mu_points_simulated, cov_matrix_simulated
+                cov_matrix_simulated = np.cov(points_simulated.T[0:3, :])
+                mu_points_simulated = np.mean(points_simulated.T[0:3, :], axis=1)
+                mu_raw_data = Tf_mean @ give_points(range_value, true_azimuth, true_elevation, 2)
+                return mu_raw_data, mu_points_simulated, cov_matrix_simulated
+            else:
+                points_simulated = []
+                for i, j, k in zip(dist, azimuth, elevation):
+                    time_error = np.array([np.random.normal(0, sigma_speed[0]),np.random.normal(0, sigma_speed[1]),np.random.normal(0, sigma_speed[2]),0])
+                    point = give_points(i, j, k, 2)+time_error
+                    points_simulated.append(Tf_mean @ point)
+                points_simulated = np.array(points_simulated)
+
+                cov_matrix_simulated = np.cov(points_simulated.T[0:3, :])
+                mu_points_simulated = np.mean(points_simulated.T[0:3, :], axis=1)
+                mu_raw_data = Tf_mean @ give_points(range_value, true_azimuth, true_elevation, 2)
+                return mu_raw_data, mu_points_simulated, cov_matrix_simulated
         else:
-            points_simulated = []
-            for i, j, k in zip(dist, azimuth, elevation):
-                point = give_points(i, j, k, 2)
-                points_simulated.append(Tf_mean @ point)
-            points_simulated = np.array(points_simulated)
+            if model_chosen[2] == 1:
+                points_simulated = []
+                for i, j, k, l in zip(dist, azimuth, elevation, T_corrected):
+                    point = give_points(i, j, k, 2)
+                    points_simulated.append(l @ point)
+                points_simulated = np.array(points_simulated)
 
-            cov_matrix_simulated = np.cov(points_simulated.T[0:3, :])
-            mu_points_simulated = np.mean(points_simulated.T[0:3, :], axis=1)
-            mu_raw_data = Tf_mean @ give_points(range_value, true_azimuth, true_elevation, 2)
-            return mu_raw_data, mu_points_simulated, cov_matrix_simulated
+                cov_matrix_simulated = np.cov(points_simulated.T[0:3, :])
+                mu_points_simulated = np.mean(points_simulated.T[0:3, :], axis=1)
+                mu_raw_data = Tf_mean @ give_points(range_value, true_azimuth, true_elevation, 2)
+                return mu_raw_data, mu_points_simulated, cov_matrix_simulated
+            else:
+                points_simulated = []
+                for i, j, k in zip(dist, azimuth, elevation):
+                    point = give_points(i, j, k, 2)
+                    points_simulated.append(Tf_mean @ point)
+                points_simulated = np.array(points_simulated)
+
+                cov_matrix_simulated = np.cov(points_simulated.T[0:3, :])
+                mu_points_simulated = np.mean(points_simulated.T[0:3, :], axis=1)
+                mu_raw_data = Tf_mean @ give_points(range_value, true_azimuth, true_elevation, 2)
+                return mu_raw_data, mu_points_simulated, cov_matrix_simulated
 
 def MC_raw_data_simulated_point(num_samples, range_value, random_noise_range, true_azimuth, true_elevation, random_noise_angle, random_noise_tilt,
                                 Tf_mean, T_corrected, data_weather, time_data, model_chosen):
