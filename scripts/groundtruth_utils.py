@@ -620,6 +620,65 @@ def MC_raw_data(num_samples, range_value, random_noise_range, true_azimuth, true
             mu_raw_data = Tf_mean @ give_points(range_value, true_azimuth, true_elevation, 2)
             return mu_raw_data, mu_points_simulated, cov_matrix_simulated
 
+def MC_raw_data_simulated_point(num_samples, range_value, random_noise_range, true_azimuth, true_elevation, random_noise_angle, random_noise_tilt,
+                                Tf_mean, T_corrected, data_weather, time_data, model_chosen):
+    # Check if tilt correction applied
+    if model_chosen[0]==0:
+        random_noise_tilt_chosen = [0 , 0]
+    else:
+        random_noise_tilt_chosen = random_noise_tilt
+    # Check if atmospheric correction model
+    if model_chosen[1]==1:
+        ## Atmospheric corrections
+        lambda_edm =  0.905  # In micro-meter
+        Nominal_values = [1013.25, 20, 60]    # Nominal values for the TS (Pressure [hPa], temperature [C], humidity [%])
+        time_weather = data_weather[:, 0].astype(np.float64)
+        index, _ = findClosest(time_weather, time_data)
+        temperature, humidity, pressure = interpolation_weather_data(time_data, data_weather, index)
+        Measured_values = [pressure, temperature, humidity]     # Pressure [hPa], temperature [C], humidity [%]
+        noise_temp = [0, 1]
+        noise_pressure = [0, 10]
+        noise_humidity = [0, 2]
+        edm_range = edm_noise(range_value, lambda_edm, Measured_values, Nominal_values, noise_temp, noise_pressure, noise_humidity, num_samples)
+        dist = range_noise(edm_range, random_noise_range, num_samples)
+        elevation = elevation_noise(true_elevation, random_noise_angle, random_noise_tilt_chosen, num_samples)
+        azimuth = azimuth_noise(true_azimuth, elevation, random_noise_angle, random_noise_tilt_chosen, num_samples)
+
+        if model_chosen[2]==1:
+            points_simulated = []
+            for i, j, k , l in zip(dist, azimuth, elevation, T_corrected):
+                point = give_points(i, j, k, 2)
+                points_simulated.append(l@point)
+            points_simulated = np.array(points_simulated)
+            return points_simulated
+        else:
+            points_simulated = []
+            for i, j, k in zip(dist, azimuth, elevation):
+                point = give_points(i, j, k, 2)
+                points_simulated.append(Tf_mean @ point)
+            points_simulated = np.array(points_simulated)
+            return points_simulated
+    else:
+        dist = range_noise(range_value, random_noise_range, num_samples)
+        elevation = elevation_noise(true_elevation, random_noise_angle, random_noise_tilt_chosen, num_samples)
+        azimuth = azimuth_noise(true_azimuth, elevation, random_noise_angle, random_noise_tilt_chosen, num_samples)
+        # Check if extrinsic calibration noise model
+        if model_chosen[2] == 1:
+            points_simulated = []
+            for i, j, k, l in zip(dist, azimuth, elevation, T_corrected):
+                point = give_points(i, j, k, 2)
+                points_simulated.append(l @ point)
+            points_simulated = np.array(points_simulated)
+            return points_simulated
+        else:
+            points_simulated = []
+            for i, j, k in zip(dist, azimuth, elevation):
+                point = give_points(i, j, k, 2)
+                points_simulated.append(Tf_mean @ point)
+            points_simulated = np.array(points_simulated)
+
+            return points_simulated
+
 def list_static_points(trimble_used, limit_speed, limit_number):
 
     P_nm_list = find_not_moving_points(trimble_used, limit_speed)
@@ -1104,3 +1163,27 @@ def distance_F_comparison(MC1_0,MC2_0,MC3_0,MC1_1,MC2_1,MC3_1):
         Dc = np.sqrt(Frobenius_norm(k1[2], k2[2]))  # Square to have the results in meter !
         Distance_F.append(Dc)
     return Distance_F
+
+def compute_speed_prism(t_before, t_now, p_before, p_now):
+    p_diff = p_now - p_before
+    t_diff = t_now - t_before
+    return 1/t_diff*p_diff[0:3]
+
+def compute_speed(t1, d1, a1, e1, num_samples, random_noise_range, random_noise_angle, random_noise_tilt, data_weather, model_chosen):
+    Index1 = []
+    #P1_c = []   # Debug for points
+    Speed1 = []
+    for i in range(1, len(t1)):
+        if abs(t1[i]-t1[i-1])<3:
+            P_before = MC_raw_data_simulated_point(num_samples, d1[i-1], random_noise_range, a1[i-1], e1[i-1], random_noise_angle, random_noise_tilt, np.identity(4), np.identity(4), data_weather, t1[i-1], model_chosen)
+            P_now = MC_raw_data_simulated_point(num_samples, d1[i], random_noise_range, a1[i], e1[i], random_noise_angle, random_noise_tilt, np.identity(4), np.identity(4), data_weather, t1[i], model_chosen)
+            speed_simulated = []
+            for j,k in zip(P_before, P_now):
+                speed_simulated.append(compute_speed_prism(t1[i-1], t1[i], j, k))
+            Index1.append(i)
+            #P1_c.append(theodo_u.give_points(d1[i], a1[i], e1[i], 2))      # Debug for points
+            Speed1.append([np.mean(speed_simulated, axis=0),np.std(speed_simulated, axis=0)])
+    #P1_c = np.array(P1_c)
+    Speed1 = np.array(Speed1)
+    Index1 = np.array(Index1)
+    return Index1, Speed1

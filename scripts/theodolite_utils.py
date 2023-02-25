@@ -1506,6 +1506,32 @@ def save_raw_data_uncertainty(T, R, E, A, output):
     file.close()
     print("Conversion done !")
 
+def save_raw_data_uncertainty_speed(T, R, E, A, speed, output):
+	file = open(output,"w+")
+	for i,j,k,l,m in zip(T, R, E, A, speed):
+		file.write(str(i))
+		file.write(" ")
+		file.write(str(j))
+		file.write(" ")
+		file.write(str(k))
+		file.write(" ")
+		file.write(str(l))
+		file.write(" ")
+		file.write(str(m[0][0]))
+		file.write(" ")
+		file.write(str(m[0][1]))
+		file.write(" ")
+		file.write(str(m[0][2]))
+		file.write(" ")
+		file.write(str(m[1][0]))
+		file.write(" ")
+		file.write(str(m[1][1]))
+		file.write(" ")
+		file.write(str(m[1][2]))
+		file.write("\n")
+	file.close()
+	print("Conversion done !")
+
 def save_weather_data(data, output):
 	file = open(output,"w+")
 	for i in data:
