@@ -272,6 +272,17 @@ def read_rosbag_time_correction_theodolite(file):
 					timestamp_3.append(second_nsecond(marker.header.stamp.sec, marker.header.stamp.nanosec))
 					timeCorrection_3.append(second_nsecond(marker.estimated_time_offset.sec,marker.estimated_time_offset.nanosec))
 
+	sort_index1 = np.argsort(timestamp_1)
+	sort_index2 = np.argsort(timestamp_2)
+	sort_index3 = np.argsort(timestamp_3)
+
+	timestamp_1 = np.array(timestamp_1)[sort_index1]
+	timestamp_2 = np.array(timestamp_2)[sort_index2]
+	timestamp_3 = np.array(timestamp_3)[sort_index3]
+	timeCorrection_1 = np.array(timeCorrection_1)[sort_index1]
+	timeCorrection_2 = np.array(timeCorrection_2)[sort_index2]
+	timeCorrection_3 = np.array(timeCorrection_3)[sort_index3]
+
 	return timestamp_1, timestamp_2, timestamp_3, timeCorrection_1, timeCorrection_2, timeCorrection_3
 
 # Function which read a rosbag of theodolite data and return the trajectories found by each theodolite, and the timestamp of each point as a list
@@ -1263,10 +1274,10 @@ def read_point_uncertainty_csv_file(file_name):
 		C = np.array([[float(item[4]),float(item[5]),float(item[6])],
 					 [float(item[7]),float(item[8]),float(item[9])],
 					 [float(item[10]),float(item[11]),float(item[12])]], dtype=float)
-		data.append([Time, array_point, C])
+		data.append(np.array([Time, array_point, C]))
 		line = file.readline()
 	file.close()
-	return data
+	return np.array(data)
 
 def read_raw_data_uncertainty(file_name):
 	data = []
