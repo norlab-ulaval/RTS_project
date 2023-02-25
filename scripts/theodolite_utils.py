@@ -1,15 +1,15 @@
-import numpy as np
 import math
+from os.path import exists
+from pathlib import Path
+
+import numpy as np
+import vtk
 from rosbags.rosbag1 import Reader
 from rosbags.rosbag2 import Reader as Reader2
 from rosbags.serde import deserialize_cdr, ros1_to_cdr
-from pathlib import Path
 from rosbags.typesys import get_types_from_msg, register_types
-from tqdm import tqdm
 from scipy.spatial.transform import Rotation as R_scipy
-from os.path import exists
-import vtk
-
+from tqdm import tqdm
 
 # import rosbag
 # import csv

@@ -1,28 +1,28 @@
 import numpy as np
-from scripts.theodolite_utils import *
-from scripts.theodolite_function import *
-from scripts.prediction_utils import *
-from scripts.resection_functions import *
-
-from pylgmath import so3op, se3op, Transformation
+from pylgmath import Transformation, se3op, so3op
+from pysteam.evaluable.p2p import P2PErrorEvaluator
 from pysteam.evaluable.se3 import SE3StateVar
 from pysteam.evaluable.vspace import VSpaceStateVar
-from pysteam.evaluable.p2p import P2PErrorEvaluator
-from pysteam.trajectory import Time
-from pysteam.trajectory.const_vel import Interface as TrajectoryInterface
 from pysteam.problem import (
+    DynamicNoiseModel,
+    L2LossFunc,
     OptimizationProblem,
     StaticNoiseModel,
-    L2LossFunc,
     WeightedLeastSquareCostTerm,
-    DynamicNoiseModel,
 )
 from pysteam.solver import (
-    GaussNewtonSolver,
+    Covariance,
     DoglegGaussNewtonSolver,
+    GaussNewtonSolver,
     LevMarqGaussNewtonSolver,
 )
-from pysteam.solver import Covariance
+from pysteam.trajectory import Time
+from pysteam.trajectory.const_vel import Interface as TrajectoryInterface
+
+from scripts.prediction_utils import *
+from scripts.resection_functions import *
+from scripts.theodolite_function import *
+from scripts.theodolite_utils import *
 
 
 def pipeline_groundtruth(
@@ -1566,9 +1566,9 @@ def extrinsic_calibration_noise(
         return ts_chosen + 1, T1_simulate, T2_simulate, T3_simulate
 
 
-from matplotlib.patches import Ellipse
-import matplotlib.transforms as transforms
 import matplotlib.colors as colors
+import matplotlib.transforms as transforms
+from matplotlib.patches import Ellipse
 
 
 def plot_ellipse(
