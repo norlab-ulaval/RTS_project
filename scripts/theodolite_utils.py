@@ -1,6 +1,7 @@
 import math
 from os.path import exists
 from pathlib import Path
+from typing import Optional, Tuple
 
 import numpy as np
 import vtk
@@ -3285,45 +3286,16 @@ def research_index_for_time(time_trimble, time_interval, limit_search):
 #
 
 
-# Returns element closest to target in an array
-# Input:
-# - arr: array of data 1xN, timestamp (s)
-# - target: timestamp to find in arr (s)
-# Output:
-# - index: return the closest index found in arr and the value
-def findClosest(arr, target):
-    n = len(arr)
-    # Corner cases
-    if target <= arr[0]:
-        return 0, arr[0]
-    if target >= arr[n - 1]:
-        return n - 1, arr[n - 1]
-
-    # Doing binary search
-    i = 0
-    j = n
-    mid = 0
-    while i < j:
-        mid = (i + j) // 2
-        if arr[mid] == target:
-            return mid, arr[mid]
-        # If target is less than array
-        # element, then search in left
-        if target < arr[mid]:
-            # If target is greater than previous
-            # to mid, return closest of two
-            if mid > 0 and target > arr[mid - 1]:
-                return mid, getClosest(arr[mid - 1], arr[mid], target)
-            # Repeat for left half
-            j = mid
-        # If target is greater than mid
-        else:
-            if mid < n - 1 and target < arr[mid + 1]:
-                return mid, getClosest(arr[mid], arr[mid + 1], target)
-            # update i
-            i = mid + 1
-    # Only single element left after search
-    return mid, arr[mid]
+def findClosest(arr: np.ndarray, target: np.float64) -> Tuple[np.int64, np.float64]:
+    """Returns element closest to target in an array
+    Args:
+        arr (np.ndarray): array of data 1xN, timestamp (s)
+        target (np.float64): timestamp to find in arr (s)
+    Returns:
+        Tuple[np.int64, np.float64]: return the closest index found in arr and the value
+    """
+    best_idx = np.absolute(arr - target).argmin()
+    return best_idx, arr[best_idx]
 
 
 # Method to compare which one is the more close.
