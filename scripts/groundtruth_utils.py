@@ -566,7 +566,6 @@ def MC_raw_data(num_samples, range_value, random_noise_range, true_azimuth, true
         noise_pressure = [0, 10]
         noise_humidity = [0, 2]
         edm_range = edm_noise(range_value, lambda_edm, Measured_values, Nominal_values, noise_temp, noise_pressure, noise_humidity, num_samples)
-
         dist = range_noise(edm_range, random_noise_range, num_samples)
         elevation = elevation_noise(true_elevation, random_noise_angle, random_noise_tilt_chosen, num_samples)
         azimuth = azimuth_noise(true_azimuth, elevation, random_noise_angle, random_noise_tilt_chosen, num_samples)
