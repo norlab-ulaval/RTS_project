@@ -426,6 +426,17 @@ def read_rosbag_time_correction_theodolite(file, msg_node_dir=None):
                         )
                     )
 
+    sort_index1 = np.argsort(timestamp_1)
+    sort_index2 = np.argsort(timestamp_2)
+    sort_index3 = np.argsort(timestamp_3)
+
+    timestamp_1 = np.array(timestamp_1)[sort_index1]
+    timestamp_2 = np.array(timestamp_2)[sort_index2]
+    timestamp_3 = np.array(timestamp_3)[sort_index3]
+    timeCorrection_1 = np.array(timeCorrection_1)[sort_index1]
+    timeCorrection_2 = np.array(timeCorrection_2)[sort_index2]
+    timeCorrection_3 = np.array(timeCorrection_3)[sort_index3]
+
     return (
         timestamp_1,
         timestamp_2,
@@ -434,7 +445,6 @@ def read_rosbag_time_correction_theodolite(file, msg_node_dir=None):
         timeCorrection_2,
         timeCorrection_3,
     )
-
 
 # Function which read a rosbag of theodolite data and return the trajectories found by each theodolite, and the timestamp of each point as a list
 # Input:
@@ -1628,7 +1638,6 @@ def read_point_uncertainty_csv_file(file_name):
     file.close()
     return data
 
-
 def read_raw_data_uncertainty(file_name):
     data = []
     # Read text file
@@ -1646,6 +1655,25 @@ def read_raw_data_uncertainty(file_name):
     file.close()
     return data
 
+
+def read_raw_data_uncertainty_speed(file_name):
+	data = []
+	# Read text file
+	file = open(file_name, "r")
+	line = file.readline()
+	while line:
+		line = line.split(" ")
+		Time = float(line[0])
+		D = float(line[1])
+		E = float(line[2])
+		A = float(line[3])
+		Speed = np.array([float(line[4]), float(line[5]), float(line[6])])
+		Speed_sigma = np.array([float(line[7]), float(line[8]), float(line[9])])
+		array_point = np.array([Time, D, A, E, Speed, Speed_sigma])
+		data.append(array_point)
+		line = file.readline()
+	file.close()
+	return data
 
 # Function which convert interpolated data pose into a specific format to use evo library
 # Input:
@@ -1869,6 +1897,31 @@ def save_raw_data_uncertainty(T, R, E, A, output):
     file.close()
     print("Conversion done !")
 
+def save_raw_data_uncertainty_speed(T, R, E, A, speed, output):
+	file = open(output,"w+")
+	for i,j,k,l,m in zip(T, R, E, A, speed):
+		file.write(str(i))
+		file.write(" ")
+		file.write(str(j))
+		file.write(" ")
+		file.write(str(k))
+		file.write(" ")
+		file.write(str(l))
+		file.write(" ")
+		file.write(str(m[0][0]))
+		file.write(" ")
+		file.write(str(m[0][1]))
+		file.write(" ")
+		file.write(str(m[0][2]))
+		file.write(" ")
+		file.write(str(m[1][0]))
+		file.write(" ")
+		file.write(str(m[1][1]))
+		file.write(" ")
+		file.write(str(m[1][2]))
+		file.write("\n")
+	file.close()
+	print("Conversion done !")
 
 def save_weather_data(data, output):
     file = open(output, "w+")

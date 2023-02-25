@@ -192,12 +192,14 @@ from stheno.torch import GP, EQ
 #
 #     return T_MGPO, S_MGPO
 
-def data_training_L_Raw_data(time, dist, azimuth, elevation, index):
+def data_training_L_Raw_data(time, dist, azimuth, elevation, speed, speed_s, index):
     T_train_L = np.atleast_2d(time[index[0]:index[1]+1]).T.flatten()
     D_train_L = np.atleast_2d(dist[index[0]:index[1]+1]).T.flatten()
     A_train_L = np.atleast_2d(azimuth[index[0]:index[1]+1]).T.flatten()
     E_train_L = np.atleast_2d(elevation[index[0]:index[1]+1]).T.flatten()
-    return T_train_L, D_train_L, A_train_L, E_train_L
+    S_train_L = speed[index[0]:index[1] + 1,:]
+    SS_train_L = speed_s[index[0]:index[1] + 1,:]
+    return T_train_L, D_train_L, A_train_L, E_train_L, S_train_L, SS_train_L
 
 def data_L_Raw_data(time, dist, azimuth, elevation, index):
     T_train_L = np.atleast_2d(time[index]).T.flatten()
