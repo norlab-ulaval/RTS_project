@@ -74,6 +74,7 @@ def guess_msgtype(path: Path) -> str:
 def read_custom_messages(msg_node_dir: Optional[Path] = None):
     add_types = {}
     msgdir = msg_node_dir or Path("/home/maxime/workspace/src/theodolite_node_msgs")
+    msgdir = msgdir.resolve()
     for msgpath in (msgdir / "msg").glob("*.msg"):
         msgdef = msgpath.read_text(encoding="utf-8")
         add_types.update(get_types_from_msg(msgdef, guess_msgtype(msgpath)))
