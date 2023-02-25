@@ -1,0 +1,3 @@
+[submodule "msgs/theodolite_node_msgs"]
+	path = msgs/theodolite_node_msgs
+	url = git@github.com:norlab-ulaval/theodolite_node_msgs.git
