@@ -73,13 +73,16 @@ def guess_msgtype(path: Path) -> str:
     return str(name)
 
 
-def read_custom_messages():
+def read_custom_messages(msg_node_dir: Optional[Path] = None):
+    """Read custom messages and register them in rosbags
+
+    Args:
+        msg_node_dir (Optional[Path], optional): Path to ROS package that contains messages. Defaults to None.
+    """
     add_types = {}
-    for pathstr in [
-        "/home/maxime/workspace/src/theodolite_node_msgs/msg/TheodoliteCoordsStamped.msg",
-        "/home/maxime/workspace/src/theodolite_node_msgs/msg/TheodoliteTimeCorrection.msg",
-    ]:
-        msgpath = Path(pathstr)
+    msgdir = msg_node_dir or Path("/home/maxime/workspace/src/theodolite_node_msgs")
+    msgdir = msgdir.resolve()
+    for msgpath in (msgdir / "msg").glob("*.msg"):
         msgdef = msgpath.read_text(encoding="utf-8")
         add_types.update(get_types_from_msg(msgdef, guess_msgtype(msgpath)))
     register_types(add_types)
@@ -368,8 +371,8 @@ def read_rosbag2_icp_odom(file):
     return Icp_list
 
 
-def read_rosbag_time_correction_theodolite(file):
-    read_custom_messages()
+def read_rosbag_time_correction_theodolite(file, msg_node_dir=None):
+    read_custom_messages(msg_node_dir=msg_node_dir)
     with Reader(file) as bag:
         timestamp_1 = []
         timeCorrection_1 = []
@@ -444,8 +447,8 @@ def read_rosbag_time_correction_theodolite(file):
 # - time_trimble_1: list of timestamp for each points for the theodolite 1, timestamp in double
 # - time_trimble_2: list of timestamp for each points for the theodolite 2, timestamp in double
 # - time_trimble_3: list of timestamp for each points for the theodolite 3, timestamp in double
-def read_rosbag_theodolite_with_tf(file, Tf):
-    read_custom_messages()
+def read_rosbag_theodolite_with_tf(file, Tf, msg_node_dir=None):
+    read_custom_messages(msg_node_dir=msg_node_dir)
     with Reader(file) as bag:
         trajectory_trimble_1 = []
         trajectory_trimble_2 = []
@@ -621,8 +624,8 @@ def read_rosbag_theodolite_with_tf(file, Tf):
 # # 	return traj1, traj2, traj3, tt1, tt2, tt3, d1, d2, d3
 
 
-def read_rosbag_theodolite_without_tf_raw_data_pre_filtered(file):
-    read_custom_messages()
+def read_rosbag_theodolite_without_tf_raw_data_pre_filtered(file, msg_node_dir=None):
+    read_custom_messages(msg_node_dir=msg_node_dir)
     with Reader(file) as bag:
         time_trimble_1 = []
         time_trimble_2 = []
@@ -742,8 +745,8 @@ def read_rosbag_theodolite_without_tf_raw_data_pre_filtered(file):
     return t1, t2, t3, tp1, tp2, tp3, d1, d2, d3, a1, a2, a3, e1, e2, e3
 
 
-def read_rosbag_theodolite_without_tf_raw_data(file):
-    read_custom_messages()
+def read_rosbag_theodolite_without_tf_raw_data(file, msg_node_dir):
+    read_custom_messages(msg_node_dir=msg_node_dir)
     with Reader(file) as bag:
         time_trimble_1 = []
         time_trimble_2 = []
