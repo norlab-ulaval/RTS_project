@@ -1266,9 +1266,6 @@ def find_noise_list_tf(T_list):
         T_roll.append(angle[0])
         T_pitch.append(angle[1])
         T_yaw.append(angle[2])
-    mu_x = np.mean(T_x)
-    mu_y = np.mean(T_y)
-    mu_z = np.mean(T_z)
     # mu_roll = np.mean(T_roll)
     # mu_pitch = np.mean(T_pitch)
     # mu_yaw = np.mean(T_yaw)
@@ -1279,12 +1276,12 @@ def find_noise_list_tf(T_list):
     # std_pitch = np.std(T_pitch)
     # std_yaw = np.std(T_yaw)
     p_T = np.array([T_x, T_y, T_z])
-    # print(np.array(p_T))
-    cov_matrix = np.cov(p_T)
-    mu_points = np.mean(p_T, axis=1)
-    # print(cov_matrix)
-    # print(mu_points)
-    return p_T, mu_points, cov_matrix
+    cov_matrix_T = np.cov(p_T)
+    mu_T = np.mean(p_T, axis=1)
+    p_A = np.array([T_roll, T_pitch, T_yaw])
+    cov_matrix_A = np.cov(p_A)
+    mu_A = np.mean(p_A, axis=1)
+    return mu_T, cov_matrix_T, mu_A, cov_matrix_A
 
 
 def STEAM_interpolation_with_covariance(Time_RTS, Time_sensor, MC_data):
