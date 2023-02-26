@@ -4285,46 +4285,47 @@ def interpolation_weather_data(Timestamp_to_find, data_weather, index):
         return temperature, humidity, pressure
 
 
-def save_to_VTK_uncertainty(sigma_plot, MC_sorted, output):
+def save_to_VTK_uncertainty(sigma_plot, MC_sorted, output, limit_uncertainty):
     appended = vtk.vtkAppendPolyData()
     appended.UserManagedInputsOn()
     idx = 0
     for info in MC_sorted:
-        mu1 = info[1]
-        cov1 = info[2][0:3, 0:3]
-        W, V = np.linalg.eig(cov1)
-        ellipsoid = vtk.vtkParametricEllipsoid()
-        [x, y, z] = [mu1[0], mu1[1], mu1[2]]
-        [Sx, Sy, Sz] = [
-            sigma_plot * (W[0]) ** 0.5,
-            sigma_plot * (W[1]) ** 0.5,
-            sigma_plot * (W[2]) ** 0.5,
-        ]
-        ellipsoid.SetXRadius(Sx)
-        ellipsoid.SetYRadius(Sy)
-        ellipsoid.SetZRadius(Sz)
-        parametricFunctionSource = vtk.vtkParametricFunctionSource()
-        parametricFunctionSource.SetParametricFunction(ellipsoid)
-        r = R_scipy.from_matrix(V)
-        rotation = r.as_rotvec()
-        angle_rotation = np.linalg.norm(rotation)
-        transform = vtk.vtkTransform()
-        transformFilter = vtk.vtkTransformFilter()
-        transformFilter.SetTransform(transform)
-        transformFilter.SetInputConnection(parametricFunctionSource.GetOutputPort())
-        transform.Identity()
-        transform.Translate(x, y, z)
-        if angle_rotation != 0:
-            unit_rotation_axis = rotation / angle_rotation
-            transform.RotateWXYZ(
-                angle_rotation,
-                unit_rotation_axis[0],
-                unit_rotation_axis[1],
-                unit_rotation_axis[2],
-            )
-        transformFilter.Update()
-        appended.SetInputDataByNumber(idx, transformFilter.GetOutput())
-        idx = idx + 1
+        if (np.trace(info[2][0:3, 0:3]) / 3) ** 0.5 < limit_uncertainty:
+            mu1 = info[1]
+            cov1 = info[2][0:3, 0:3]
+            W, V = np.linalg.eig(cov1)
+            ellipsoid = vtk.vtkParametricEllipsoid()
+            [x, y, z] = [mu1[0], mu1[1], mu1[2]]
+            [Sx, Sy, Sz] = [
+                sigma_plot * (abs(W[0])) ** 0.5,
+                sigma_plot * (abs(W[1])) ** 0.5,
+                sigma_plot * (abs(W[2])) ** 0.5,
+            ]
+            ellipsoid.SetXRadius(Sx)
+            ellipsoid.SetYRadius(Sy)
+            ellipsoid.SetZRadius(Sz)
+            parametricFunctionSource = vtk.vtkParametricFunctionSource()
+            parametricFunctionSource.SetParametricFunction(ellipsoid)
+            r = R_scipy.from_matrix(V)
+            rotation = r.as_rotvec()
+            angle_rotation = np.linalg.norm(rotation)
+            transform = vtk.vtkTransform()
+            transformFilter = vtk.vtkTransformFilter()
+            transformFilter.SetTransform(transform)
+            transformFilter.SetInputConnection(parametricFunctionSource.GetOutputPort())
+            transform.Identity()
+            transform.Translate(x, y, z)
+            if angle_rotation != 0:
+                unit_rotation_axis = rotation / angle_rotation
+                transform.RotateWXYZ(
+                    angle_rotation,
+                    unit_rotation_axis[0],
+                    unit_rotation_axis[1],
+                    unit_rotation_axis[2],
+                )
+            transformFilter.Update()
+            appended.SetInputDataByNumber(idx, transformFilter.GetOutput())
+            idx = idx + 1
     writer = vtk.vtkDataSetWriter()
     writer.SetFileName(output)
     writer.SetInputConnection(appended.GetOutputPort())
