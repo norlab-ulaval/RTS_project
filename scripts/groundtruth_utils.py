@@ -953,7 +953,7 @@ def MC_raw_data(
     if model_chosen[1]==1:
         ## Atmospheric corrections
         lambda_edm =  0.905  # In micro-meter
-        Nominal_values = [1013.25, 20, 60]    # Nominal values for the TS (Pressure [hPa], temperature [C], humidity [%])
+        Nominal_values = [1013.25, 20, 60]    # Nominal values for the TS (Pressure [hPa], temperature [C], humidity [%]) from Trimble
         time_weather = data_weather[:, 0].astype(np.float64)
         index, _ = findClosest(time_weather, time_data)
         temperature, humidity, pressure = interpolation_weather_data(time_data, data_weather, index)
