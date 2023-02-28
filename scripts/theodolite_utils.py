@@ -1638,6 +1638,33 @@ def read_point_uncertainty_csv_file(file_name):
     file.close()
     return data
 
+def read_point_uncertainty_with_raw_data_csv_file(file_name):
+    data = []
+    # Read text file
+    file = open(file_name, "r")
+    line = file.readline()
+    while line:
+        item = line.split(" ")
+        Time = float(item[0])
+        array_point = np.array(
+            [float(item[1]), float(item[2]), float(item[3]), 1], dtype=float
+        )
+        C = np.array(
+            [
+                [float(item[4]), float(item[5]), float(item[6])],
+                [float(item[7]), float(item[8]), float(item[9])],
+                [float(item[10]), float(item[11]), float(item[12])],
+            ],
+            dtype=float,
+        )
+        array_raw = np.array(
+            [float(item[13]), float(item[14]), float(item[15])], dtype=float
+        )
+        data.append([Time, array_point, C, array_raw])
+        line = file.readline()
+    file.close()
+    return data
+
 def read_raw_data_uncertainty(file_name):
     data = []
     # Read text file
@@ -1674,6 +1701,27 @@ def read_raw_data_uncertainty_speed(file_name):
 		line = file.readline()
 	file.close()
 	return data
+
+def read_pose_uncertainty_sorted(file_name):
+    data = []
+    # Read text file
+    file = open(file_name, "r")
+    line = file.readline()
+    while line:
+        line = line.split(" ")
+        Time = float(line[0])
+        Point = np.array([float(line[1]),float(line[2]),float(line[3])])
+        Point_cov = np.array([[float(line[4]),float(line[5]),float(line[6])],
+                              [float(line[7]),float(line[8]),float(line[9])],
+                              [float(line[10]),float(line[11]),float(line[12])]])
+        Angle = np.array([float(line[13]), float(line[14]), float(line[15])])
+        Angle_cov = np.array([[float(line[16]), float(line[17]), float(line[18])],
+                      [float(line[19]), float(line[20]), float(line[21])],
+                      [float(line[22]), float(line[23]), float(line[24])]])
+        data.append([Time, Point, Point_cov, Angle, Angle_cov])
+        line = file.readline()
+    file.close()
+    return data
 
 # Function which convert interpolated data pose into a specific format to use evo library
 # Input:
@@ -1911,11 +1959,11 @@ def save_MC_simulated(MC_simulated, output):
         MC_file.write(" ")
         MC_file.write(str(i[2][2][2]))
         MC_file.write(" ")
-        MC_file.write(str(i[1][0]))
+        MC_file.write(str(i[3]))
         MC_file.write(" ")
-        MC_file.write(str(i[1][1]))
+        MC_file.write(str(i[4]))
         MC_file.write(" ")
-        MC_file.write(str(i[1][2]))
+        MC_file.write(str(i[5]))
         MC_file.write("\n")
     MC_file.close()
     print("Conversion done !")
