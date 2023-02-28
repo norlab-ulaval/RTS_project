@@ -943,7 +943,8 @@ def MC_raw_data(
     time_error_synch_std,
     model_chosen,
 ):
-    sigma_speed = abs(time_error_synch_mean ** 2 * speed_std + np.diag([time_error_synch_std, time_error_synch_std, time_error_synch_std]) @ speed)
+    sigma_speed = abs((time_error_synch_mean ** 2) * (speed_std ** 2)
+                      + np.diag([time_error_synch_std ** 2, time_error_synch_std ** 2, time_error_synch_std ** 2]) @ np.square(speed))
     # Check if tilt correction applied
     if model_chosen[0]==0:
         random_noise_tilt_chosen = [0 , 0]
