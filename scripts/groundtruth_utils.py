@@ -943,7 +943,8 @@ def MC_raw_data(
     time_error_synch_std,
     model_chosen,
 ):
-    sigma_speed = abs(time_error_synch_mean ** 2 * speed_std + np.diag([time_error_synch_std, time_error_synch_std, time_error_synch_std]) @ speed)
+    sigma_speed = abs((time_error_synch_mean ** 2) * (speed_std ** 2)
+                      + np.diag([time_error_synch_std ** 2, time_error_synch_std ** 2, time_error_synch_std ** 2]) @ np.square(speed))
     # Check if tilt correction applied
     if model_chosen[0]==0:
         random_noise_tilt_chosen = [0 , 0]
@@ -953,7 +954,7 @@ def MC_raw_data(
     if model_chosen[1]==1:
         ## Atmospheric corrections
         lambda_edm =  0.905  # In micro-meter
-        Nominal_values = [1013.25, 20, 60]    # Nominal values for the TS (Pressure [hPa], temperature [C], humidity [%])
+        Nominal_values = [1013.25, 20, 60]    # Nominal values for the TS (Pressure [hPa], temperature [C], humidity [%]) from Trimble
         time_weather = data_weather[:, 0].astype(np.float64)
         index, _ = findClosest(time_weather, time_data)
         temperature, humidity, pressure = interpolation_weather_data(time_data, data_weather, index)
