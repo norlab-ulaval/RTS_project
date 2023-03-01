@@ -1248,6 +1248,7 @@ def return_point_from_covariance(cov, p, num_samples):
     p_corrected = []
     for i, j, k in zip(correction_1, correction_2, correction_3):
         p_corrected.append(p[0:3] + i * eigvecs[0] + j * eigvecs[1] + k * eigvecs[2])
+    p_corrected = np.array(p_corrected)
     return p_corrected
 
 
@@ -1450,7 +1451,6 @@ def set_axes_equal(ax):
     ax.set_ylim3d([y_middle - plot_radius, y_middle + plot_radius])
     ax.set_zlim3d([z_middle - plot_radius, z_middle + plot_radius])
 
-
 def chose_sensor_before_ptp(path, Sensor, Gps_reference_chosen):
     # Load sensor positions
     file_sensor_positions = if_file_exist(
@@ -1460,14 +1460,17 @@ def chose_sensor_before_ptp(path, Sensor, Gps_reference_chosen):
         file_sensor_positions
     )
 
+    sensor_positions_list = np.array(sensor_positions_list)
     Sensors = []
-    P1_position_RTS = np.array(sensor_positions_list[0])
-    P2_position_RTS = np.array(sensor_positions_list[1])
-    P3_position_RTS = np.array(sensor_positions_list[2])
+    # Mean position of prism
+    P1_position_RTS = sensor_positions_list[0,0:4]
+    P2_position_RTS = sensor_positions_list[1,0:4]
+    P3_position_RTS = sensor_positions_list[2,0:4]
+
     if Sensor == "GNSS":
-        Sensors.append(np.array(sensor_positions_list[3]))
-        Sensors.append(np.array(sensor_positions_list[4]))
-        Sensors.append(np.array(sensor_positions_list[5]))
+        Sensors.append(sensor_positions_list[3,0:4])
+        Sensors.append(sensor_positions_list[4,0:4])
+        Sensors.append(sensor_positions_list[5,0:4])
 
         P1_position_GNSS = P1_position_RTS - Sensors[Gps_reference_chosen - 1]
         P1_position_GNSS[3] = 1
@@ -1481,10 +1484,10 @@ def chose_sensor_before_ptp(path, Sensor, Gps_reference_chosen):
         return P_sensor
 
     if Sensor == "Robosense_32":
-        Sensors.append(np.array(sensor_positions_list[6]))
-        Sensors.append(np.array(sensor_positions_list[7]))
-        Sensors.append(np.array(sensor_positions_list[8]))
-        Sensors.append(np.array(sensor_positions_list[9]))
+        Sensors.append(sensor_positions_list[6,0:4])
+        Sensors.append(sensor_positions_list[7,0:4])
+        Sensors.append(sensor_positions_list[8,0:4])
+        Sensors.append(sensor_positions_list[9,0:4])
         ux = Sensors[1] - Sensors[0]
         uy = Sensors[2] - Sensors[0]
         uz = Sensors[3] - Sensors[0]
@@ -1501,6 +1504,92 @@ def chose_sensor_before_ptp(path, Sensor, Gps_reference_chosen):
         P1_position_lidar = T_lidar_inv @ P1_position_RTS
         P2_position_lidar = T_lidar_inv @ P2_position_RTS
         P3_position_lidar = T_lidar_inv @ P3_position_RTS
+
+        P_sensor = np.array([P1_position_lidar, P2_position_lidar, P3_position_lidar]).T
+
+        return P_sensor
+
+def chose_sensor_before_ptp_uncertainty(path, Sensor, Gps_reference_chosen, num_samples_MC_sensor):
+    # Load sensor positions
+    file_sensor_positions = if_file_exist(
+        path + "sensors_extrinsic_calibration/sensor_positions.csv", ""
+    )
+    sensor_positions_list = read_extrinsic_calibration_results_file(
+        file_sensor_positions
+    )
+
+    sensor_positions_list = np.array(sensor_positions_list)
+    Sensors = []
+    # Mean position of prism
+    P1_position_RTS = sensor_positions_list[0,0:4]
+    P2_position_RTS = sensor_positions_list[1,0:4]
+    P3_position_RTS = sensor_positions_list[2,0:4]
+    C1 = sensor_positions_list[0,4:].reshape(3,3)
+    C2 = sensor_positions_list[1,4:].reshape(3,3)
+    C3 = sensor_positions_list[2,4:].reshape(3,3)
+
+    P1_position_RTS_noised = return_point_from_covariance(C1, P1_position_RTS, num_samples_MC_sensor)
+    P2_position_RTS_noised = return_point_from_covariance(C1, P1_position_RTS, num_samples_MC_sensor)
+    P3_position_RTS_noised = return_point_from_covariance(C1, P1_position_RTS, num_samples_MC_sensor)
+
+    if Sensor == "GNSS":
+        G1_position_RTS = sensor_positions_list[3, 0:4]
+        G2_position_RTS = sensor_positions_list[4, 0:4]
+        G3_position_RTS = sensor_positions_list[5, 0:4]
+        C4 = sensor_positions_list[3, 4:].reshape(3, 3)
+        C5 = sensor_positions_list[4, 4:].reshape(3, 3)
+        C6 = sensor_positions_list[5, 4:].reshape(3, 3)
+
+        if Gps_reference_chosen==1:
+            G1_position_RTS_noised = return_point_from_covariance(C4, G1_position_RTS, num_samples_MC_sensor)
+            P1_position_GNSS = np.ones(4)
+            P1_position_GNSS = P1_position_RTS_noised[0:3, :] - G1_position_RTS_noised[0:3, :]
+            P2_position_GNSS = np.ones(4)
+            P2_position_GNSS = P2_position_RTS_noised[0:3, :] - G1_position_RTS_noised[0:3, :]
+            P3_position_GNSS = np.ones(4)
+            P3_position_GNSS = P3_position_RTS_noised[0:3, :] - G1_position_RTS_noised[0:3, :]
+        if Gps_reference_chosen==2:
+            G2_position_RTS_noised = return_point_from_covariance(C5, G2_position_RTS, num_samples_MC_sensor)
+            P1_position_GNSS = np.ones(4)
+            P1_position_GNSS = P1_position_RTS_noised[0:3, :] - G2_position_RTS_noised[0:3, :]
+            P2_position_GNSS = np.ones(4)
+            P2_position_GNSS = P2_position_RTS_noised[0:3, :] - G2_position_RTS_noised[0:3, :]
+            P3_position_GNSS = np.ones(4)
+            P3_position_GNSS = P3_position_RTS_noised[0:3, :] - G2_position_RTS_noised[0:3, :]
+        if Gps_reference_chosen==3:
+            G3_position_RTS_noised = return_point_from_covariance(C6, G3_position_RTS, num_samples_MC_sensor)
+            P1_position_GNSS = np.ones(4)
+            P1_position_GNSS = P1_position_RTS_noised[0:3, :] - G3_position_RTS_noised[0:3, :]
+            P2_position_GNSS = np.ones(4)
+            P2_position_GNSS = P2_position_RTS_noised[0:3, :] - G3_position_RTS_noised[0:3, :]
+            P3_position_GNSS = np.ones(4)
+            P3_position_GNSS = P3_position_RTS_noised[0:3, :] - G3_position_RTS_noised[0:3, :]
+
+        P_sensor = np.array([P1_position_GNSS, P2_position_GNSS, P3_position_GNSS])
+
+        return P_sensor
+
+    if Sensor == "Robosense_32":
+        Sensors.append(sensor_positions_list[6, 0:4])
+        Sensors.append(sensor_positions_list[7, 0:4])
+        Sensors.append(sensor_positions_list[8, 0:4])
+        Sensors.append(sensor_positions_list[9, 0:4])
+        ux = Sensors[1] - Sensors[0]
+        uy = Sensors[2] - Sensors[0]
+        uz = Sensors[3] - Sensors[0]
+
+        T_lidar = np.array(
+            [
+                [ux[0], uy[0], uz[0], Sensors[0][0]],
+                [ux[1], uy[1], uz[1], Sensors[0][1]],
+                [ux[2], uy[2], uz[2], Sensors[0][2]],
+                [0, 0, 0, 1],
+            ]
+        )
+        T_lidar_inv = np.linalg.inv(T_lidar)
+        P1_position_lidar = T_lidar_inv @ P1_position_RTS_noised
+        P2_position_lidar = T_lidar_inv @ P2_position_RTS_noised
+        P3_position_lidar = T_lidar_inv @ P3_position_RTS_noised
 
         P_sensor = np.array([P1_position_lidar, P2_position_lidar, P3_position_lidar]).T
 
@@ -1777,3 +1866,247 @@ def compute_speed(
     Speed1 = np.array(Speed1)
     Index1 = np.array(Index1)
     return Index1, Speed1
+
+def read_sensor_positions_with_uncertainty(file_name, file_name_output, name_lidar):
+    file = open(file_name, "r")
+    line = file.readline()
+    points = []
+    noise = []
+    number = 0
+    while line:
+        item = line.split(" ")
+        ha = float(item[0]) + float(item[1]) * 1 / 60 + float(item[2]) * 1 / 3600
+        va = float(item[6]) + float(item[7]) * 1 / 60 + float(item[8]) * 1 / 3600
+        d = float(item[12])
+        nha = float(item[3]) + float(item[4]) * 1 / 60 + float(item[5]) * 1 / 3600
+        nve = float(item[9]) + float(item[10]) * 1 / 60 + float(item[11]) * 1 / 3600
+        nd = float(item[13])
+        noise.append([nd, nha, nve])
+        number = number + 1
+        points.append(give_points_calibration(d, ha, va, 1))
+        line = file.readline()
+    file.close()
+
+    Covariance_matrix = []
+    for i in noise:
+        _, _, cov_matrix = MC_raw_data_only(
+            1000,
+            i[0],
+            [0, 0.004 / 2, 2],
+            i[1],
+            i[2],
+            [0, 0.000024241 / 5 * 4 / 2],
+            [0, 0.000002424 / 2],
+        )
+        Covariance_matrix.append(cov_matrix)
+
+    P1 = points[0]
+    P2 = points[1]
+    P3 = points[2]
+    C1 = Covariance_matrix[0]
+    C2 = Covariance_matrix[1]
+    C3 = Covariance_matrix[2]
+
+    if number > 3:
+        G1 = points[3]
+        G2 = points[4]
+        G3 = points[5]
+        C4 = Covariance_matrix[3]
+        C5 = Covariance_matrix[4]
+        C6 = Covariance_matrix[5]
+
+        if number > 6:
+            if name_lidar == "Robosense_32":
+                distance_lidar_top_to_lidar_origin = (
+                    0.063  # In meter, for RS32 on warthog
+                )
+                L1 = points[6]
+                L2 = points[7]
+                L3 = points[8]
+                # Define vectors of the plan
+                u = L2[0:3] - L1[0:3]
+                v = L3[0:3] - L1[0:3]
+                # Calculate normal vector
+                A = np.array([[u[0], u[1]], [v[0], v[1]]])
+                y = np.array([-u[2], -v[2]])
+                x = np.linalg.solve(A, y)
+                n = np.array([x[0], x[1], 1])
+                # Cartesian equation of the plan if needed
+                # d = -np.dot(n, L1[0:3])
+                # Eq_param = np.array([n[0], n[1], n[2], d])
+                # print("Parameters of plan equation: ", Eq_param)
+                # print(np.dot(Eq_param, L1), np.dot(Eq_param, L2), np.dot(Eq_param, L3))
+                # Projection of L1 on line L2L3
+                I = L2[0:3] + np.dot(L1[0:3] - L2[0:3], L3[0:3] - L2[0:3]) / np.dot(
+                    L3[0:3] - L2[0:3], L3[0:3] - L2[0:3]
+                ) * (L3[0:3] - L2[0:3])
+                # Find origin of lidar
+                z = I - L1[0:3]
+                z_unit = 1 / np.linalg.norm(z) * z
+                O = distance_lidar_top_to_lidar_origin * z_unit + L1[0:3]
+                # Find unit axis vector of lidar
+                Ox = -1 / np.linalg.norm(n) * n + O
+                Oz = -1 * z_unit + O
+                Oy = 1 * np.cross(-z_unit, -1 / np.linalg.norm(n) * n) + O
+
+            csv_file = open(file_name_output, "w+")
+            for i in P1:
+                csv_file.write(str(i))
+                csv_file.write(" ")
+            for i in C1:
+                for j in i:
+                    csv_file.write(str(j))
+                    csv_file.write(" ")
+            csv_file.write("\n")
+            for i in P2:
+                csv_file.write(str(i))
+                csv_file.write(" ")
+            for i in C2:
+                for j in i:
+                    csv_file.write(str(j))
+                    csv_file.write(" ")
+            csv_file.write("\n")
+            for i in P3:
+                csv_file.write(str(i))
+                csv_file.write(" ")
+            for i in C3:
+                for j in i:
+                    csv_file.write(str(j))
+                    csv_file.write(" ")
+            csv_file.write("\n")
+            for i in G1:
+                csv_file.write(str(i))
+                csv_file.write(" ")
+            for i in C4:
+                for j in i:
+                    csv_file.write(str(j))
+                    csv_file.write(" ")
+            csv_file.write("\n")
+            for i in G2:
+                csv_file.write(str(i))
+                csv_file.write(" ")
+            for i in C5:
+                for j in i:
+                    csv_file.write(str(j))
+                    csv_file.write(" ")
+            csv_file.write("\n")
+            for i in G3:
+                csv_file.write(str(i))
+                csv_file.write(" ")
+            for i in C6:
+                for j in i:
+                    csv_file.write(str(j))
+                    csv_file.write(" ")
+            csv_file.write("\n")
+            for i in O:
+                csv_file.write(str(i))
+                csv_file.write(" ")
+            for i in [1,0,0,0,0,0,0,0,0,0]:
+                csv_file.write(str(i))
+                csv_file.write(" ")
+            csv_file.write("\n")
+            for i in Ox:
+                csv_file.write(str(i))
+                csv_file.write(" ")
+            for i in [1, 0, 0, 0, 0, 0, 0, 0, 0, 0]:
+                csv_file.write(str(i))
+                csv_file.write(" ")
+            csv_file.write("\n")
+            for i in Oy:
+                csv_file.write(str(i))
+                csv_file.write(" ")
+            csv_file.write(str(1))
+            for i in [1, 0, 0, 0, 0, 0, 0, 0, 0, 0]:
+                csv_file.write(str(i))
+                csv_file.write(" ")
+            csv_file.write("\n")
+            for i in Oz:
+                csv_file.write(str(i))
+                csv_file.write(" ")
+            for i in [1, 0, 0, 0, 0, 0, 0, 0, 0, 0]:
+                csv_file.write(str(i))
+                csv_file.write(" ")
+            csv_file.write("\n")
+            csv_file.close()
+
+        else:
+            csv_file = open(file_name_output, "w+")
+            for i in P1:
+                csv_file.write(str(i))
+                csv_file.write(" ")
+            for i in C1:
+                for j in i:
+                    csv_file.write(str(j))
+                    csv_file.write(" ")
+            csv_file.write("\n")
+            for i in P2:
+                csv_file.write(str(i))
+                csv_file.write(" ")
+            for i in C2:
+                for j in i:
+                    csv_file.write(str(j))
+                    csv_file.write(" ")
+            csv_file.write("\n")
+            for i in P3:
+                csv_file.write(str(i))
+                csv_file.write(" ")
+            for i in C3:
+                for j in i:
+                    csv_file.write(str(j))
+                    csv_file.write(" ")
+            csv_file.write("\n")
+            for i in G1:
+                csv_file.write(str(i))
+                csv_file.write(" ")
+            for i in C4:
+                for j in i:
+                    csv_file.write(str(j))
+                    csv_file.write(" ")
+            csv_file.write("\n")
+            for i in G2:
+                csv_file.write(str(i))
+                csv_file.write(" ")
+            for i in C5:
+                for j in i:
+                    csv_file.write(str(j))
+                    csv_file.write(" ")
+            csv_file.write("\n")
+            for i in G3:
+                csv_file.write(str(i))
+                csv_file.write(" ")
+            for i in C6:
+                for j in i:
+                    csv_file.write(str(j))
+                    csv_file.write(" ")
+            csv_file.write("\n")
+            csv_file.close()
+
+    else:
+        csv_file = open(file_name_output, "w+")
+        for i in P1:
+            csv_file.write(str(i))
+            csv_file.write(" ")
+        for i in C1:
+            for j in i:
+                csv_file.write(str(j))
+                csv_file.write(" ")
+        csv_file.write("\n")
+        for i in P2:
+            csv_file.write(str(i))
+            csv_file.write(" ")
+        for i in C2:
+            for j in i:
+                csv_file.write(str(j))
+                csv_file.write(" ")
+        csv_file.write("\n")
+        for i in P3:
+            csv_file.write(str(i))
+            csv_file.write(" ")
+        for i in C3:
+            for j in i:
+                csv_file.write(str(j))
+                csv_file.write(" ")
+        csv_file.write("\n")
+        csv_file.close()
+
+    print("Conversion done !")

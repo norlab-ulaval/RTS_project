@@ -1569,6 +1569,13 @@ def read_time_delay(file_name):
             item = line.strip().split(" ")
     return item[0]
 
+def read_dist_uncertainty(file_name):
+    data = []
+    with open(file_name, "r") as file:
+        for line in file:
+            item = line.strip().split(" ")
+            data.append([float(item[0]),float(item[1]),float(item[2]),float(item[3])])
+    return data
 
 def read_icp_odom_file(file_name):
     data = []
@@ -2032,6 +2039,20 @@ def save_MC_pose_sorted(MC_sorted, output):
         MC_file.write(str(i[4][2][1]))
         MC_file.write(" ")
         MC_file.write(str(i[4][2][2]))
+        MC_file.write("\n")
+    MC_file.close()
+    print("Conversion done !")
+
+def save_MC_dist_sorted(MC_sorted, output):
+    MC_file = open(output, "w+")
+    for i in MC_sorted:
+        MC_file.write(str(i[0]))
+        MC_file.write(" ")
+        MC_file.write(str(i[1]))
+        MC_file.write(" ")
+        MC_file.write(str(i[2]))
+        MC_file.write(" ")
+        MC_file.write(str(i[3]))
         MC_file.write("\n")
     MC_file.close()
     print("Conversion done !")
@@ -2671,7 +2692,6 @@ def read_calibration_gps_prism_lidar(file_name, file_name_output, name_lidar):
         csv_file.close()
 
     print("Conversion done !")
-
 
 def read_calibration_prism_lidar_marmotte(file_name, file_name_output, name_lidar):
     file = open(file_name, "r")
