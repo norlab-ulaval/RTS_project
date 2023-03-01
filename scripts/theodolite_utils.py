@@ -1645,20 +1645,20 @@ def read_point_uncertainty_with_raw_data_csv_file(file_name):
     line = file.readline()
     while line:
         item = line.split(" ")
-        Time = float(item[0])
+        Time = float(item[0]) #Time_stamp
         array_point = np.array(
-            [float(item[1]), float(item[2]), float(item[3]), 1], dtype=float
+            [float(item[1]), float(item[2]), float(item[3]), 1], dtype=float #coordinates XYZ
         )
-        C = np.array(
+        C = np.array(       
             [
                 [float(item[4]), float(item[5]), float(item[6])],
                 [float(item[7]), float(item[8]), float(item[9])],
                 [float(item[10]), float(item[11]), float(item[12])],
             ],
-            dtype=float,
+            dtype=float, #Covariance Matrix
         )
         array_raw = np.array(
-            [float(item[13]), float(item[14]), float(item[15])], dtype=float
+            [float(item[13]), float(item[14]), float(item[15])], dtype=float #Measurements Distance, Azimuth, Elevation
         )
         data.append([Time, array_point, C, array_raw])
         line = file.readline()
