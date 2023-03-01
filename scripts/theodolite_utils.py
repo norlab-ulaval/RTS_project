@@ -1665,6 +1665,18 @@ def read_point_uncertainty_with_raw_data_csv_file(file_name):
     file.close()
     return data
 
+def read_point_uncertainty_with_raw_data_csv_file_pandas(file_name):
+    data = []
+    # Read text file
+    file = open(file_name, "r")
+    line = file.readline()
+    while line:
+        item = line.split(" ")
+        data.append([float(i) for i in item])
+        line = file.readline()
+    file.close()
+    return data
+
 def read_raw_data_uncertainty(file_name):
     data = []
     # Read text file
