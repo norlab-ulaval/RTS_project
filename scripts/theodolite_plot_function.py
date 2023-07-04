@@ -199,11 +199,17 @@ def plot_trajectories_prism_GCP(number_data, trimble_1, trimble_2, trimble_3, T_
         #     ax.set_aspect('equal')
 
         # Theodolite positions in theodolite 1 frame
-        ax.scatter(T_1_rasp[1, 3], T_1_rasp[0, 3], c='red', marker='*', s=200, label="Robotic Total \nStation 1")
+        # ax.scatter(T_1_rasp[1, 3], T_1_rasp[0, 3], c='red', marker='*', s=200, label="Robotic Total \nStation 1")
+        # if (number_data > 1):
+        #     ax.scatter(T_12_rasp[1, 3], T_12_rasp[0, 3], c='blue', marker='*', s=200, label="Robotic Total \nStation 2")
+        # if (number_data > 2):
+        #     ax.scatter(T_13_rasp[1, 3], T_13_rasp[0, 3], c='green', marker='*', s=200, label="Robotic Total \nStation 3")
+
+        ax.scatter(T_1_rasp[1, 3], T_1_rasp[0, 3], c='red', marker='*', s=200, label="RTS 1")
         if (number_data > 1):
-            ax.scatter(T_12_rasp[1, 3], T_12_rasp[0, 3], c='blue', marker='*', s=200, label="Robotic Total \nStation 2")
+            ax.scatter(T_12_rasp[1, 3], T_12_rasp[0, 3], c='blue', marker='*', s=200, label="RTS 2")
         if (number_data > 2):
-            ax.scatter(T_13_rasp[1, 3], T_13_rasp[0, 3], c='green', marker='*', s=200, label="Robotic Total \nStation 3")
+            ax.scatter(T_13_rasp[1, 3], T_13_rasp[0, 3], c='green', marker='*', s=200, label="RTS 3")
         # Prisms trajectories in theodolite 1 frame
         ax.scatter(trimble_1[1], trimble_1[0], c='r', marker='.', label="Prism 1")
         if (number_data > 1):
@@ -213,7 +219,23 @@ def plot_trajectories_prism_GCP(number_data, trimble_1, trimble_2, trimble_3, T_
         ax.scatter(GCP[1, :], GCP[0, :], c='black', marker='.', s=200, label="Ground control \npoints")
         ax.set_xlabel('y[m]')
         ax.set_ylabel('x[m]')
-        ax.legend(loc='best')
+
+        # ax.scatter(T_1_rasp[0, 3], T_1_rasp[1, 3], c='red', marker='*', s=200, label="RTS 1")
+        # if (number_data > 1):
+        #     ax.scatter(T_12_rasp[0, 3], T_12_rasp[1, 3], c='blue', marker='*', s=200, label="RTS 2")
+        # if (number_data > 2):
+        #     ax.scatter(T_13_rasp[0, 3], T_13_rasp[1, 3], c='green', marker='*', s=200, label="RTS 3")
+        # # Prisms trajectories in theodolite 1 frame
+        # ax.scatter(trimble_1[0], trimble_1[1], c='r', marker='.', label="Prism 1")
+        # if (number_data > 1):
+        #     ax.scatter(trimble_2[0], trimble_2[1], c='b', marker='.', label="Prism 2")
+        # if (number_data > 2):
+        #     ax.scatter(trimble_3[0], trimble_3[1], c='g', marker='.', label="Prism 3")
+        # ax.scatter(GCP[0, :], GCP[1, :], c='black', marker='.', s=200, label="Ground control \npoints")
+        # ax.set_xlabel('x[m]')
+        # ax.set_ylabel('y[m]')
+
+        # ax.legend(loc='best')
         if (plot_equal == 1):
             ax.set_aspect('equal')
     plt.show()

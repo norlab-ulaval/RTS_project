@@ -1288,8 +1288,9 @@ def find_noise_list_tf(T_list):
 
 def STEAM_interpolation_with_covariance(Time_RTS, Time_sensor, MC_data):
     ## STEAM 1
+    # Mesures in variable for state estimation
     num_states = len(Time_RTS)  # total number of states
-    fake_meas = np.empty((num_states, 4, 1))
+    fake_meas = np.empty((num_states, 4, 1))  # reading measures to be inteprolated
     iterator_meas = 0
     for mc1 in MC_data:
         fake_meas[iterator_meas, 0, 0] = mc1[1][0]
@@ -1311,17 +1312,18 @@ def STEAM_interpolation_with_covariance(Time_RTS, Time_sensor, MC_data):
     state_vars = [
         (t, SE3StateVar(T_vi), VSpaceStateVar(w_iv_inv)) for t, T_vi, w_iv_inv in states
     ]
-    qcd = 1 * np.ones(6)  # No smoothing, diagonal of Qc (covariance of prior)
+    qcd = 1 * np.ones(6)  # No smoothing, diagonal of Qc (covariance of prior), prior not considered here !
     traj = TrajectoryInterface(qcd=qcd)
     for t, T_vi, w_iv_inv in state_vars:
         traj.add_knot(time=Time(t), T_k0=T_vi, w_0k_ink=w_iv_inv)
+    # Construction of the cost function
     cost_terms = []
     # use a shared L2 loss function and noise model for all cost terms
     loss_func = L2LossFunc()
     # noise_model = StaticNoiseModel(3*np.eye(3), "information")
     # noise_model = DynamicNoiseModel()
     for i, j in zip(range(num_states), MC_data):
-        noise_model = StaticNoiseModel(np.linalg.inv(j[2]), "information")
+        noise_model = StaticNoiseModel(np.linalg.inv(j[2]), "information")  # noise model form the Monte Carlo model of prism position !
         error_func = P2PErrorEvaluator(
             T_rq=state_vars[i][1],
             reference=np.array([[0, 0, 0, 1]]).T,
@@ -1331,6 +1333,7 @@ def STEAM_interpolation_with_covariance(Time_RTS, Time_sensor, MC_data):
             WeightedLeastSquareCostTerm(error_func, noise_model, loss_func)
         )
 
+    # Optimization of the cost function
     Error_STEAM = False
     try:
         opt_prob = OptimizationProblem()
@@ -1345,19 +1348,20 @@ def STEAM_interpolation_with_covariance(Time_RTS, Time_sensor, MC_data):
         print("Exception interpolation !")
         Error_STEAM = True
 
+    # Interpolation of the data as the wanted timestamps
     if Error_STEAM == False:
-        time_interpolated = np.array(Time_sensor)
+        time_interpolated = np.array(Time_sensor)   # wanted timestamps
         Error_STEAM = False
         try:
             T_k0_interp0 = [
                 traj.get_pose_interpolator(Time(i)).evaluate().matrix()
                 for i in time_interpolated
             ]
-            T_0k_interp = np.array([np.linalg.inv(x) for x in T_k0_interp0])
+            T_0k_interp = np.array([np.linalg.inv(x) for x in T_k0_interp0])   # Pose interpolated
 
             covariance = Covariance(opt_prob)
             T_k0_interp1 = [
-                traj.get_covariance(covariance, Time(i)) for i in time_interpolated
+                traj.get_covariance(covariance, Time(i)) for i in time_interpolated     # Covariance interpolated
             ]
             MC_interpolated = []
             for in0, in1, in2 in zip(time_interpolated, T_0k_interp, T_k0_interp1):
@@ -1456,6 +1460,8 @@ def chose_sensor_before_ptp(path, Sensor, Gps_reference_chosen):
     file_sensor_positions = if_file_exist(
         path + "sensors_extrinsic_calibration/sensor_positions.csv", ""
     )
+    print()
+    print(file_sensor_positions)
     sensor_positions_list = read_extrinsic_calibration_results_file(
         file_sensor_positions
     )
