@@ -88,9 +88,7 @@ def read_custom_messages(msg_node_dir: Optional[Path] = None):
     register_types(add_types)
 
 
-def read_marker_file(
-    file_name: str, theodolite_reference_frame: int, threshold: float = 1.0
-) -> tuple:
+def read_marker_file(file_name: str, theodolite_reference_frame: int, threshold: float = 1.0) -> tuple:
     """
     Function to read a text file which contains the marker data for the calibration. The result given
     will be the different markers positions in one theodolite frame.
@@ -119,13 +117,11 @@ def read_marker_file(
     theodolite 3 frame (Identity matrix if frame 3 chosen)
     """
     assert (
-        theodolite_reference_frame == 1
-        or theodolite_reference_frame == 2
-        or theodolite_reference_frame == 3
+        theodolite_reference_frame in [1, 2, 3]
     ), "Invalid theodolite_reference_frame value, it must be either 1, 2 or 3"
     assert (
-        0.0 < threshold
-    ), "Invalid probability threshold value, it must be greater than 0"
+        0.0 < threshold <= 1.0
+    ), "Invalid probability threshold value, it must be between 0 and 1"
 
     points_theodolite_1 = []
     points_theodolite_2 = []
@@ -137,123 +133,60 @@ def read_marker_file(
 
         for line in file:
             item = line.strip().split(" , ")
-            if int(item[0]) == 1 and int(item[2]) == 0:
-                add_point(
-                    float(item[5]),
-                    float(item[4]),
-                    float(item[3]),
-                    points_theodolite_1,
-                    2,
-                )
-            if int(item[0]) == 2 and int(item[2]) == 0:
-                add_point(
-                    float(item[5]),
-                    float(item[4]),
-                    float(item[3]),
-                    points_theodolite_2,
-                    2,
-                )
-            if int(item[0]) == 3 and int(item[2]) == 0:
-                add_point(
-                    float(item[5]),
-                    float(item[4]),
-                    float(item[3]),
-                    points_theodolite_3,
-                    2,
-                )
+            theodolite_number = int(item[0])
+            status = int(item[2])
+            elevation = float(item[3])
+            azimuth = float(item[4])
+            distance = float(item[5])
 
-    if threshold <= 1:
-        probs = np.random.default_rng().uniform(size=len(points_theodolite_1))
-        mask = probs <= threshold
+            if theodolite_number == 1 and status == 0:
+                add_point(distance, azimuth, elevation, points_theodolite_1, 2)
+            elif theodolite_number == 2 and status == 0:
+                add_point(distance, azimuth, elevation, points_theodolite_2, 2)
+            elif theodolite_number == 3 and status == 0:
+                add_point(distance, azimuth, elevation, points_theodolite_3, 2)
+
+    size = len(points_theodolite_1)
+    if threshold < 1:
+        rng = np.random.default_rng()
+        mask = rng.uniform(size=size) <= threshold
         points_theodolite_1 = np.array(points_theodolite_1)[mask].T
         points_theodolite_2 = np.array(points_theodolite_2)[mask].T
         points_theodolite_3 = np.array(points_theodolite_3)[mask].T
 
-        if theodolite_reference_frame == 1:
-            T_12 = point_to_point_minimization(points_theodolite_2, points_theodolite_1)
-            T_13 = point_to_point_minimization(points_theodolite_3, points_theodolite_1)
-            return (
-                points_theodolite_1,
-                points_theodolite_2,
-                points_theodolite_3,
-                T_I,
-                T_12,
-                T_13,
-            )
-
-        if theodolite_reference_frame == 2:
-            T_21 = point_to_point_minimization(points_theodolite_1, points_theodolite_2)
-            T_23 = point_to_point_minimization(points_theodolite_3, points_theodolite_2)
-            return (
-                points_theodolite_1,
-                points_theodolite_2,
-                points_theodolite_3,
-                T_21,
-                T_I,
-                T_23,
-            )
-
-        if theodolite_reference_frame == 3:
-            T_31 = point_to_point_minimization(points_theodolite_1, points_theodolite_3)
-            T_32 = point_to_point_minimization(points_theodolite_2, points_theodolite_3)
-            return (
-                points_theodolite_1,
-                points_theodolite_2,
-                points_theodolite_3,
-                T_31,
-                T_32,
-                T_I,
-            )
+    if theodolite_reference_frame == 1:
+        T_12 = point_to_point_minimization(points_theodolite_2, points_theodolite_1)
+        T_13 = point_to_point_minimization(points_theodolite_3, points_theodolite_1)
+        return (
+            points_theodolite_1,
+            points_theodolite_2,
+            points_theodolite_3,
+            T_I,
+            T_12,
+            T_13,
+        )
+    elif theodolite_reference_frame == 2:
+        T_21 = point_to_point_minimization(points_theodolite_1, points_theodolite_2)
+        T_23 = point_to_point_minimization(points_theodolite_3, points_theodolite_2)
+        return (
+            points_theodolite_1,
+            points_theodolite_2,
+            points_theodolite_3,
+            T_21,
+            T_I,
+            T_23,
+        )
     else:
-        size = len(points_theodolite_1)
-
-        assert 2 < size, "Invalid number of control points, it must be greater than 2"
-        assert (
-            2 < round(threshold) < size
-        ), "Invalid number of control points selected, it must be less than the number of control points and greater than 2"
-
-        index = np.arange(size)
-        mask = np.random.choice(index, size=round(threshold), replace=False)
-        points_theodolite_1 = np.array(points_theodolite_1)[mask].T
-        points_theodolite_2 = np.array(points_theodolite_2)[mask].T
-        points_theodolite_3 = np.array(points_theodolite_3)[mask].T
-
-        if theodolite_reference_frame == 1:
-            T_12 = point_to_point_minimization(points_theodolite_2, points_theodolite_1)
-            T_13 = point_to_point_minimization(points_theodolite_3, points_theodolite_1)
-            return (
-                points_theodolite_1,
-                points_theodolite_2,
-                points_theodolite_3,
-                T_I,
-                T_12,
-                T_13,
-            )
-
-        if theodolite_reference_frame == 2:
-            T_21 = point_to_point_minimization(points_theodolite_1, points_theodolite_2)
-            T_23 = point_to_point_minimization(points_theodolite_3, points_theodolite_2)
-            return (
-                points_theodolite_1,
-                points_theodolite_2,
-                points_theodolite_3,
-                T_21,
-                T_I,
-                T_23,
-            )
-
-        if theodolite_reference_frame == 3:
-            T_31 = point_to_point_minimization(points_theodolite_1, points_theodolite_3)
-            T_32 = point_to_point_minimization(points_theodolite_2, points_theodolite_3)
-            return (
-                points_theodolite_1,
-                points_theodolite_2,
-                points_theodolite_3,
-                T_31,
-                T_32,
-                T_I,
-            )
-
+        T_31 = point_to_point_minimization(points_theodolite_1, points_theodolite_3)
+        T_32 = point_to_point_minimization(points_theodolite_2, points_theodolite_3)
+        return (
+            points_theodolite_1,
+            points_theodolite_2,
+            points_theodolite_3,
+            T_31,
+            T_32,
+            T_I,
+        )
 
 def read_marker_file_raw_data(file_name: str):
     """
@@ -374,13 +307,8 @@ def read_rosbag2_icp_odom(file):
 def read_rosbag_time_correction_theodolite(file, msg_node_dir=None):
     read_custom_messages(msg_node_dir=msg_node_dir)
     with Reader(file) as bag:
-        timestamp_1 = []
-        timeCorrection_1 = []
-        timestamp_2 = []
-        timeCorrection_2 = []
-        timestamp_3 = []
-        timeCorrection_3 = []
-        # Read topic of trimble
+        theodolite_data = {1: ([], []), 2: ([], []), 3: ([], [])}
+
         for connection, timestamp, rawdata in bag.messages():
             if connection.topic == "/theodolite_master/theodolite_correction_timestamp":
                 msg = deserialize_cdr(
@@ -389,62 +317,32 @@ def read_rosbag_time_correction_theodolite(file, msg_node_dir=None):
                 marker = TheodoliteTimeCorrection(
                     msg.header, msg.theodolite_id, msg.estimated_time_offset
                 )
-                if marker.theodolite_id == 1:
-                    timestamp_1.append(
-                        second_nsecond(
-                            marker.header.stamp.sec, marker.header.stamp.nanosec
-                        )
-                    )
-                    timeCorrection_1.append(
-                        second_nsecond(
-                            marker.estimated_time_offset.sec,
-                            marker.estimated_time_offset.nanosec,
-                        )
-                    )
-                if marker.theodolite_id == 2:
-                    timestamp_2.append(
-                        second_nsecond(
-                            marker.header.stamp.sec, marker.header.stamp.nanosec
-                        )
-                    )
-                    timeCorrection_2.append(
-                        second_nsecond(
-                            marker.estimated_time_offset.sec,
-                            marker.estimated_time_offset.nanosec,
-                        )
-                    )
-                if marker.theodolite_id == 3:
-                    timestamp_3.append(
-                        second_nsecond(
-                            marker.header.stamp.sec, marker.header.stamp.nanosec
-                        )
-                    )
-                    timeCorrection_3.append(
-                        second_nsecond(
-                            marker.estimated_time_offset.sec,
-                            marker.estimated_time_offset.nanosec,
-                        )
-                    )
+                timestamp_key = second_nsecond(
+                    marker.header.stamp.sec, marker.header.stamp.nanosec
+                )
+                time_correction_key = second_nsecond(
+                    marker.estimated_time_offset.sec, marker.estimated_time_offset.nanosec
+                )
+                theodolite_data[marker.theodolite_id][0].append(timestamp_key)
+                theodolite_data[marker.theodolite_id][1].append(time_correction_key)
 
-    sort_index1 = np.argsort(timestamp_1)
-    sort_index2 = np.argsort(timestamp_2)
-    sort_index3 = np.argsort(timestamp_3)
-
-    timestamp_1 = np.array(timestamp_1)[sort_index1]
-    timestamp_2 = np.array(timestamp_2)[sort_index2]
-    timestamp_3 = np.array(timestamp_3)[sort_index3]
-    timeCorrection_1 = np.array(timeCorrection_1)[sort_index1]
-    timeCorrection_2 = np.array(timeCorrection_2)[sort_index2]
-    timeCorrection_3 = np.array(timeCorrection_3)[sort_index3]
+    for theodolite_id, data in theodolite_data.items():
+        timestamps, time_corrections = data
+        sort_index = np.argsort(timestamps)
+        theodolite_data[theodolite_id] = (
+            np.array(timestamps)[sort_index],
+            np.array(time_corrections)[sort_index],
+        )
 
     return (
-        timestamp_1,
-        timestamp_2,
-        timestamp_3,
-        timeCorrection_1,
-        timeCorrection_2,
-        timeCorrection_3,
+        theodolite_data[1][0],
+        theodolite_data[2][0],
+        theodolite_data[3][0],
+        theodolite_data[1][1],
+        theodolite_data[2][1],
+        theodolite_data[3][1],
     )
+
 
 # Function which read a rosbag of theodolite data and return the trajectories found by each theodolite, and the timestamp of each point as a list
 # Input:
@@ -2611,6 +2509,13 @@ def utm_gps_data(GPS_front_raw_data, limit_data, time_origin):
 #
 # 	print("Conversion done !")
 
+def read_file(path_file):
+    if path_file == "":
+        return []
+    else:
+        value = np.genfromtxt(path_file, delimiter=" ")
+        return value
+
 
 def read_calibration_gps_prism_lidar(file_name, file_name_output, name_lidar):
     file = open(file_name, "r")
@@ -2852,171 +2757,72 @@ def read_sensor_positions(file_name, file_name_output, name_lidar):
                 Oz = -1 * z_unit + O
                 Oy = 1 * np.cross(-z_unit, -1 / np.linalg.norm(n) * n) + O
 
-            csv_file = open(file_name_output, "w+")
-            csv_file.write(str(P1[0]))
-            csv_file.write(" ")
-            csv_file.write(str(P1[1]))
-            csv_file.write(" ")
-            csv_file.write(str(P1[2]))
-            csv_file.write(" ")
-            csv_file.write(str(1))
-            csv_file.write("\n")
-            csv_file.write(str(P2[0]))
-            csv_file.write(" ")
-            csv_file.write(str(P2[1]))
-            csv_file.write(" ")
-            csv_file.write(str(P2[2]))
-            csv_file.write(" ")
-            csv_file.write(str(1))
-            csv_file.write("\n")
-            csv_file.write(str(P3[0]))
-            csv_file.write(" ")
-            csv_file.write(str(P3[1]))
-            csv_file.write(" ")
-            csv_file.write(str(P3[2]))
-            csv_file.write(" ")
-            csv_file.write(str(1))
-            csv_file.write("\n")
-            csv_file.write(str(G1[0]))
-            csv_file.write(" ")
-            csv_file.write(str(G1[1]))
-            csv_file.write(" ")
-            csv_file.write(str(G1[2]))
-            csv_file.write(" ")
-            csv_file.write(str(1))
-            csv_file.write("\n")
-            csv_file.write(str(G2[0]))
-            csv_file.write(" ")
-            csv_file.write(str(G2[1]))
-            csv_file.write(" ")
-            csv_file.write(str(G2[2]))
-            csv_file.write(" ")
-            csv_file.write(str(1))
-            csv_file.write("\n")
-            csv_file.write(str(G3[0]))
-            csv_file.write(" ")
-            csv_file.write(str(G3[1]))
-            csv_file.write(" ")
-            csv_file.write(str(G3[2]))
-            csv_file.write(" ")
-            csv_file.write(str(1))
-            csv_file.write("\n")
-            csv_file.write(str(O[0]))
-            csv_file.write(" ")
-            csv_file.write(str(O[1]))
-            csv_file.write(" ")
-            csv_file.write(str(O[2]))
-            csv_file.write(" ")
-            csv_file.write(str(1))
-            csv_file.write("\n")
-            csv_file.write(str(Ox[0]))
-            csv_file.write(" ")
-            csv_file.write(str(Ox[1]))
-            csv_file.write(" ")
-            csv_file.write(str(Ox[2]))
-            csv_file.write(" ")
-            csv_file.write(str(1))
-            csv_file.write("\n")
-            csv_file.write(str(Oy[0]))
-            csv_file.write(" ")
-            csv_file.write(str(Oy[1]))
-            csv_file.write(" ")
-            csv_file.write(str(Oy[2]))
-            csv_file.write(" ")
-            csv_file.write(str(1))
-            csv_file.write("\n")
-            csv_file.write(str(Oz[0]))
-            csv_file.write(" ")
-            csv_file.write(str(Oz[1]))
-            csv_file.write(" ")
-            csv_file.write(str(Oz[2]))
-            csv_file.write(" ")
-            csv_file.write(str(1))
-            csv_file.write("\n")
-            csv_file.close()
+    with open(file_name_output, "w+") as csv_file:
+        csv_file.write(f"{P1[0]} {P1[1]} {P1[2]} 1\n")
+        csv_file.write(f"{P2[0]} {P2[1]} {P2[2]} 1\n")
+        csv_file.write(f"{P3[0]} {P3[1]} {P3[2]} 1\n")
+        csv_file.write(f"{G1[0]} {G1[1]} {G1[2]} 1\n")
+        csv_file.write(f"{G2[0]} {G2[1]} {G2[2]} 1\n")
+        csv_file.write(f"{G3[0]} {G3[1]} {G3[2]} 1\n")
+        if len(points) > 6 and name_lidar == "Robosense_32":
+            csv_file.write(f"{O[0]} {O[1]} {O[2]} 1\n")
+            csv_file.write(f"{Ox[0]} {Ox[1]} {Ox[2]} 1\n")
+            csv_file.write(f"{Oy[0]} {Oy[1]} {Oy[2]} 1\n")
+            csv_file.write(f"{Oz[0]} {Oz[1]} {Oz[2]} 1\n")
+    print('\nSensors coordinates in theodolite frame :')
+    print(f"Prism 1: {P1}")
+    print(f"Prism 2: {P2}")
+    print(f"Prism 3: {P3}")
+    print(f"GNSS 1: {G1}")
+    print(f"GNSS 2: {G2}")
+    print(f"GNSS 3: {G3}")
+    if len(points) > 6 and name_lidar == "Robosense_32":
+        print('\nLiDAR center :')
+        print(f"O: {O}")
+        print(f"Ox: {Ox}")
+        print(f"Oy: {Oy}")
+        print(f"Oz: {Oz}")
 
-        else:
-            csv_file = open(file_name_output, "w+")
-            csv_file.write(str(P1[0]))
-            csv_file.write(" ")
-            csv_file.write(str(P1[1]))
-            csv_file.write(" ")
-            csv_file.write(str(P1[2]))
-            csv_file.write(" ")
-            csv_file.write(str(1))
-            csv_file.write("\n")
-            csv_file.write(str(P2[0]))
-            csv_file.write(" ")
-            csv_file.write(str(P2[1]))
-            csv_file.write(" ")
-            csv_file.write(str(P2[2]))
-            csv_file.write(" ")
-            csv_file.write(str(1))
-            csv_file.write("\n")
-            csv_file.write(str(P3[0]))
-            csv_file.write(" ")
-            csv_file.write(str(P3[1]))
-            csv_file.write(" ")
-            csv_file.write(str(P3[2]))
-            csv_file.write(" ")
-            csv_file.write(str(1))
-            csv_file.write("\n")
-            csv_file.write(str(G1[0]))
-            csv_file.write(" ")
-            csv_file.write(str(G1[1]))
-            csv_file.write(" ")
-            csv_file.write(str(G1[2]))
-            csv_file.write(" ")
-            csv_file.write(str(1))
-            csv_file.write("\n")
-            csv_file.write(str(G2[0]))
-            csv_file.write(" ")
-            csv_file.write(str(G2[1]))
-            csv_file.write(" ")
-            csv_file.write(str(G2[2]))
-            csv_file.write(" ")
-            csv_file.write(str(1))
-            csv_file.write("\n")
-            csv_file.write(str(G3[0]))
-            csv_file.write(" ")
-            csv_file.write(str(G3[1]))
-            csv_file.write(" ")
-            csv_file.write(str(G3[2]))
-            csv_file.write(" ")
-            csv_file.write(str(1))
-            csv_file.write("\n")
-            csv_file.close()
+def sensors_positions_lidar_frame(sensors, file_name_output):
+    P1, P2, P3, G1, G2, G3, O, Ox, Oy, Oz = sensors[:10]
+    
+    nx = Ox - O
+    ny = Oy - O
+    nz = Oz - O
 
-    else:
-        csv_file = open(file_name_output, "w+")
-        csv_file.write(str(P1[0]))
-        csv_file.write(" ")
-        csv_file.write(str(P1[1]))
-        csv_file.write(" ")
-        csv_file.write(str(P1[2]))
-        csv_file.write(" ")
-        csv_file.write(str(1))
-        csv_file.write("\n")
-        csv_file.write(str(P2[0]))
-        csv_file.write(" ")
-        csv_file.write(str(P2[1]))
-        csv_file.write(" ")
-        csv_file.write(str(P2[2]))
-        csv_file.write(" ")
-        csv_file.write(str(1))
-        csv_file.write("\n")
-        csv_file.write(str(P3[0]))
-        csv_file.write(" ")
-        csv_file.write(str(P3[1]))
-        csv_file.write(" ")
-        csv_file.write(str(P3[2]))
-        csv_file.write(" ")
-        csv_file.write(str(1))
-        csv_file.write("\n")
-        csv_file.close()
+    T_lidar = np.array([[nx[0],ny[0],nz[0],O[0]],
+                        [nx[1],ny[1],nz[1],O[1]],
+                        [nx[2],ny[2],nz[2],O[2]],
+                        [0,0,0,1]])
+    
+    T_lidar_inv = np.linalg.inv(T_lidar)
+    print('Transformation matrix of theodolite to LiDAR frame :\n', T_lidar_inv)
 
-    print("Conversion done !")
+    P1_lidar = T_lidar_inv @ P1
+    P2_lidar = T_lidar_inv @ P2
+    P3_lidar = T_lidar_inv @ P3
+    GPS1_lidar = T_lidar_inv @ G1
+    GPS2_lidar = T_lidar_inv @ G2
+    GPS3_lidar = T_lidar_inv @ G3
+    O_lidar = T_lidar_inv @ O
 
+    with open(file_name_output, "w+") as csv_file:
+        csv_file.write(f"{P1_lidar[0]} {P1_lidar[1]} {P1_lidar[2]} 1\n")
+        csv_file.write(f"{P2_lidar[0]} {P2_lidar[1]} {P2_lidar[2]} 1\n")
+        csv_file.write(f"{P3_lidar[0]} {P3_lidar[1]} {P3_lidar[2]} 1\n")
+        csv_file.write(f"{GPS1_lidar[0]} {GPS1_lidar[1]} {GPS1_lidar[2]} 1\n")
+        csv_file.write(f"{GPS2_lidar[0]} {GPS2_lidar[1]} {GPS2_lidar[2]} 1\n")
+        csv_file.write(f"{GPS3_lidar[0]} {GPS3_lidar[1]} {GPS3_lidar[2]} 1\n")
+        csv_file.write(f"{O_lidar[0]} {O_lidar[1]} {O_lidar[2]} 1\n")
+
+    print('\nSensors coordinates in LiDAR frame :')
+    print(f"Prism 1: {P1_lidar}")
+    print(f"Prism 2: {P2_lidar}")
+    print(f"Prism 3: {P3_lidar}")
+    print(f"GNSS 1: {GPS1_lidar}")
+    print(f"GNSS 2: {GPS2_lidar}")
+    print(f"GNSS 3: {GPS3_lidar}")
+    print(f"GNSS 3: {O_lidar}")
 
 def save_error_list_to_file(errors: list, file_name: str):
     errors = np.array(errors)
@@ -3024,113 +2830,13 @@ def save_error_list_to_file(errors: list, file_name: str):
 
 
 def save_tf_list_to_file(TFs: list, file_name: str):
-    output = file_name
-    file = open(output, "w+")
-    for i in TFs:
-        file.write(str(i[0][0][0]))
-        file.write(" ")
-        file.write(str(i[0][0][1]))
-        file.write(" ")
-        file.write(str(i[0][0][2]))
-        file.write(" ")
-        file.write(str(i[0][0][3]))
-        file.write(" ")
-        file.write(str(i[0][1][0]))
-        file.write(" ")
-        file.write(str(i[0][1][1]))
-        file.write(" ")
-        file.write(str(i[0][1][2]))
-        file.write(" ")
-        file.write(str(i[0][1][3]))
-        file.write(" ")
-        file.write(str(i[0][2][0]))
-        file.write(" ")
-        file.write(str(i[0][2][1]))
-        file.write(" ")
-        file.write(str(i[0][2][2]))
-        file.write(" ")
-        file.write(str(i[0][2][3]))
-        file.write("\n")
-    file.close()
-
-
-def save_tf_list_to_file_multi(TFs: list, file_name: str):
-    output = file_name
-    file = open(output, "w+")
-    for i in TFs:
-        file.write(str(i[0][0][0]))
-        file.write(" ")
-        file.write(str(i[0][0][1]))
-        file.write(" ")
-        file.write(str(i[0][0][2]))
-        file.write(" ")
-        file.write(str(i[0][0][3]))
-        file.write(" ")
-        file.write(str(i[0][1][0]))
-        file.write(" ")
-        file.write(str(i[0][1][1]))
-        file.write(" ")
-        file.write(str(i[0][1][2]))
-        file.write(" ")
-        file.write(str(i[0][1][3]))
-        file.write(" ")
-        file.write(str(i[0][2][0]))
-        file.write(" ")
-        file.write(str(i[0][2][1]))
-        file.write(" ")
-        file.write(str(i[0][2][2]))
-        file.write(" ")
-        file.write(str(i[0][2][3]))
-        file.write("\n")
-        file.write(str(i[1][0][0]))
-        file.write(" ")
-        file.write(str(i[1][0][1]))
-        file.write(" ")
-        file.write(str(i[1][0][2]))
-        file.write(" ")
-        file.write(str(i[1][0][3]))
-        file.write(" ")
-        file.write(str(i[1][1][0]))
-        file.write(" ")
-        file.write(str(i[1][1][1]))
-        file.write(" ")
-        file.write(str(i[1][1][2]))
-        file.write(" ")
-        file.write(str(i[1][1][3]))
-        file.write(" ")
-        file.write(str(i[1][2][0]))
-        file.write(" ")
-        file.write(str(i[1][2][1]))
-        file.write(" ")
-        file.write(str(i[1][2][2]))
-        file.write(" ")
-        file.write(str(i[1][2][3]))
-        file.write("\n")
-        file.write(str(i[2][0][0]))
-        file.write(" ")
-        file.write(str(i[2][0][1]))
-        file.write(" ")
-        file.write(str(i[2][0][2]))
-        file.write(" ")
-        file.write(str(i[2][0][3]))
-        file.write(" ")
-        file.write(str(i[2][1][0]))
-        file.write(" ")
-        file.write(str(i[2][1][1]))
-        file.write(" ")
-        file.write(str(i[2][1][2]))
-        file.write(" ")
-        file.write(str(i[2][1][3]))
-        file.write(" ")
-        file.write(str(i[2][2][0]))
-        file.write(" ")
-        file.write(str(i[2][2][1]))
-        file.write(" ")
-        file.write(str(i[2][2][2]))
-        file.write(" ")
-        file.write(str(i[2][2][3]))
-        file.write("\n")
-    file.close()
+    with open(file_name, "w+") as file:
+        for i in TFs:
+            for row in range(4):
+                for col in range(4):
+                    file.write(str(i[row][col]))
+                    file.write(" ")
+                file.write("\n")
 
 
 # def save_results_drop_outliers(file_name_path, param, results_arr):
@@ -3278,36 +2984,59 @@ def add_point(d, ha, va, points, param):
 # - Q: the reference point cloud, can be 4xn or 3xn where n is the number of points
 # Output: T a 4x4 pose matrix corresponding to the rigid transformation
 def point_to_point_minimization(P, Q):
-    # Errors at the beginning
-    errors_before = Q - P
-    # Centroide of each pointcloud
-    mu_p = np.mean(P[0:3, :], axis=1)
-    mu_q = np.mean(Q[0:3, :], axis=1)
-    # Center each pointcloud
-    P_mu = np.ones((3, P.shape[1]))
-    Q_mu = np.ones((3, Q.shape[1]))
-    for i in range(0, P_mu.shape[1]):
-        P_mu[0:3, i] = P[0:3, i] - mu_p
-    for i in range(0, Q_mu.shape[1]):
-        Q_mu[0:3, i] = Q[0:3, i] - mu_q
-    # Compute cross covariance matrix
-    H = P_mu @ Q_mu.T
-    # Use SVD decomposition
-    U, s, V = np.linalg.svd(H)
-    # Compute rotation
-    R = V.T @ U.T
-    if np.linalg.det(R) < 0:
-        # print(V.T)
-        V_t = V.T
-        V_t[:, 2] = -V_t[:, 2]
-        R = V_t @ U.T
+    # # Errors at the beginning
+    # errors_before = Q - P
+    # # Centroide of each pointcloud
+    # mu_p = np.mean(P[0:3, :], axis=1)
+    # mu_q = np.mean(Q[0:3, :], axis=1)
+    # # Center each pointcloud
+    # P_mu = np.ones((3, P.shape[1]))
+    # Q_mu = np.ones((3, Q.shape[1]))
+    # for i in range(0, P_mu.shape[1]):
+    #     P_mu[0:3, i] = P[0:3, i] - mu_p
+    # for i in range(0, Q_mu.shape[1]):
+    #     Q_mu[0:3, i] = Q[0:3, i] - mu_q
+    # # Compute cross covariance matrix
+    # H = P_mu @ Q_mu.T
+    # # Use SVD decomposition
+    # U, s, V = np.linalg.svd(H)
+    # # Compute rotation
+    # R = V.T @ U.T
+    # if np.linalg.det(R) < 0:
+    #     # print(V.T)
+    #     V_t = V.T
+    #     V_t[:, 2] = -V_t[:, 2]
+    #     R = V_t @ U.T
 
-    # Compute translation
-    t = mu_q - R @ mu_p
-    # Compute rigid transformation obtained
+    # # Compute translation
+    # t = mu_q - R @ mu_p
+    # # Compute rigid transformation obtained
+    # T = np.eye(4)
+    # T[0:3, 0:3] = R
+    # T[0:3, 3] = t
+    # return T
+
+    mu_P = np.mean(P, axis=1)[:,np.newaxis] #np.newaxis : add a line of 1 for the point list
+    mu_Q = np.mean(Q, axis=1)[:,np.newaxis]
+
+    P -= np.full(P.shape, mu_P)
+    Q -= np.full(Q.shape, mu_Q)
+
+    H = P @ Q.T
+
+    U, S, V = np.linalg.svd(H, full_matrices=True)
+
+    M = np.eye(4)
+    M[3, 3] = np.linalg.det(V @ U.T)
+    C = V @ M @ U.T
+
+    r = (mu_Q - C @ mu_P).flatten()
+    
     T = np.eye(4)
-    T[0:3, 0:3] = R
-    T[0:3, 3] = t
+    # T[0:2, 0:2] = C[0:2, 0:2]
+    # T[0:2, 3] = r[0:2]
+    T[0:3, 0:3] = C[0:3, 0:3]
+    T[0:3, 3] = r[0:3]
     return T
 
 
