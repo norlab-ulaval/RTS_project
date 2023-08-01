@@ -64,7 +64,6 @@ class TheodoliteTimeCorrection:
 #
 # Read/write data from files
 
-
 def guess_msgtype(path: Path) -> str:
     """Guess message type name from path."""
     name = path.relative_to(path.parents[2]).with_suffix("")
@@ -88,7 +87,9 @@ def read_custom_messages(msg_node_dir: Optional[Path] = None):
     register_types(add_types)
 
 
-def read_marker_file(file_name: str, theodolite_reference_frame: int, threshold: float = 1.0) -> tuple:
+def read_marker_file(
+    file_name: str, theodolite_reference_frame: int, threshold: float = 1.0
+) -> tuple:
     """
     Function to read a text file which contains the marker data for the calibration. The result given
     will be the different markers positions in one theodolite frame.
@@ -117,11 +118,13 @@ def read_marker_file(file_name: str, theodolite_reference_frame: int, threshold:
     theodolite 3 frame (Identity matrix if frame 3 chosen)
     """
     assert (
-        theodolite_reference_frame in [1, 2, 3]
+        theodolite_reference_frame == 1
+        or theodolite_reference_frame == 2
+        or theodolite_reference_frame == 3
     ), "Invalid theodolite_reference_frame value, it must be either 1, 2 or 3"
     assert (
-        0.0 < threshold <= 1.0
-    ), "Invalid probability threshold value, it must be between 0 and 1"
+        0.0 < threshold
+    ), "Invalid probability threshold value, it must be greater than 0"
 
     points_theodolite_1 = []
     points_theodolite_2 = []
@@ -133,60 +136,122 @@ def read_marker_file(file_name: str, theodolite_reference_frame: int, threshold:
 
         for line in file:
             item = line.strip().split(" , ")
-            theodolite_number = int(item[0])
-            status = int(item[2])
-            elevation = float(item[3])
-            azimuth = float(item[4])
-            distance = float(item[5])
+            if int(item[0]) == 1 and int(item[2]) == 0:
+                add_point(
+                    float(item[5]),
+                    float(item[4]),
+                    float(item[3]),
+                    points_theodolite_1,
+                    2,
+                )
+            if int(item[0]) == 2 and int(item[2]) == 0:
+                add_point(
+                    float(item[5]),
+                    float(item[4]),
+                    float(item[3]),
+                    points_theodolite_2,
+                    2,
+                )
+            if int(item[0]) == 3 and int(item[2]) == 0:
+                add_point(
+                    float(item[5]),
+                    float(item[4]),
+                    float(item[3]),
+                    points_theodolite_3,
+                    2,
+                )
 
-            if theodolite_number == 1 and status == 0:
-                add_point(distance, azimuth, elevation, points_theodolite_1, 2)
-            elif theodolite_number == 2 and status == 0:
-                add_point(distance, azimuth, elevation, points_theodolite_2, 2)
-            elif theodolite_number == 3 and status == 0:
-                add_point(distance, azimuth, elevation, points_theodolite_3, 2)
-
-    size = len(points_theodolite_1)
-    if threshold < 1:
-        rng = np.random.default_rng()
-        mask = rng.uniform(size=size) <= threshold
+    if threshold <= 1:
+        probs = np.random.default_rng().uniform(size=len(points_theodolite_1))
+        mask = probs <= threshold
         points_theodolite_1 = np.array(points_theodolite_1)[mask].T
         points_theodolite_2 = np.array(points_theodolite_2)[mask].T
         points_theodolite_3 = np.array(points_theodolite_3)[mask].T
 
-    if theodolite_reference_frame == 1:
-        T_12 = point_to_point_minimization(points_theodolite_2, points_theodolite_1)
-        T_13 = point_to_point_minimization(points_theodolite_3, points_theodolite_1)
-        return (
-            points_theodolite_1,
-            points_theodolite_2,
-            points_theodolite_3,
-            T_I,
-            T_12,
-            T_13,
-        )
-    elif theodolite_reference_frame == 2:
-        T_21 = point_to_point_minimization(points_theodolite_1, points_theodolite_2)
-        T_23 = point_to_point_minimization(points_theodolite_3, points_theodolite_2)
-        return (
-            points_theodolite_1,
-            points_theodolite_2,
-            points_theodolite_3,
-            T_21,
-            T_I,
-            T_23,
-        )
+        if theodolite_reference_frame == 1:
+            T_12 = point_to_point_minimization(points_theodolite_2, points_theodolite_1)
+            T_13 = point_to_point_minimization(points_theodolite_3, points_theodolite_1)
+            return (
+                points_theodolite_1,
+                points_theodolite_2,
+                points_theodolite_3,
+                T_I,
+                T_12,
+                T_13,
+            )
+
+        if theodolite_reference_frame == 2:
+            T_21 = point_to_point_minimization(points_theodolite_1, points_theodolite_2)
+            T_23 = point_to_point_minimization(points_theodolite_3, points_theodolite_2)
+            return (
+                points_theodolite_1,
+                points_theodolite_2,
+                points_theodolite_3,
+                T_21,
+                T_I,
+                T_23,
+            )
+
+        if theodolite_reference_frame == 3:
+            T_31 = point_to_point_minimization(points_theodolite_1, points_theodolite_3)
+            T_32 = point_to_point_minimization(points_theodolite_2, points_theodolite_3)
+            return (
+                points_theodolite_1,
+                points_theodolite_2,
+                points_theodolite_3,
+                T_31,
+                T_32,
+                T_I,
+            )
     else:
-        T_31 = point_to_point_minimization(points_theodolite_1, points_theodolite_3)
-        T_32 = point_to_point_minimization(points_theodolite_2, points_theodolite_3)
-        return (
-            points_theodolite_1,
-            points_theodolite_2,
-            points_theodolite_3,
-            T_31,
-            T_32,
-            T_I,
-        )
+        size = len(points_theodolite_1)
+
+        assert 2 < size, "Invalid number of control points, it must be greater than 2"
+        assert (
+            2 < round(threshold) < size
+        ), "Invalid number of control points selected, it must be less than the number of control points and greater than 2"
+
+        index = np.arange(size)
+        mask = np.random.choice(index, size=round(threshold), replace=False)
+        points_theodolite_1 = np.array(points_theodolite_1)[mask].T
+        points_theodolite_2 = np.array(points_theodolite_2)[mask].T
+        points_theodolite_3 = np.array(points_theodolite_3)[mask].T
+
+        if theodolite_reference_frame == 1:
+            T_12 = point_to_point_minimization(points_theodolite_2, points_theodolite_1)
+            T_13 = point_to_point_minimization(points_theodolite_3, points_theodolite_1)
+            return (
+                points_theodolite_1,
+                points_theodolite_2,
+                points_theodolite_3,
+                T_I,
+                T_12,
+                T_13,
+            )
+
+        if theodolite_reference_frame == 2:
+            T_21 = point_to_point_minimization(points_theodolite_1, points_theodolite_2)
+            T_23 = point_to_point_minimization(points_theodolite_3, points_theodolite_2)
+            return (
+                points_theodolite_1,
+                points_theodolite_2,
+                points_theodolite_3,
+                T_21,
+                T_I,
+                T_23,
+            )
+
+        if theodolite_reference_frame == 3:
+            T_31 = point_to_point_minimization(points_theodolite_1, points_theodolite_3)
+            T_32 = point_to_point_minimization(points_theodolite_2, points_theodolite_3)
+            return (
+                points_theodolite_1,
+                points_theodolite_2,
+                points_theodolite_3,
+                T_31,
+                T_32,
+                T_I,
+            )
 
 def read_marker_file_raw_data(file_name: str):
     """
@@ -356,6 +421,7 @@ def read_rosbag_time_correction_theodolite(file, msg_node_dir=None):
 # - time_trimble_2: list of timestamp for each points for the theodolite 2, timestamp in double
 # - time_trimble_3: list of timestamp for each points for the theodolite 3, timestamp in double
 def read_rosbag_theodolite_with_tf(file, Tf, msg_node_dir=None):
+    print(msg_node_dir)
     read_custom_messages(msg_node_dir=msg_node_dir)
     with Reader(file) as bag:
         trajectory_trimble_1 = []
@@ -2984,59 +3050,37 @@ def add_point(d, ha, va, points, param):
 # - Q: the reference point cloud, can be 4xn or 3xn where n is the number of points
 # Output: T a 4x4 pose matrix corresponding to the rigid transformation
 def point_to_point_minimization(P, Q):
-    # # Errors at the beginning
-    # errors_before = Q - P
-    # # Centroide of each pointcloud
-    # mu_p = np.mean(P[0:3, :], axis=1)
-    # mu_q = np.mean(Q[0:3, :], axis=1)
-    # # Center each pointcloud
-    # P_mu = np.ones((3, P.shape[1]))
-    # Q_mu = np.ones((3, Q.shape[1]))
-    # for i in range(0, P_mu.shape[1]):
-    #     P_mu[0:3, i] = P[0:3, i] - mu_p
-    # for i in range(0, Q_mu.shape[1]):
-    #     Q_mu[0:3, i] = Q[0:3, i] - mu_q
-    # # Compute cross covariance matrix
-    # H = P_mu @ Q_mu.T
-    # # Use SVD decomposition
-    # U, s, V = np.linalg.svd(H)
-    # # Compute rotation
-    # R = V.T @ U.T
+    # Errors at the beginning
+    errors_before = Q - P
+    # Centroide of each pointcloud
+    mu_p = np.mean(P[0:3, :], axis=1)
+    mu_q = np.mean(Q[0:3, :], axis=1)
+    # Center each pointcloud
+    P_mu = np.ones((3, P.shape[1]))
+    Q_mu = np.ones((3, Q.shape[1]))
+    for i in range(0, P_mu.shape[1]):
+        P_mu[0:3, i] = P[0:3, i] - mu_p
+    for i in range(0, Q_mu.shape[1]):
+        Q_mu[0:3, i] = Q[0:3, i] - mu_q
+    # Compute cross covariance matrix
+    H = P_mu @ Q_mu.T
+    # Use SVD decomposition
+    U, s, V = np.linalg.svd(H)
+    # Compute rotation
+    M = np.eye(3)
+    M[2, 2] = np.linalg.det(V.T @ U.T)
+    R = V.T @ M @ U.T
     # if np.linalg.det(R) < 0:
     #     # print(V.T)
     #     V_t = V.T
     #     V_t[:, 2] = -V_t[:, 2]
     #     R = V_t @ U.T
-
-    # # Compute translation
-    # t = mu_q - R @ mu_p
-    # # Compute rigid transformation obtained
-    # T = np.eye(4)
-    # T[0:3, 0:3] = R
-    # T[0:3, 3] = t
-    # return T
-
-    mu_P = np.mean(P, axis=1)[:,np.newaxis] #np.newaxis : add a line of 1 for the point list
-    mu_Q = np.mean(Q, axis=1)[:,np.newaxis]
-
-    P -= np.full(P.shape, mu_P)
-    Q -= np.full(Q.shape, mu_Q)
-
-    H = P @ Q.T
-
-    U, S, V = np.linalg.svd(H, full_matrices=True)
-
-    M = np.eye(4)
-    M[3, 3] = np.linalg.det(V @ U.T)
-    C = V @ M @ U.T
-
-    r = (mu_Q - C @ mu_P).flatten()
-    
+    # Compute translation
+    t = mu_q - R @ mu_p
+    # Compute rigid transformation obtained
     T = np.eye(4)
-    # T[0:2, 0:2] = C[0:2, 0:2]
-    # T[0:2, 3] = r[0:2]
-    T[0:3, 0:3] = C[0:3, 0:3]
-    T[0:3, 3] = r[0:3]
+    T[0:3, 0:3] = R
+    T[0:3, 3] = t
     return T
 
 
