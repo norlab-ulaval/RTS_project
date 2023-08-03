@@ -943,8 +943,9 @@ def MC_raw_data(
     time_error_synch_std,
     model_chosen,
 ):
-    sigma_speed = abs((time_error_synch_mean ** 2) * (speed_std ** 2)
-                      + np.diag([time_error_synch_std ** 2, time_error_synch_std ** 2, time_error_synch_std ** 2]) @ np.square(speed))
+    mu_speed = time_error_synch_mean*speed
+    sigma_speed = np.sqrt(abs((time_error_synch_mean ** 2) * np.square(speed_std)
+                      + np.diag([time_error_synch_std ** 2, time_error_synch_std ** 2, time_error_synch_std ** 2]) @ np.square(speed)))
     # Check if tilt correction applied
     if model_chosen[0]==0:
         random_noise_tilt_chosen = [0 , 0]
@@ -967,12 +968,14 @@ def MC_raw_data(
         elevation = elevation_noise(true_elevation, random_noise_angle, random_noise_tilt_chosen, num_samples)
         azimuth = azimuth_noise(true_azimuth, elevation, random_noise_angle, random_noise_tilt_chosen, num_samples)
 
+        # Time synchronization
         if model_chosen[3]==1:
+            # Extrinsic calibration
             if model_chosen[2]==1:
                 points_simulated = []
                 for i, j, k , l in zip(dist, azimuth, elevation, T_corrected):
-                    time_error = np.array([np.random.normal(0, sigma_speed[0]), np.random.normal(0, sigma_speed[1]),
-                                           np.random.normal(0, sigma_speed[2]), 0])
+                    time_error = np.array([np.random.normal(mu_speed[0], sigma_speed[0]), np.random.normal(mu_speed[1], sigma_speed[1]),
+                                           np.random.normal(mu_speed[2], sigma_speed[2]), 0])
                     point = give_points(i, j, k, 2) + time_error
                     points_simulated.append(l@point)
                 points_simulated = np.array(points_simulated)
@@ -984,8 +987,9 @@ def MC_raw_data(
             else:
                 points_simulated = []
                 for i, j, k in zip(dist, azimuth, elevation):
-                    time_error = np.array([np.random.normal(0, sigma_speed[0]), np.random.normal(0, sigma_speed[1]),
-                                           np.random.normal(0, sigma_speed[2]), 0])
+                    time_error = np.array([np.random.normal(mu_speed[0], sigma_speed[0]), np.random.normal(mu_speed[1], sigma_speed[1]),
+                         np.random.normal(mu_speed[2], sigma_speed[2]), 0])
+                    #print(mu_speed, sigma_speed, time_error)
                     point = give_points(i, j, k, 2) + time_error
                     points_simulated.append(Tf_mean @ point)
                 points_simulated = np.array(points_simulated)
@@ -1026,8 +1030,8 @@ def MC_raw_data(
             if model_chosen[2] == 1:
                 points_simulated = []
                 for i, j, k, l in zip(dist, azimuth, elevation, T_corrected):
-                    time_error = np.array([np.random.normal(0, sigma_speed[0]), np.random.normal(0, sigma_speed[1]),
-                                           np.random.normal(0, sigma_speed[2]), 0])
+                    time_error = np.array([np.random.normal(mu_speed[0], sigma_speed[0]), np.random.normal(mu_speed[1], sigma_speed[1]),
+                         np.random.normal(mu_speed[2], sigma_speed[2]), 0])
                     point = give_points(i, j, k, 2) + time_error
                     points_simulated.append(l @ point)
                 points_simulated = np.array(points_simulated)
@@ -1039,7 +1043,9 @@ def MC_raw_data(
             else:
                 points_simulated = []
                 for i, j, k in zip(dist, azimuth, elevation):
-                    time_error = np.array([np.random.normal(0, sigma_speed[0]),np.random.normal(0, sigma_speed[1]),np.random.normal(0, sigma_speed[2]),0])
+                    time_error = np.array([np.random.normal(mu_speed[0], sigma_speed[0]), np.random.normal(mu_speed[1], sigma_speed[1]),
+                        np.random.normal(mu_speed[2], sigma_speed[2]), 0])
+                    #print(mu_speed, sigma_speed, time_error)
                     point = give_points(i, j, k, 2)+time_error
                     points_simulated.append(Tf_mean @ point)
                 points_simulated = np.array(points_simulated)
@@ -1340,9 +1346,9 @@ def STEAM_interpolation_with_covariance(Time_RTS, Time_sensor, MC_data):
         opt_prob.add_state_var(*[v for state_var in state_vars for v in state_var[1:]])
         opt_prob.add_cost_term(*traj.get_prior_cost_terms())
         opt_prob.add_cost_term(*cost_terms)
-        # solver = GaussNewtonSolver(opt_prob, verbose=False)
+        solver = GaussNewtonSolver(opt_prob, verbose=False)
         # solver = DoglegGaussNewtonSolver(opt_prob, verbose=True)
-        solver = LevMarqGaussNewtonSolver(opt_prob, verbose=False)
+        #solver = LevMarqGaussNewtonSolver(opt_prob, verbose=False)
         solver.optimize()
     except:
         print("Exception interpolation !")
@@ -1358,7 +1364,6 @@ def STEAM_interpolation_with_covariance(Time_RTS, Time_sensor, MC_data):
                 for i in time_interpolated
             ]
             T_0k_interp = np.array([np.linalg.inv(x) for x in T_k0_interp0])   # Pose interpolated
-
             covariance = Covariance(opt_prob)
             T_k0_interp1 = [
                 traj.get_covariance(covariance, Time(i)) for i in time_interpolated     # Covariance interpolated
@@ -1748,6 +1753,57 @@ def extrinsic_calibration_noise(
 import matplotlib.colors as colors
 import matplotlib.transforms as transforms
 from matplotlib.patches import Ellipse
+
+def plot_ellipse_border(
+    ax, mean, cov, n_std=2, color="tab:red", alpha=0.2, border=False, **kwargs
+):
+    if cov[0, 0] < 1e-5**2 or cov[1, 1] < 1e-5**2:
+        return
+    pearson = cov[0, 1] / np.sqrt(cov[0, 0] * cov[1, 1])
+    # Using a special case to obtain the eigenvalues of this
+    # two-dimensionl dataset.
+    ell_radius_x = np.sqrt(1 + pearson)
+    ell_radius_y = np.sqrt(1 - pearson)
+    ellipse = Ellipse(
+        (0, 0),
+        width=ell_radius_x * 2,
+        height=ell_radius_y * 2,
+        facecolor=(colors.to_rgba(color, alpha) if border == False else (0, 0, 0, 0)),
+        edgecolor=(colors.to_rgba(color, alpha) if border == True else (0, 0, 0, 0)),
+        **kwargs
+    )
+
+    # Calculating the stdandard deviation of x from
+    # the squareroot of the variance and multiplying
+    # with the given number of standard deviations.
+    scale_x = np.sqrt(cov[0, 0]) * n_std
+    mean_x = mean[0]
+
+    # calculating the stdandard deviation of y ...
+    scale_y = np.sqrt(cov[1, 1]) * n_std
+    mean_y = mean[1]
+
+    transf = (
+        transforms.Affine2D()
+        .rotate_deg(45)
+        .scale(scale_x, scale_y)
+        .translate(mean_x, mean_y)
+    )
+
+    ellipse.set_transform(transf + ax.transData)
+
+    path = ellipse.get_path()
+    # Get the list of path vertices
+
+    vertices = path.vertices.copy()
+    # Transform the vertices so that they have the correct coordinates
+    angle = -45*math.pi/180
+    rot = np.array([[math.cos(angle), -math.sin(angle)],[math.sin(angle),math.cos(angle)]])
+    xx, yy = vertices.T* n_std/2
+    point = (rot@np.array([xx,yy])).T + np.array([mean_x,mean_y])
+    xx = point[:,0]
+    yy = point[:,1]
+    return xx, yy
 
 
 def plot_ellipse(
