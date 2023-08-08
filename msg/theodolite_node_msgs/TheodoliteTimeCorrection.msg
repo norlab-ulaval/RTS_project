@@ -1,0 +1,3 @@
+std_msgs/Header header
+uint8 theodolite_id
+builtin_interfaces/Duration estimated_time_offset
