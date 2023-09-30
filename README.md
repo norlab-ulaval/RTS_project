@@ -2,6 +2,8 @@
 
 ***Author: Maxime Vaidis <maxime.vaidis@norlab.ulaval.ca>***
 
+***Update: September 30th 2023 by Maxime Vaidis***
+
 ***Code to process RTS data***
 
 This RTS library aims to develop the processing of Robotic Total Stations data in mobile robotics.
@@ -30,11 +32,11 @@ Details about the code are in the [Wiki](https://github.com/norlab-ulaval/RTS_Ex
 
 ## Datasets
 
-A 2022 dataset consisting of `.bag` files with RTS data is available [Here](https://github.com/norlab-ulaval/RTS_Extrinsic_Calibration/wiki/RTS-2022-Dataset) with a details explanation about the data collected.
+A 2023 dataset consisting of `.bag` files with RTS data is available [Here](https://github.com/norlab-ulaval/Norlab_wiki/wiki/RTS%E2%80%90GT-Dataset-2023) with a details explanation about the data collected.
 
-The 2022 dataset was taken with two different robotic platform and contains over 30 kilometers of prism trajectories tracked by three RTSs.
+The RTS-GT dataset was taken with two different robotic platform and contains over 49 kilometers of prism trajectories tracked by three RTSs.
 
-Note: the dataset of 2022 was collected through ROS 1.
+Note: the dataset of 2023 was collected through ROS 1 for the RTS data, and ROS 2 for the robots' data
 
 ## Contributing Utilities
 
@@ -60,6 +62,10 @@ If you use this package for your research, a footnote with the link to this repo
 
 ## Papers linked
 
-[2022: Extrinsic calibration for highly accurate trajectories reconstruction](https://arxiv.org/abs/2210.01048)
+[2023: RTS-GT: Robotic Total Stations Ground Truthing dataset (Submitted to ICRA 2024)](https://arxiv.org/abs/2309.11935)
 
-[2021: Accurate outdoor ground truth based on total stations](https://arxiv.org/abs/2104.14396)
+[2023: Uncertainty analysis for accurate ground truth trajectories with robotic total stations (IROS 2023)](https://arxiv.org/abs/2308.01553)
+
+[2023: Extrinsic calibration for highly accurate trajectories reconstruction (ICRA 2023)](https://ieeexplore.ieee.org/document/10160505)
+
+[2021: Accurate outdoor ground truth based on total stations (CRV 2021)](https://ieeexplore.ieee.org/abstract/document/9469468)
